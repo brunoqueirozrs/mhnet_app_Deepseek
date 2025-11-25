@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MHNET Externas — Rota & Leads</title>
+  <meta name="theme-color" content="#0f766e"/>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.jpeg" alt="MHnet Logo" class="logo">
+      <div class="brand-text">
+        <div class="title">App Rota Lajeado</div>
+        <div class="subtitle">Rastreamento de Rotas</div>
+      </div>
+    </div>
+    <button id="menuBtn" class="menu-btn" aria-label="menu">&#9776;</button>
+  </header>
+
+  <main class="container">
+    <section id="dashboard" class="card dashboard">
+      <h1>Dashboard</h1>
+      <p class="muted">Visão geral das suas atividades em campo</p>
+
+      <div class="grid stats">
+        <div class="stat card-sm">
+          <div class="stat-title">Total de Leads</div>
+          <div class="stat-value" id="statLeads">0</div>
+          <div class="stat-sub">novos</div>
+        </div>
+        <div class="stat card-sm">
+          <div class="stat-title">Rotas Realizadas</div>
+          <div class="stat-value" id="statRotas">0</div>
+          <div class="stat-sub">0.0 km</div>
+        </div>
+        <div class="stat card-sm">
+          <div class="stat-title">Taxa de Conversão</div>
+          <div class="stat-value" id="statConv">0.0%</div>
+          <div class="stat-sub">0 fechados</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card actions">
+      <button class="action-btn blue" onclick="showPage('iniciarRota')">Iniciar Rota</button>
+      <button class="action-btn green" onclick="showPage('verLeads')">Ver Leads</button>
+      <button class="action-btn purple" onclick="showPage('minhasRotas')">Minhas Rotas</button>
+    </section>
+
+    <!-- Cadastrar Lead -->
+    <section id="cadLead" class="card page" style="display:none;">
+      <h2>Leads Captados</h2>
+      <p class="muted">Gerencie seus potenciais clientes</p>
+
+      <div class="form-row">
+        <select id="leadVendedor"></select>
+        <input id="leadNome" placeholder="Nome do lead">
+        <input id="leadTelefone" placeholder="Telefone/WhatsApp">
+        <input id="leadEndereco" placeholder="Endereço (Rua, nº)">
+        <input id="leadCidade" placeholder="Cidade" value="Lajeado">
+        <input id="leadBairro" placeholder="Bairro">
+        <input id="leadProvedor" placeholder="Provedor atual">
+        <select id="leadInteresse">
+          <option value="ALTO">ALTO</option>
+          <option value="MEDIO">MÉDIO</option>
+          <option value="BAIXO">BAIXO</option>
+        </select>
+        <textarea id="leadObs" placeholder="Observação"></textarea>
+      </div>
+
+      <div class="row">
+        <button class="btn primary" onclick="enviarLead()">Salvar Lead</button>
+        <button class="btn" onclick="showPage('dashboard')">Voltar</button>
+      </div>
+    </section>
+
+    <!-- Iniciar Rota -->
+    <section id="iniciarRota" class="card page" style="display:none;">
+      <h2>Iniciar Rota</h2>
+      <select id="rotaVendedor"></select>
+      <div class="row" style="gap:10px;">
+        <button class="btn start" id="startBtn" onclick="startRoute()">Iniciar</button>
+        <button class="btn stop" id="stopBtn" onclick="stopRoute()" disabled>Finalizar</button>
+      </div>
+      <div id="routeInfo" class="muted" style="margin-top:10px;"></div>
+      <button class="btn ghost" onclick="showPage('dashboard')">Voltar</button>
+    </section>
+
+    <!-- Minhas Rotas -->
+    <section id="minhasRotas" class="card page" style="display:none;">
+      <h2>Minhas Rotas</h2>
+      <div id="listaRotas"></div>
+      <button class="btn" onclick="carregarRotas()">Atualizar</button>
+      <button class="btn" onclick="showPage('dashboard')">Voltar</button>
+    </section>
+
+    <!-- Ver Leads -->
+    <section id="verLeads" class="card page" style="display:none;">
+      <h2>Leads</h2>
+      <input id="searchLead" placeholder="Buscar por nome, telefone ou provedor" oninput="renderLeads()">
+      <div id="listaLeads"></div>
+      <button class="btn" onclick="showPage('dashboard')">Voltar</button>
+    </section>
+
+    <!-- Configurações (Gerenciar vendedores) -->
+    <section id="configVendedores" class="card page" style="display:none;">
+      <h2>Vendedores</h2>
+      <input id="novoVend" placeholder="Nome do vendedor">
+      <button class="btn" onclick="addNovoVendedor()">Adicionar</button>
+      <div id="listaVend"></div>
+      <button class="btn" onclick="showPage('dashboard')">Voltar</button>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <small>MHnet • App Rota Lajeado</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

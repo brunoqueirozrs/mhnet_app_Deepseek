@@ -1,0 +1,41 @@
+
+:root{
+  --bg:#f6fbfd;
+  --card:#ffffff;
+  --primary:#00a5b5;
+  --accent:#6b21a8;
+  --success:#10b981;
+  --muted:#6b7280;
+}
+*{box-sizing:border-box}
+body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue'; margin:0; background:linear-gradient(180deg,#f6fbfd, #ffffff); color:#0f172a;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:transparent;border-bottom:1px solid rgba(15,23,42,0.04);}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#fff;padding:4px;border:1px solid rgba(0,0,0,0.05)}
+.brand-text .title{font-weight:700;color:#0f172a}
+.brand-text .subtitle{font-size:12px;color:var(--primary)}
+.menu-btn{background:none;border:none;font-size:22px}
+.container{max-width:960px;margin:18px auto;padding:8px}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 6px 18px rgba(12,47,76,0.06)}
+.dashboard h1{margin:0;font-size:28px}
+.muted{color:var(--muted);margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.card-sm{padding:12px;border-radius:12px;background:linear-gradient(135deg,#f8fafc,#ffffff);box-shadow:0 6px 14px rgba(0,0,0,0.03)}
+.stat-title{font-size:13px;color:var(--muted)}
+.stat-value{font-size:22px;font-weight:700;margin-top:6px}
+.stat-sub{font-size:12px;color:#06b6d4}
+.actions .action-btn{display:block;width:100%;padding:18px;border-radius:12px;border:none;color:white;font-weight:700;margin-bottom:10px}
+.action-btn.blue{background:linear-gradient(90deg,#06b6d4,#0891b2)}
+.action-btn.green{background:linear-gradient(90deg,#10b981,#059669)}
+.action-btn.purple{background:linear-gradient(90deg,#7c3aed,#6d28d9)}
+.form-row input,.form-row select,.form-row textarea{display:block;width:100%;padding:12px;margin-bottom:10px;border-radius:10px;border:1px solid rgba(15,23,42,0.06)}
+.row{display:flex;gap:10px}
+.btn{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(15,23,42,0.06);background:#fff;cursor:pointer}
+.btn.primary{background:var(--primary);color:white;border:none}
+.btn.start{background:linear-gradient(90deg,#0891b2,#06b6d4);color:white;border:none}
+.btn.stop{background:linear-gradient(90deg,#ef4444,#fb923c);color:white;border:none}
+.btn.ghost{background:transparent}
+.footer{text-align:center;padding:18px;color:var(--muted);font-size:13px}
+.page{display:block}
+#listaRotas .card{margin-bottom:12px}
+#listaLeads .lead-card{padding:12px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);margin-bottom:10px}
