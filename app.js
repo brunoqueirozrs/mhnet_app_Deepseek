@@ -327,3 +327,128 @@ function carregarEstatisticas(){
   document.getElementById('statLeads').innerText = leadsCache.length || 0;
   document.getElementById('statRotas').innerText = routesCache.length || 0;
 }
+
+
+// app.js - VERSÃO COM JSONP
+const API = 'https://script.google.com/macros/s/AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7/exec';
+
+// Função JSONP para contornar CORS
+function jsonpFetch(route, data = null) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    
+    // Cria script element
+    const script = document.createElement('script');
+    
+    if (data) {
+      // POST request - usa form
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = API + '?callback=' + callbackName + '&route=' + route;
+      
+      const input = document.createElement('input');
+      input.name = 'data';
+      input.value = JSON.stringify(data);
+      form.appendChild(input);
+      
+      window[callbackName] = function(response) {
+        delete window[callbackName];
+        document.body.removeChild(form);
+        resolve(response);
+      };
+      
+      document.body.appendChild(form);
+      form.submit();
+      
+    } else {
+      // GET request
+      script.src = API + '?callback=' + callbackName + '&route=' + route;
+      
+      window[callbackName] = function(response) {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        resolve(response);
+      };
+      
+      script.onerror = function() {
+        delete window[callbackName];
+        document.body.removeChild(script);
+        reject(new Error('JSONP request failed'));
+      };
+      
+      document.body.appendChild(script);
+    }
+  });
+}
+
+// ATUALIZE AS FUNÇÕES EXISTENTES:
+
+async function carregarVendedores(){
+  try {
+    console.log('🔄 Carregando vendedores via JSONP...');
+    const json = await jsonpFetch('getVendedores');
+    
+    if(json.status === 'success'){
+      vendedoresCache = json.data || [];
+      preencherSelectsVendedores();
+      renderListaVendedores();
+      console.log('✅ Vendedores carregados:', vendedoresCache.length);
+    } else {
+      console.error('❌ Erro no backend:', json.message);
+      // Fallback para dados de exemplo
+      vendedoresCache = [
+        { id: 1, nome: "ANA PAULA RODRIGUES", status: "Ativo" },
+        { id: 2, nome: "VITORIA CAROLINE", status: "Ativo" }
+      ];
+      preencherSelectsVendedores();
+    }
+  } catch(e){
+    console.error("Erro carregar vendedores:", e);
+    // Fallback offline
+    vendedoresCache = [
+      { id: 1, nome: "ANA PAULA RODRIGUES", status: "Ativo" },
+      { id: 2, nome: "VITORIA CAROLINE", status: "Ativo" }
+    ];
+    preencherSelectsVendedores();
+  }
+}
+
+// Atualize a função enviarLead
+async function enviarLead(){
+  const payload = {
+    route: 'addLead',
+    vendedor: document.getElementById('leadVendedor').value || '',
+    nomeLead: document.getElementById('leadNome').value || '',
+    telefone: document.getElementById('leadTelefone').value || '',
+    endereco: document.getElementById('leadEndereco').value || '',
+    cidade: document.getElementById('leadCidade').value || '',
+    bairro: document.getElementById('leadBairro').value || '',
+    observacao: document.getElementById('leadObs').value || '',
+    provedor: document.getElementById('leadProvedor').value || '',
+    interesse: document.getElementById('leadInteresse').value || ''
+  };
+
+  try {
+    const json = await jsonpFetch('addLead', payload);
+    
+    if(json.status === 'duplicate'){
+      alert('Telefone já cadastrado!');
+    } else if(json.status === 'success'){
+      alert('Lead salvo!');
+      // Limpa formulário
+      document.getElementById('leadNome').value = '';
+      document.getElementById('leadTelefone').value = '';
+      document.getElementById('leadEndereco').value = '';
+      document.getElementById('leadBairro').value = '';
+      document.getElementById('leadObs').value = '';
+      document.getElementById('leadProvedor').value = '';
+    } else {
+      alert("Erro: " + json.message);
+    }
+  } catch(e) {
+    console.error('Erro ao enviar lead:', e);
+    alert('Erro de conexão. Tente novamente.');
+  }
+}
+
+// Atualize as outras funções similarmente...
