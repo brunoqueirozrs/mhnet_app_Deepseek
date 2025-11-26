@@ -182,3 +182,48 @@ function carregarEstatisticas(){
   document.getElementById('statLeads').innerText = leadsCache.length || 0;
   document.getElementById('statRotas').innerText = routesCache.length || 0;
 }
+
+function adicionarVendedor(nome) {
+    fetch(API, {
+        method: "POST",
+        body: JSON.stringify({
+            route: "addVendedor",
+            nome: nome
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        alert("Vendedor adicionado!");
+        carregarVendedores();
+    });
+}
+function alterarStatusVendedor(nome) {
+    fetch(API, {
+        method: "POST",
+        body: JSON.stringify({
+            route: "toggleVendedorStatus",
+            nome: nome
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        alert("Status atualizado!");
+        carregarVendedores();
+    });
+}
+function excluirVendedor(nome) {
+    if (!confirm("Tem certeza que deseja excluir?")) return;
+
+    fetch(API, {
+        method: "POST",
+        body: JSON.stringify({
+            route: "deleteVendedor",
+            nome: nome
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        alert("Vendedor removido!");
+        carregarVendedores();
+    });
+}
