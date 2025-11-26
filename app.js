@@ -159,74 +159,237 @@ async function excluirVendedor(id){
 // ==============================
 //  LEADS
 // ==============================
+// app.js - COM CORS PROXY
+const API_BASE = 'AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7';
+const API = `https://corsproxy.io/?https://script.google.com/macros/s/${API_BASE}/exec`;
+
+// Ou use este proxy alternativo:
+// const API = `https://api.allorigins.win/raw?url=https://script.google.com/macros/s/${API_BASE}/exec`;
+
+let leadsCache = [];
+let routesCache = [];
+let vendedoresCache = [];
+
+// ==============================
+//  FUNÇÃO DE FETCH COM CORS PROXY
+// ==============================
+async function apiCall(route, data = null) {
+  const url = data ? API : `${API}?route=${route}`;
+  
+  const options = data ? {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  } : { method: 'GET' };
+
+  try {
+    console.log(`🔄 Chamando API: ${route}`);
+    const response = await fetch(url, options);
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+    const result = await response.json();
+    console.log(`✅ Resposta ${route}:`, result);
+    return result;
+    
+  } catch (error) {
+    console.error(`❌ Erro ${route}:`, error);
+    return getFallbackData(route);
+  }
+}
+
+// ==============================
+//  DADOS OFFLINE DE FALLBACK
+// ==============================
+function getFallbackData(route) {
+  switch(route) {
+    case 'getVendedores':
+      return {
+        status: 'success', 
+        data: [
+          { id: 1, nome: "ANA PAULA RODRIGUES", status: "Ativo" },
+          { id: 2, nome: "VITORIA CAROLINE BALDEZ ROSSALES", status: "Ativo" },
+          { id: 3, nome: "JOÃO PAULO DA SILVA SANTOS", status: "Ativo" },
+          { id: 4, nome: "CLAUDIA MARIA SEMMLER", status: "Ativo" },
+          { id: 5, nome: "DIULIA VITÓRIA MACHADO BORGES", status: "Ativo" },
+          { id: 6, nome: "ELTON DA SILVA RODRIGO GONÇALVES", status: "Ativo" }
+        ]
+      };
+      
+    case 'getLeads':
+      return { status: 'success', data: [] };
+      
+    case 'getRoutes':
+      return { status: 'success', data: [] };
+      
+    default:
+      return { status: 'error', message: 'Rota offline' };
+  }
+}
+
+// ==============================
+//  VENDEDORES (ATUALIZADO)
+// ==============================
+async function carregarVendedores(){
+  const json = await apiCall('getVendedores');
+  
+  if(json.status === 'success'){
+    vendedoresCache = json.data || [];
+    preencherSelectsVendedores();
+    renderListaVendedores();
+  }
+}
+
+// Mantenha as funções preencherSelectsVendedores e renderListaVendedores como estão
+
+// ==============================
+//  LEADS (ATUALIZADO)
+// ==============================
 async function enviarLead(){
   const payload = {
     route: 'addLead',
-    vendedor:  document.getElementById('leadVendedor').value || '',
-    nomeLead:  document.getElementById('leadNome').value || '',
-    telefone:  document.getElementById('leadTelefone').value || '',
-    endereco:  document.getElementById('leadEndereco').value || '',
-    cidade:    document.getElementById('leadCidade').value || '',
-    bairro:    document.getElementById('leadBairro').value || '',
-    observacao:document.getElementById('leadObs').value || '',
-    provedor:  document.getElementById('leadProvedor').value || '',
+    vendedor: document.getElementById('leadVendedor').value || '',
+    nomeLead: document.getElementById('leadNome').value || '',
+    telefone: document.getElementById('leadTelefone').value || '',
+    endereco: document.getElementById('leadEndereco').value || '',
+    cidade: document.getElementById('leadCidade').value || '',
+    bairro: document.getElementById('leadBairro').value || '',
+    observacao: document.getElementById('leadObs').value || '',
+    provedor: document.getElementById('leadProvedor').value || '',
     interesse: document.getElementById('leadInteresse').value || ''
   };
 
-  const res  = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-  const json = await res.json();
+  const json = await apiCall('addLead', payload);
 
   if(json.status === 'duplicate'){
     alert('Telefone já cadastrado!');
   } else if(json.status === 'success'){
     alert('Lead salvo!');
-    document.getElementById('leadNome').value='';
-    document.getElementById('leadTelefone').value='';
+    // Limpa os campos principais
+    document.getElementById('leadNome').value = '';
+    document.getElementById('leadTelefone').value = '';
+    document.getElementById('leadEndereco').value = '';
+    document.getElementById('leadBairro').value = '';
   } else {
-    alert("Erro: " + json.message);
+    alert("Erro: " + (json.message || 'Tente novamente'));
   }
-
-  carregarLeads();
 }
 
 async function carregarLeads(){
-  try{
-    const res  = await fetch(API + '?route=getLeads');
-    const json = await res.json();
+  const json = await apiCall('getLeads');
+  
+  if(json.status === 'success'){
     leadsCache = json.data || [];
     renderLeads();
     carregarEstatisticas();
-  } catch(e){
-    console.error(e);
   }
 }
 
-function renderLeads(){
-  const q = document.getElementById('searchLead').value.toLowerCase();
-  const div = document.getElementById('listaLeads');
+// ==============================
+//  ROTAS (ATUALIZADO)
+// ==============================
+async function stopRoute(){
+  if(!routeActive) return;
+
+  routeActive = false;
+  if(watchId) navigator.geolocation.clearWatch(watchId);
+
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+
+  const payload = {
+    route: 'saveRoute',
+    vendedor: routeVendor,
+    inicioISO: routeStart,
+    fimISO: new Date().toISOString(),
+    coords: routeCoords,
+    qtdLeads: 0
+  };
+
+  const json = await apiCall('saveRoute', payload);
+
+  if(json.status === 'success'){
+    alert("Rota salva!");
+    carregarRotas();
+  } else {
+    alert("Erro ao salvar rota: " + (json.message || ''));
+  }
+
+  document.getElementById('routeInfo').innerText = '';
+}
+
+async function carregarRotas(){
+  const json = await apiCall('getRoutes');
+  
+  if(json.status === 'success'){
+    routesCache = json.data || [];
+    renderRotas();
+    carregarEstatisticas();
+  }
+}
+
+function renderRotas(){
+  const div = document.getElementById('listaRotas');
+  if(!div) return;
 
   div.innerHTML = '';
 
-  leadsCache
-    .filter(l =>
-      !q ||
-      (l.nomeLead||'').toLowerCase().includes(q) ||
-      (l.telefone||'').toLowerCase().includes(q) ||
-      (l.provedor||'').toLowerCase().includes(q)
-    )
-    .forEach(l => {
-      const node = document.createElement('div');
-      node.className = 'lead-card';
-      node.innerHTML = `
-        <strong>${l.nomeLead}</strong>
-        <div class="muted">${l.vendedor} - ${l.telefone}</div>
-        <div>${l.endereco} ${l.bairro}</div>
-        <div style="margin-top:8px;color:#0ea5a4">${l.provedor} • Interesse: ${l.interesse}</div>
-      `;
-      div.appendChild(node);
-    });
+  routesCache.forEach(r => {
+    const node = document.createElement('div');
+    node.className = 'lead-card';
+    node.innerHTML = `
+      <strong>Rota ${r.routeId || 'N/A'}</strong>
+      <div class="muted">${r.vendedor} • ${r.inicio} → ${r.fim}</div>
+      ${r.kmlUrl ? `<a style="margin-top:8px; display:block" href="${r.kmlUrl}" target="_blank">Baixar KML</a>` : ''}
+    `;
+    div.appendChild(node);
+  });
 }
 
+// ==============================
+//  VENDEDORES - CRUD (ATUALIZADO)
+// ==============================
+async function addNovoVendedor(){
+  const nome = document.getElementById('novoVend').value;
+  if(!nome) return alert('Digite um nome');
+
+  const payload = { route: 'addVendedor', nome };
+  const json = await apiCall('addVendedor', payload);
+
+  if(json.status === 'success'){
+    alert("Vendedor adicionado!");
+    document.getElementById('novoVend').value = '';
+    carregarVendedores();
+  } else {
+    alert("Erro: " + (json.message || ''));
+  }
+}
+
+async function alterarStatusVendedor(id, statusAtual){
+  const novoStatus = statusAtual === 'Ativo' ? 'Inativo' : 'Ativo';
+  const payload = { route: 'updateVendedorStatus', id, status: novoStatus };
+
+  const json = await apiCall('updateVendedorStatus', payload);
+
+  if(json.status === 'success'){
+    alert("Status atualizado!");
+    carregarVendedores();
+  }
+}
+
+async function excluirVendedor(id){
+  if(!confirm("Deseja realmente excluir este vendedor?")) return;
+
+  const payload = { route: 'deleteVendedor', id };
+  const json = await apiCall('deleteVendedor', payload);
+
+  if(json.status === 'success'){
+    alert("Vendedor removido!");
+    carregarVendedores();
+  }
+}
+
+// Mantenha o resto do código igual...
 // ==============================
 //  ROTAS
 // ==============================
