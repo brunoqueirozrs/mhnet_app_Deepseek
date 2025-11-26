@@ -1,6 +1,5 @@
-
 // Frontend PWA logic (connect to Apps Script backend)
-const API = 'COLE_SUA_URL_DO_BACKEND_AQUI'; // replace with your WebApp URL
+const API = 'https://script.google.com/macros/s/AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7/exec'; // replace with your WebApp URL
 let leadsCache = [];
 let routesCache = [];
 
