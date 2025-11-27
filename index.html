@@ -17,16 +17,17 @@
         <div class="subtitle" id="userInfo">Selecione um vendedor</div>
       </div>
     </div>
-    <button id="menuBtn" class="menu-btn" aria-label="menu" onclick="toggleUserMenu()">&#9776;</button>
+    <button id="menuBtn" class="menu-btn" aria-label="menu" onclick="toggleUserMenu()">👤</button>
   </header>
 
   <!-- Menu de seleção de usuário -->
-  <div id="userMenu" class="card" style="display:none; position:absolute; top:70px; right:20px; z-index:1000; width:200px;">
+  <div id="userMenu" class="card" style="display:none; position:absolute; top:70px; right:20px; z-index:1000; width:250px;">
     <h3>Selecionar Vendedor</h3>
-    <select id="userSelect" style="width:100%; padding:8px; margin-bottom:10px;">
+    <select id="userSelect" style="width:100%; padding:10px; margin-bottom:12px; border-radius:8px; border:1px solid #ddd;">
       <option value="">Selecione...</option>
     </select>
     <button class="btn primary" onclick="setLoggedUser()" style="width:100%;">Confirmar</button>
+    <button class="btn" onclick="logout()" style="width:100%; margin-top:8px; background:#f8f9fa;">Trocar Vendedor</button>
   </div>
 
   <main class="container" id="mainContent" style="display:none;">
@@ -38,36 +39,90 @@
         <div class="stat card-sm">
           <div class="stat-title">Total de Leads</div>
           <div class="stat-value" id="statLeads">0</div>
-          <div class="stat-sub">novos</div>
+          <div class="stat-sub" id="statLeadsNovos">0 novos</div>
         </div>
         <div class="stat card-sm">
           <div class="stat-title">Rotas Realizadas</div>
           <div class="stat-value" id="statRotas">0</div>
-          <div class="stat-sub">0.0 km</div>
+          <div class="stat-sub" id="statRotasKm">0.0 km</div>
         </div>
         <div class="stat card-sm">
           <div class="stat-title">Taxa de Conversão</div>
-          <div class="stat-value" id="statConv">0.0%</div>
-          <div class="stat-sub">0 fechados</div>
+          <div class="stat-value" id="statConv">0%</div>
+          <div class="stat-sub" id="statFechados">0 fechados</div>
         </div>
       </div>
     </section>
 
     <section class="card actions">
-      <button class="action-btn blue" onclick="showPage('iniciarRota')">Iniciar Rota</button>
-      <button class="action-btn green" onclick="showPage('verLeads')">Ver Leads</button>
-      <button class="action-btn purple" onclick="showPage('minhasRotas')">Minhas Rotas</button>
-      <!-- NOVO BOTÃO DE VENDA -->
-      <button class="action-btn orange" onclick="showPage('novaVenda')">Nova Venda</button>
+      <button class="action-btn blue" onclick="showPage('iniciarRota')">📍 Iniciar Rota</button>
+      <button class="action-btn green" onclick="showPage('gestaoLeads')">📋 Gestão de Leads</button>
+      <button class="action-btn purple" onclick="showPage('minhasRotas')">🛣️ Minhas Rotas</button>
+      <button class="action-btn orange" onclick="showPage('novaVenda')">💰 Nova Venda</button>
+    </section>
+
+    <!-- Gestão de Leads (NOVA PÁGINA) -->
+    <section id="gestaoLeads" class="card page" style="display:none;">
+      <h2>📋 Gestão de Leads</h2>
+      <p class="muted">Gerencie e acompanhe seus leads</p>
+
+      <div class="lead-actions">
+        <button class="lead-action-btn primary" onclick="showPage('cadLead')">➕ Cadastrar Lead</button>
+        <button class="lead-action-btn secondary" onclick="carregarLeads()">🔄 Atualizar Lista</button>
+        <button class="lead-action-btn tertiary" onclick="exportarLeads()">📤 Exportar Leads</button>
+      </div>
+
+      <div style="margin:20px 0;">
+        <input id="searchLead" placeholder="🔍 Buscar por nome, telefone ou bairro..." 
+               style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;"
+               oninput="renderLeads()">
+      </div>
+
+      <div id="listaLeadsGestao"></div>
+    </section>
+
+    <!-- Cadastrar Lead -->
+    <section id="cadLead" class="card page" style="display:none;">
+      <h2>➕ Cadastrar Lead</h2>
+      <p class="muted">Adicione um novo lead potencial</p>
+
+      <div class="form-row">
+        <input id="leadNome" placeholder="👤 Nome completo">
+        <input id="leadTelefone" placeholder="📞 Telefone/WhatsApp" type="tel">
+        <input id="leadEndereco" placeholder="🏠 Endereço (Rua, nº)">
+        <input id="leadCidade" placeholder="🌎 Cidade" value="Lajeado">
+        <input id="leadBairro" placeholder="📍 Bairro">
+        <input id="leadProvedor" placeholder="📡 Provedor atual">
+        <select id="leadInteresse">
+          <option value="">🎯 Nível de interesse</option>
+          <option value="ALTO">ALTO</option>
+          <option value="MEDIO">MÉDIO</option>
+          <option value="BAIXO">BAIXO</option>
+        </select>
+        <select id="leadStatus">
+          <option value="">📊 Status do lead</option>
+          <option value="NOVO">NOVO</option>
+          <option value="EM_ATENDIMENTO">EM ATENDIMENTO</option>
+          <option value="AGENDADO">AGENDADO</option>
+          <option value="CONVERTIDO">CONVERTIDO</option>
+          <option value="PERDIDO">PERDIDO</option>
+        </select>
+        <textarea id="leadObs" placeholder="📝 Observações e anotações"></textarea>
+      </div>
+
+      <div class="row">
+        <button class="btn primary" onclick="enviarLead()">💾 Salvar Lead</button>
+        <button class="btn" onclick="showPage('gestaoLeads')">↩️ Voltar</button>
+      </div>
     </section>
 
     <!-- Nova Venda -->
     <section id="novaVenda" class="card page" style="display:none;">
-      <h2>📄 Nova Venda - Rodar Contrato</h2>
+      <h2>💰 Nova Venda - Rodar Contrato</h2>
       <p class="muted">Preencha os dados para gerar o contrato</p>
 
       <div class="form-row">
-        <input type="text" id="vendaNome" placeholder="✏ Nome completo" required>
+        <input type="text" id="vendaNome" placeholder="✏️ Nome completo" required>
         <input type="date" id="vendaNascimento" placeholder="📅 Data de nascimento" required>
         <input type="text" id="vendaCPF" placeholder="🔢 CPF" required>
         <input type="email" id="vendaEmail" placeholder="📧 E-mail (obrigatório)" required>
@@ -84,7 +139,7 @@
           <option value="500MB">500MB - R$ 199,90</option>
         </select>
         <select id="vendaVencimento" required>
-          <option value="">🗓 Dia de vencimento</option>
+          <option value="">🗓️ Dia de vencimento</option>
           <option value="5">Dia 5</option>
           <option value="10">Dia 10</option>
           <option value="15">Dia 15</option>
@@ -95,76 +150,65 @@
 
       <div class="row">
         <button class="btn primary" onclick="enviarVenda()">📋 Gerar Contrato</button>
-        <button class="btn" onclick="showPage('dashboard')">Voltar</button>
-      </div>
-    </section>
-
-    <!-- Cadastrar Lead -->
-    <section id="cadLead" class="card page" style="display:none;">
-      <h2>Leads Captados</h2>
-      <p class="muted">Gerencie seus potenciais clientes</p>
-
-      <div class="form-row">
-        <input id="leadNome" placeholder="Nome do lead">
-        <input id="leadTelefone" placeholder="Telefone/WhatsApp">
-        <input id="leadEndereco" placeholder="Endereço (Rua, nº)">
-        <input id="leadCidade" placeholder="Cidade" value="Lajeado">
-        <input id="leadBairro" placeholder="Bairro">
-        <input id="leadProvedor" placeholder="Provedor atual">
-        <select id="leadInteresse">
-          <option value="ALTO">ALTO</option>
-          <option value="MEDIO">MÉDIO</option>
-          <option value="BAIXO">BAIXO</option>
-        </select>
-        <textarea id="leadObs" placeholder="Observação"></textarea>
-      </div>
-
-      <div class="row">
-        <button class="btn primary" onclick="enviarLead()">Salvar Lead</button>
-        <button class="btn" onclick="showPage('dashboard')">Voltar</button>
+        <button class="btn" onclick="showPage('dashboard')">↩️ Voltar</button>
       </div>
     </section>
 
     <!-- Iniciar Rota -->
     <section id="iniciarRota" class="card page" style="display:none;">
-      <h2>Iniciar Rota</h2>
+      <h2>📍 Iniciar Rota</h2>
+      <p class="muted" id="rotaVendedorInfo">Vendedor: </p>
+      
       <div class="row" style="gap:10px;">
-        <button class="btn start" id="startBtn" onclick="startRoute()">Iniciar</button>
-        <button class="btn stop" id="stopBtn" onclick="stopRoute()" disabled>Finalizar</button>
+        <button class="btn start" id="startBtn" onclick="startRoute()">▶️ Iniciar</button>
+        <button class="btn stop" id="stopBtn" onclick="stopRoute()" disabled>⏹️ Finalizar</button>
       </div>
-      <div id="routeInfo" class="muted" style="margin-top:10px;"></div>
-      <button class="btn ghost" onclick="showPage('dashboard')">Voltar</button>
+      
+      <div id="routeInfo" class="muted" style="margin-top:10px; padding:10px; background:#f8f9fa; border-radius:8px;"></div>
+      
+      <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:15px;">↩️ Voltar</button>
     </section>
 
     <!-- Minhas Rotas -->
     <section id="minhasRotas" class="card page" style="display:none;">
-      <h2>Minhas Rotas</h2>
+      <h2>🛣️ Minhas Rotas</h2>
+      <p class="muted">Histórico de rotas realizadas</p>
+      
       <div id="listaRotas"></div>
-      <button class="btn" onclick="carregarRotas()">Atualizar</button>
-      <button class="btn" onclick="showPage('dashboard')">Voltar</button>
+      
+      <div class="row" style="margin-top:15px;">
+        <button class="btn" onclick="carregarRotas()">🔄 Atualizar</button>
+        <button class="btn" onclick="showPage('dashboard')">↩️ Voltar</button>
+      </div>
     </section>
 
-    <!-- Ver Leads -->
+    <!-- Ver Leads (antiga página) -->
     <section id="verLeads" class="card page" style="display:none;">
       <h2>Leads</h2>
-      <input id="searchLead" placeholder="Buscar por nome, telefone ou provedor" oninput="renderLeads()">
+      <input id="searchLeadOld" placeholder="Buscar por nome, telefone ou provedor" oninput="renderLeadsOld()">
       <div id="listaLeads"></div>
       <button class="btn" onclick="showPage('dashboard')">Voltar</button>
     </section>
 
     <!-- Configurações (Gerenciar vendedores) -->
     <section id="configVendedores" class="card page" style="display:none;">
-      <h2>Vendedores</h2>
-      <input id="novoVend" placeholder="Nome do vendedor">
-      <button class="btn" onclick="addNovoVendedor()">Adicionar</button>
-      <div id="listaVend"></div>
-      <button class="btn" onclick="showPage('dashboard')">Voltar</button>
+      <h2>👥 Vendedores</h2>
+      <p class="muted">Gerencie a equipe de vendedores</p>
+      
+      <div class="form-row">
+        <input id="novoVend" placeholder="Nome do novo vendedor">
+        <button class="btn primary" onclick="addNovoVendedor()">➕ Adicionar</button>
+      </div>
+      
+      <div id="listaVend" style="margin-top:15px;"></div>
+      
+      <button class="btn" onclick="showPage('dashboard')" style="margin-top:15px;">↩️ Voltar</button>
     </section>
 
   </main>
 
   <footer class="footer">
-    <small>MHnet • App Rota Lajeado</small>
+    <small>MHnet • App Rota Lajeado • Vendedor: <span id="footerUser">Não logado</span></small>
   </footer>
 
   <script src="app.js"></script>
