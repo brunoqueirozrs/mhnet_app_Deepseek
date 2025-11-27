@@ -6,6 +6,7 @@
   --success:#10b981;
   --muted:#6b7280;
   --warning:#f59e0b;
+  --danger:#ef4444;
 }
 *{box-sizing:border-box}
 body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue'; margin:0; background:linear-gradient(180deg,#f6fbfd, #ffffff); color:#0f172a;}
@@ -62,4 +63,149 @@ body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica
   border-radius: 8px;
   border: 1px solid rgba(15,23,42,0.1);
   margin-bottom: 10px;
+}
+
+/* Novos estilos para gestão de leads */
+.lead-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.lead-action-btn {
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+}
+
+.lead-action-btn.primary {
+  background: var(--primary);
+  color: white;
+}
+
+.lead-action-btn.secondary {
+  background: var(--success);
+  color: white;
+}
+
+.lead-action-btn.tertiary {
+  background: var(--accent);
+  color: white;
+}
+
+/* Cards de leads melhorados */
+.lead-card-gestao {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(15,23,42,0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lead-card-gestao:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.lead-header {
+  display: flex;
+  justify-content: between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.lead-name {
+  font-weight: 700;
+  font-size: 16px;
+  color: #0f172a;
+  flex: 1;
+}
+
+.lead-status {
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-novo { background: #dbeafe; color: #1d4ed8; }
+.status-atendimento { background: #fef3c7; color: #d97706; }
+.status-agendado { background: #ddd6fe; color: #7c3aed; }
+.status-convertido { background: #d1fae5; color: #065f46; }
+.status-perdido { background: #fecaca; color: #dc2626; }
+
+.lead-contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.whatsapp-btn {
+  background: #25D366;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.whatsapp-btn:hover {
+  background: #128C7E;
+}
+
+.lead-info {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0;
+}
+
+.lead-obs {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #666;
+}
+
+.lead-timestamp {
+  font-size: 10px;
+  color: #999;
+  margin-top: 6px;
+  text-align: right;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .lead-actions {
+    grid-template-columns: 1fr;
+  }
+  
+  .lead-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .lead-status {
+    align-self: flex-start;
+  }
 }
