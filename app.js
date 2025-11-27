@@ -3,27 +3,81 @@
 // ==============================
 const API_BASE = 'AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7';
 const API_DIRECT = `https://script.google.com/macros/s/${API_BASE}/exec`;
+const PLANILHA_VENDAS_ID = '19U8KDUFQUhMOLPIniKCkUfGXZCBY7i3uFyjOQYU003w';
 
 let leadsCache = [];
 let routesCache = [];
 let vendedoresCache = [];
+let loggedUser = null;
 
 // ==============================
 //  INICIALIZAÇÃO
 // ==============================
 document.addEventListener('DOMContentLoaded', () => {
-  showPage('dashboard');
-  carregarVendedores();
-  carregarEstatisticas();
-  
-  // Adiciona favicon dinâmico
+  checkUserLogin();
   addFavicon();
 });
+
+// ==============================
+//  SISTEMA DE LOGIN DO VENDEDOR
+// ==============================
+function checkUserLogin() {
+  const savedUser = localStorage.getItem('loggedUser');
+  if (savedUser) {
+    loggedUser = savedUser;
+    showMainContent();
+  } else {
+    showUserMenu();
+  }
+}
+
+function showUserMenu() {
+  document.getElementById('userMenu').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('userInfo').textContent = 'Selecione um vendedor';
+  carregarVendedores();
+}
+
+function showMainContent() {
+  document.getElementById('userMenu').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
+  showPage('dashboard');
+  carregarEstatisticas();
+}
+
+function toggleUserMenu() {
+  const menu = document.getElementById('userMenu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function setLoggedUser() {
+  const select = document.getElementById('userSelect');
+  const user = select.value;
+  if (user) {
+    loggedUser = user;
+    localStorage.setItem('loggedUser', user);
+    showMainContent();
+  } else {
+    alert('Selecione um vendedor');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('loggedUser');
+  loggedUser = null;
+  showUserMenu();
+}
 
 // ==============================
 //  CONTROLE DE PÁGINAS
 // ==============================
 function showPage(id){
+  if (!loggedUser && id !== 'userMenu') {
+    showUserMenu();
+    return;
+  }
+  
   document.querySelectorAll('.page, .dashboard, .actions').forEach(el => el.style.display = 'none');
 
   if(id === 'dashboard'){
@@ -37,6 +91,7 @@ function showPage(id){
   if(id === 'cadLead' || id === 'iniciarRota') carregarVendedores();
   if(id === 'verLeads') carregarLeads();
   if(id === 'minhasRotas') carregarRotas();
+  if(id === 'novaVenda') limparFormularioVenda();
 }
 
 // ==============================
@@ -185,6 +240,29 @@ function getFallbackData(route, data = null) {
         data: newRoute
       };
       
+    case 'addVenda':
+      // Simula salvamento offline de venda
+      const newVenda = {
+        id: Date.now(),
+        vendedor: data.vendedor,
+        nome: data.nome,
+        cpf: data.cpf,
+        email: data.email,
+        telefone1: data.telefone1,
+        telefone2: data.telefone2,
+        endereco: data.endereco,
+        bairro: data.bairro,
+        cidade: data.cidade,
+        plano: data.plano,
+        vencimento: data.vencimento,
+        timestamp: new Date().toLocaleString('pt-BR')
+      };
+      return { 
+        status: 'success', 
+        message: 'Venda registrada localmente (modo offline)',
+        data: newVenda
+      };
+      
     default:
       return { status: 'error', message: 'Rota offline: ' + route };
   }
@@ -212,17 +290,18 @@ async function carregarVendedores(){
 function preencherSelectsVendedores(){
   const s1 = document.getElementById('leadVendedor');
   const s2 = document.getElementById('rotaVendedor');
+  const userSelect = document.getElementById('userSelect');
 
-  if(!s1 || !s2) return;
-
-  s1.innerHTML = '';
-  s2.innerHTML = '';
+  if(s1) s1.innerHTML = '';
+  if(s2) s2.innerHTML = '';
+  if(userSelect) userSelect.innerHTML = '<option value="">Selecione...</option>';
 
   vendedoresCache.forEach(v => {
     if(String(v.status).toLowerCase() === 'ativo'){
       const opt = new Option(v.nome, v.nome);
-      s1.add(opt.cloneNode(true));
-      s2.add(opt.cloneNode(true));
+      if(s1) s1.add(opt.cloneNode(true));
+      if(s2) s2.add(opt.cloneNode(true));
+      if(userSelect) userSelect.add(new Option(v.nome, v.nome));
     }
   });
 }
@@ -305,12 +384,92 @@ async function excluirVendedor(id){
 }
 
 // ==============================
+//  NOVA VENDA - CONTRATO
+// ==============================
+async function enviarVenda(){
+  if (!loggedUser) {
+    alert('Selecione um vendedor primeiro');
+    showUserMenu();
+    return;
+  }
+
+  const payload = {
+    route: 'addVenda',
+    planilhaId: PLANILHA_VENDAS_ID,
+    vendedor: loggedUser,
+    nome: document.getElementById('vendaNome').value || '',
+    nascimento: document.getElementById('vendaNascimento').value || '',
+    cpf: document.getElementById('vendaCPF').value || '',
+    email: document.getElementById('vendaEmail').value || '',
+    telefone1: document.getElementById('vendaTelefone1').value || '',
+    telefone2: document.getElementById('vendaTelefone2').value || '',
+    endereco: document.getElementById('vendaEndereco').value || '',
+    bairro: document.getElementById('vendaBairro').value || '',
+    cidade: document.getElementById('vendaCidade').value || '',
+    plano: document.getElementById('vendaPlano').value || '',
+    vencimento: document.getElementById('vendaVencimento').value || ''
+  };
+
+  // Validação básica
+  if (!payload.nome || !payload.cpf || !payload.email || !payload.telefone1) {
+    alert('Preencha os campos obrigatórios: Nome, CPF, E-mail e Telefone 1');
+    return;
+  }
+
+  // Validação de CPF básica
+  if (payload.cpf.length < 11) {
+    alert('CPF deve ter pelo menos 11 dígitos');
+    return;
+  }
+
+  // Validação de email básica
+  if (!payload.email.includes('@')) {
+    alert('E-mail inválido');
+    return;
+  }
+
+  try {
+    const json = await apiCall('addVenda', payload);
+    
+    if(json.status === 'success'){
+      alert('✅ Venda registrada com sucesso! Contrato será gerado.');
+      limparFormularioVenda();
+      showPage('dashboard');
+    } else {
+      alert('Erro ao registrar venda: ' + (json.message || 'Tente novamente'));
+    }
+  } catch(e) {
+    console.error(e);
+    alert('Erro de conexão ao registrar venda');
+  }
+}
+
+function limparFormularioVenda() {
+  document.getElementById('vendaNome').value = '';
+  document.getElementById('vendaNascimento').value = '';
+  document.getElementById('vendaCPF').value = '';
+  document.getElementById('vendaEmail').value = '';
+  document.getElementById('vendaTelefone1').value = '';
+  document.getElementById('vendaTelefone2').value = '';
+  document.getElementById('vendaEndereco').value = '';
+  document.getElementById('vendaBairro').value = '';
+  document.getElementById('vendaPlano').value = '';
+  document.getElementById('vendaVencimento').value = '';
+}
+
+// ==============================
 //  LEADS
 // ==============================
 async function enviarLead(){
+  if (!loggedUser) {
+    alert('Selecione um vendedor primeiro');
+    showUserMenu();
+    return;
+  }
+
   const payload = {
     route: 'addLead',
-    vendedor:  document.getElementById('leadVendedor').value || '',
+    vendedor: loggedUser,
     nomeLead:  document.getElementById('leadNome').value || '',
     telefone:  document.getElementById('leadTelefone').value || '',
     endereco:  document.getElementById('leadEndereco').value || '',
@@ -353,6 +512,10 @@ async function carregarLeads(){
     
     if(json.status === 'success'){
       leadsCache = json.data || [];
+      // Filtrar leads apenas do vendedor logado
+      if (loggedUser) {
+        leadsCache = leadsCache.filter(lead => lead.vendedor === loggedUser);
+      }
       renderLeads();
       carregarEstatisticas();
     }
@@ -394,13 +557,15 @@ function renderLeads(){
 // ==============================
 let routeActive = false;
 let routeCoords = [];
-let routeVendor = '';
 let routeStart = null;
 let watchId = null;
 
 function startRoute(){
-  routeVendor = document.getElementById('rotaVendedor').value;
-  if(!routeVendor) return alert('Escolha um vendedor');
+  if (!loggedUser) {
+    alert('Selecione um vendedor primeiro');
+    showUserMenu();
+    return;
+  }
 
   routeCoords = [];
   routeStart  = new Date().toISOString();
@@ -455,7 +620,7 @@ async function stopRoute(){
 
   const payload = {
     route: 'saveRoute',
-    vendedor: routeVendor,
+    vendedor: loggedUser,
     inicioISO: routeStart,
     fimISO: new Date().toISOString(),
     coords: routeCoords,
@@ -488,6 +653,10 @@ async function carregarRotas(){
     
     if(json.status === 'success'){
       routesCache = json.data || [];
+      // Filtrar rotas apenas do vendedor logado
+      if (loggedUser) {
+        routesCache = routesCache.filter(rota => rota.vendedor === loggedUser);
+      }
       renderRotas();
       carregarEstatisticas();
     }
@@ -525,17 +694,34 @@ function renderRotas(){
 //  ESTATÍSTICAS
 // ==============================
 function carregarEstatisticas(){
-  document.getElementById('statLeads').innerText = leadsCache.length || 0;
-  document.getElementById('statRotas').innerText = routesCache.length || 0;
-  
-  // Calcula taxa de conversão simples
-  const totalLeads = leadsCache.length;
-  const leadsComInteresse = leadsCache.filter(l => 
-    l.interesse && l.interesse.toUpperCase() === 'ALTO'
-  ).length;
-  
-  const taxa = totalLeads > 0 ? ((leadsComInteresse / totalLeads) * 100).toFixed(1) : 0;
-  document.getElementById('statConv').innerText = `${taxa}%`;
+  if (loggedUser) {
+    // Filtrar estatísticas apenas do vendedor logado
+    const userLeads = leadsCache.filter(lead => lead.vendedor === loggedUser);
+    const userRotas = routesCache.filter(rota => rota.vendedor === loggedUser);
+    
+    document.getElementById('statLeads').innerText = userLeads.length || 0;
+    document.getElementById('statRotas').innerText = userRotas.length || 0;
+    
+    // Calcula taxa de conversão simples
+    const totalLeads = userLeads.length;
+    const leadsComInteresse = userLeads.filter(l => 
+      l.interesse && l.interesse.toUpperCase() === 'ALTO'
+    ).length;
+    
+    const taxa = totalLeads > 0 ? ((leadsComInteresse / totalLeads) * 100).toFixed(1) : 0;
+    document.getElementById('statConv').innerText = `${taxa}%`;
+  } else {
+    document.getElementById('statLeads').innerText = leadsCache.length || 0;
+    document.getElementById('statRotas').innerText = routesCache.length || 0;
+    
+    const totalLeads = leadsCache.length;
+    const leadsComInteresse = leadsCache.filter(l => 
+      l.interesse && l.interesse.toUpperCase() === 'ALTO'
+    ).length;
+    
+    const taxa = totalLeads > 0 ? ((leadsComInteresse / totalLeads) * 100).toFixed(1) : 0;
+    document.getElementById('statConv').innerText = `${taxa}%`;
+  }
 }
 
 // ==============================
