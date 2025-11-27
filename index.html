@@ -189,7 +189,65 @@
       <div id="listaLeads"></div>
       <button class="btn" onclick="showPage('dashboard')">Voltar</button>
     </section>
+<!-- Gestão de Leads -->
+<section id="gestaoLeads" class="card page" style="display:none;">
+  <h2>📋 Gestão de Leads</h2>
+  <p class="muted">Gerencie e acompanhe seus leads</p>
 
+  <div class="lead-actions">
+    <button class="lead-action-btn primary" onclick="showPage('cadLead')">
+      <span>➕</span>
+      Cadastrar Lead
+    </button>
+    <button class="lead-action-btn secondary" onclick="carregarLeads()">
+      <span>🔄</span>
+      Atualizar
+    </button>
+    <button class="lead-action-btn tertiary" onclick="exportarLeads()">
+      <span>📤</span>
+      Exportar Dados
+    </button>
+    <button class="lead-action-btn" style="background:var(--warning); color:white;" onclick="importarLeads()">
+      <span>📥</span>
+      Importar Dados
+    </button>
+  </div>
+
+  <div class="search-container">
+    <input id="searchLead" placeholder="Buscar por nome, telefone, bairro ou provedor..." oninput="filtrarLeads()">
+  </div>
+
+  <!-- Tabela de Leads -->
+  <div class="table-container">
+    <table class="leads-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Telefone</th>
+          <th>Email</th>
+          <th>Bairro</th>
+          <th>Cidade</th>
+          <th>Status</th>
+          <th>Vendedor</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaLeads">
+        <!-- Leads serão carregados aqui via JavaScript -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-footer">
+    <div class="table-info" id="infoLeads">
+      Mostrando 0 leads
+    </div>
+    <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">
+      <span>↩️</span>
+      Voltar ao Dashboard
+    </button>
+  </div>
+</section>
     <!-- Configurações (Gerenciar vendedores) -->
     <section id="configVendedores" class="card page" style="display:none;">
       <h2>👥 Vendedores</h2>
