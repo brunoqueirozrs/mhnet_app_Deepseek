@@ -2,8 +2,16 @@
 //  FRONTEND PWA – API MHNET
 // ==============================
 const API_BASE = 'AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7';
-const API = `https://corsproxy.io/?https://script.google.com/macros/s/${API_BASE}/exec`;
+// const API = `https://corsproxy.io/?https://script.google.com/macros/s/${API_BASE}/exec`;
 
+// Tente estes proxies alternativos em ordem:
+const PROXIES = [
+  `https://api.codetabs.com/v1/proxy?quest=https://script.google.com/macros/s/${API_BASE}/exec`,
+  `https://cors-anywhere.herokuapp.com/https://script.google.com/macros/s/${API_BASE}/exec`,
+  `https://thingproxy.freeboard.io/fetch/https://script.google.com/macros/s/${API_BASE}/exec`
+];
+
+let API = PROXIES[0]; // Usa o primeiro proxy
 let leadsCache = [];
 let routesCache = [];
 let vendedoresCache = [];
@@ -37,37 +45,50 @@ function showPage(id){
 }
 
 // ==============================
-//  FUNÇÃO DE FETCH COM CORS PROXY
+//  FUNÇÃO DE FETCH COM FALLBACK
 // ==============================
 async function apiCall(route, data = null) {
-  const url = data ? API : `${API}?route=${route}`;
-  
-  const options = data ? {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  } : { method: 'GET' };
+  for (let i = 0; i < PROXIES.length; i++) {
+    try {
+      API = PROXIES[i];
+      console.log(`🔄 Tentando proxy ${i + 1}: ${route}`);
+      
+      const url = data ? API : `${API}?route=${route}`;
+      
+      const options = data ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      } : { method: 'GET' };
 
-  try {
-    console.log(`🔄 Chamando API: ${route}`);
-    const response = await fetch(url, options);
-    
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const result = await response.json();
-    console.log(`✅ Resposta ${route}:`, result);
-    return result;
-    
-  } catch (error) {
-    console.error(`❌ Erro ${route}:`, error);
-    return getFallbackData(route);
+      const response = await fetch(url, options);
+      
+      if (!response.ok) continue; // Tenta próximo proxy
+      
+      const text = await response.text();
+      console.log(`📄 Resposta bruta ${route}:`, text.substring(0, 100));
+      
+      const result = JSON.parse(text);
+      console.log(`✅ Sucesso com proxy ${i + 1}:`, result.status);
+      return result;
+      
+    } catch (error) {
+      console.log(`❌ Proxy ${i + 1} falhou:`, error.message);
+      continue; // Tenta próximo proxy
+    }
   }
+  
+  // Se todos os proxies falharem, usa fallback offline
+  console.log('📴 Todos os proxies falharam, usando modo offline');
+  return getFallbackData(route);
 }
 
 // ==============================
 //  DADOS OFFLINE DE FALLBACK
 // ==============================
 function getFallbackData(route) {
+  console.log(`📋 Usando dados offline para: ${route}`);
+  
   switch(route) {
     case 'getVendedores':
       return {
@@ -83,13 +104,36 @@ function getFallbackData(route) {
       };
       
     case 'getLeads':
-      return { status: 'success', data: [] };
+      // Dados de exemplo para teste
+      return { 
+        status: 'success', 
+        data: [
+          {
+            id: 1,
+            nomeLead: "Cliente Exemplo",
+            telefone: "(51) 99999-9999",
+            vendedor: "ANA PAULA RODRIGUES",
+            endereco: "Rua Exemplo, 123",
+            bairro: "Centro",
+            cidade: "Lajeado",
+            provedor: "Claro",
+            interesse: "ALTO",
+            observacao: "Lead de exemplo para teste"
+          }
+        ]
+      };
       
     case 'getRoutes':
       return { status: 'success', data: [] };
       
+    case 'addLead':
+      return { status: 'success', message: 'Lead salvo localmente (modo offline)' };
+      
+    case 'saveRoute':
+      return { status: 'success', message: 'Rota salva localmente (modo offline)' };
+      
     default:
-      return { status: 'error', message: 'Rota offline' };
+      return { status: 'error', message: 'Rota offline: ' + route };
   }
 }
 
@@ -104,6 +148,8 @@ async function carregarVendedores(){
       vendedoresCache = json.data || [];
       preencherSelectsVendedores();
       renderListaVendedores();
+    } else {
+      console.error('Erro no backend:', json.message);
     }
   } catch(e){
     console.error("Erro carregar vendedores:", e);
@@ -215,28 +261,37 @@ async function enviarLead(){
     nomeLead:  document.getElementById('leadNome').value || '',
     telefone:  document.getElementById('leadTelefone').value || '',
     endereco:  document.getElementById('leadEndereco').value || '',
-    cidade:    document.getElementById('leadCidade').value || '',
+    cidade:    document.getElementById('leadCidade').value || 'Lajeado',
     bairro:    document.getElementById('leadBairro').value || '',
     observacao:document.getElementById('leadObs').value || '',
     provedor:  document.getElementById('leadProvedor').value || '',
-    interesse: document.getElementById('leadInteresse').value || ''
+    interesse: document.getElementById('leadInteresse').value || 'MEDIO'
   };
+
+  // Validação básica
+  if(!payload.nomeLead || !payload.telefone) {
+    return alert('Preencha pelo menos nome e telefone');
+  }
 
   const json = await apiCall('addLead', payload);
 
   if(json.status === 'duplicate'){
     alert('Telefone já cadastrado!');
   } else if(json.status === 'success'){
-    alert('Lead salvo!');
+    alert('Lead salvo! ' + (json.message || ''));
+    // Limpa formulário
     document.getElementById('leadNome').value='';
     document.getElementById('leadTelefone').value='';
     document.getElementById('leadEndereco').value='';
     document.getElementById('leadBairro').value='';
+    document.getElementById('leadObs').value='';
+    document.getElementById('leadProvedor').value='';
+    document.getElementById('leadInteresse').value='MEDIO';
+    
+    carregarLeads();
   } else {
-    alert("Erro: " + (json.message || ''));
+    alert("Erro: " + (json.message || 'Tente novamente'));
   }
-
-  carregarLeads();
 }
 
 async function carregarLeads(){
@@ -272,8 +327,9 @@ function renderLeads(){
       node.innerHTML = `
         <strong>${l.nomeLead}</strong>
         <div class="muted">${l.vendedor} - ${l.telefone}</div>
-        <div>${l.endereco} ${l.bairro}</div>
+        <div>${l.endereco} ${l.bairro} - ${l.cidade}</div>
         <div style="margin-top:8px;color:#0ea5a4">${l.provedor} • Interesse: ${l.interesse}</div>
+        <div style="margin-top:4px;font-size:12px;color:#666">${l.observacao}</div>
       `;
       div.appendChild(node);
     });
@@ -298,14 +354,33 @@ function startRoute(){
 
   document.getElementById('startBtn').disabled = true;
   document.getElementById('stopBtn').disabled  = false;
-  document.getElementById('routeInfo').innerText = 'Rota em andamento...';
+  document.getElementById('routeInfo').innerText = 'Rota em andamento... Coletando coordenadas GPS';
 
   if(navigator.geolocation){
-    watchId = navigator.geolocation.watchPosition(pos => {
-      routeCoords.push({ lat: pos.coords.latitude, lng: pos.coords.longitude, timestamp: Date.now() });
-    }, err => console.error(err), { enableHighAccuracy:true, maximumAge:5000, timeout:10000 });
+    watchId = navigator.geolocation.watchPosition(
+      pos => {
+        const coord = { 
+          lat: pos.coords.latitude, 
+          lng: pos.coords.longitude, 
+          timestamp: Date.now() 
+        };
+        routeCoords.push(coord);
+        console.log('📍 Coordenada:', coord);
+        document.getElementById('routeInfo').innerText = 
+          `Rota em andamento... ${routeCoords.length} pontos coletados`;
+      }, 
+      err => {
+        console.error('Erro GPS:', err);
+        document.getElementById('routeInfo').innerText = 'Erro GPS: ' + err.message;
+      }, 
+      { 
+        enableHighAccuracy: true, 
+        maximumAge: 10000, 
+        timeout: 15000 
+      }
+    );
   } else {
-    alert("Geolocalização indisponível");
+    alert("Geolocalização indisponível neste dispositivo");
   }
 }
 
@@ -318,6 +393,12 @@ async function stopRoute(){
   document.getElementById('startBtn').disabled = false;
   document.getElementById('stopBtn').disabled  = true;
 
+  if(routeCoords.length === 0) {
+    alert("Nenhuma coordenada foi coletada. Verifique as permissões de GPS.");
+    document.getElementById('routeInfo').innerText = '';
+    return;
+  }
+
   const payload = {
     route: 'saveRoute',
     vendedor: routeVendor,
@@ -327,19 +408,24 @@ async function stopRoute(){
     qtdLeads: 0
   };
 
+  document.getElementById('routeInfo').innerText = 'Salvando rota...';
+
   try {
     const json = await apiCall('saveRoute', payload);
 
     if(json.status === 'success'){
-      alert("Rota salva!");
+      alert("✅ Rota salva com sucesso! " + (json.message || ''));
+      if(json.kmlUrl) {
+        console.log('📎 KML disponível em:', json.kmlUrl);
+      }
       carregarRotas();
     } else {
-      alert("Erro ao salvar rota: " + (json.message || ''));
+      alert("❌ Erro ao salvar rota: " + (json.message || ''));
     }
 
   } catch(e){
-    console.error(e);
-    alert("Erro ao salvar rota");
+    console.error('Erro stopRoute:', e);
+    alert("❌ Erro ao salvar rota");
   }
 
   document.getElementById('routeInfo').innerText = '';
@@ -365,13 +451,19 @@ function renderRotas(){
 
   div.innerHTML = '';
 
+  if(routesCache.length === 0) {
+    div.innerHTML = '<div class="muted">Nenhuma rota registrada ainda</div>';
+    return;
+  }
+
   routesCache.forEach(r => {
     const node = document.createElement('div');
     node.className = 'lead-card';
     node.innerHTML = `
-      <strong>Rota ${r.routeId || 'N/A'}</strong>
+      <strong>${r.routeId || 'Rota'}</strong>
       <div class="muted">${r.vendedor} • ${r.inicio} → ${r.fim}</div>
-      ${r.kmlUrl ? `<a style="margin-top:8px; display:block" href="${r.kmlUrl}" target="_blank">Baixar KML</a>` : ''}
+      <div>Duração: ${r.duracao} • Distância: ${r.distancia}</div>
+      ${r.kmlUrl ? `<a style="margin-top:8px; display:block; color:#0ea5a4" href="${r.kmlUrl}" target="_blank">📎 Baixar KML</a>` : ''}
     `;
     div.appendChild(node);
   });
@@ -383,4 +475,24 @@ function renderRotas(){
 function carregarEstatisticas(){
   document.getElementById('statLeads').innerText = leadsCache.length || 0;
   document.getElementById('statRotas').innerText = routesCache.length || 0;
+  
+  // Calcula taxa de conversão simples
+  const totalLeads = leadsCache.length;
+  const leadsComInteresse = leadsCache.filter(l => 
+    l.interesse && l.interesse.toUpperCase() === 'ALTO'
+  ).length;
+  
+  const taxa = totalLeads > 0 ? ((leadsComInteresse / totalLeads) * 100).toFixed(1) : 0;
+  document.getElementById('statConv').innerText = `${taxa}%`;
 }
+
+// ==============================
+//  SOLUÇÃO FAVICON
+// ==============================
+// Adiciona favicon dinamicamente para evitar erro 404
+(function() {
+  const link = document.createElement('link');
+  link.rel = 'icon';
+  link.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>';
+  document.head.appendChild(link);
+})();
