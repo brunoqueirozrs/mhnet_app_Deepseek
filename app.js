@@ -35,6 +35,7 @@ function showUserMenu() {
   document.getElementById('userMenu').style.display = 'block';
   document.getElementById('mainContent').style.display = 'none';
   document.getElementById('userInfo').textContent = 'Selecione um vendedor';
+  document.getElementById('footerUser').textContent = 'Não logado';
   carregarVendedores();
 }
 
@@ -42,6 +43,9 @@ function showMainContent() {
   document.getElementById('userMenu').style.display = 'none';
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
+  document.getElementById('footerUser').textContent = loggedUser;
+  document.getElementById('rotaVendedorInfo').textContent = `Vendedor: ${loggedUser}`;
+  
   showPage('dashboard');
   carregarEstatisticas();
 }
@@ -83,27 +87,130 @@ function showPage(id){
   if(id === 'dashboard'){
     document.querySelector('.dashboard').style.display = 'block';
     document.querySelector('.actions').style.display   = 'block';
+    carregarEstatisticas();
   } else {
     const el = document.getElementById(id);
     if(el) el.style.display = 'block';
   }
 
   if(id === 'cadLead' || id === 'iniciarRota') carregarVendedores();
-  if(id === 'verLeads') carregarLeads();
+  if(id === 'gestaoLeads' || id === 'verLeads') carregarLeads();
   if(id === 'minhasRotas') carregarRotas();
   if(id === 'novaVenda') limparFormularioVenda();
 }
 
 // ==============================
-//  COMUNICAÇÃO COM API - JSONP
+//  GESTÃO DE LEADS - NOVA FUNCIONALIDADE
+// ==============================
+function renderLeads() {
+  const q = document.getElementById('searchLead').value.toLowerCase();
+  const div = document.getElementById('listaLeadsGestao');
+
+  div.innerHTML = '';
+
+  const leadsFiltrados = leadsCache
+    .filter(l => 
+      !q ||
+      (l.nomeLead||'').toLowerCase().includes(q) ||
+      (l.telefone||'').toLowerCase().includes(q) ||
+      (l.bairro||'').toLowerCase().includes(q) ||
+      (l.provedor||'').toLowerCase().includes(q)
+    );
+
+  if (leadsFiltrados.length === 0) {
+    div.innerHTML = '<div class="muted" style="text-align:center; padding:40px;">Nenhum lead encontrado</div>';
+    return;
+  }
+
+  leadsFiltrados.forEach(l => {
+    const node = document.createElement('div');
+    node.className = 'lead-card-gestao';
+    
+    // Determinar classe do status
+    const statusClass = getStatusClass(l.status || 'NOVO');
+    const statusText = getStatusText(l.status || 'NOVO');
+    
+    // Formatar telefone para WhatsApp
+    const phone = (l.telefone || '').replace(/\D/g, '');
+    const whatsappUrl = phone ? `https://wa.me/55${phone}?text=Olá ${encodeURIComponent(l.nomeLead || '')}, tudo bem? Sou da MHnet e gostaria de conversar sobre nossos planos de internet!` : '#';
+    
+    node.innerHTML = `
+      <div class="lead-header">
+        <div class="lead-name">${l.nomeLead || 'Sem nome'}</div>
+        <div class="lead-status ${statusClass}">${statusText}</div>
+      </div>
+      
+      <div class="lead-contact">
+        <span class="lead-info">📞 ${l.telefone || 'Sem telefone'}</span>
+        ${phone ? `<a href="${whatsappUrl}" target="_blank" class="whatsapp-btn">💬 WhatsApp</a>` : ''}
+      </div>
+      
+      <div class="lead-info">🏠 ${l.endereco || ''} ${l.bairro || ''} - ${l.cidade || 'Lajeado'}</div>
+      <div class="lead-info">📡 ${l.provedor || 'Sem provedor'} • 🎯 ${l.interesse || 'MEDIO'}</div>
+      
+      ${l.observacao ? `<div class="lead-obs">📝 ${l.observacao}</div>` : ''}
+      
+      <div class="lead-timestamp">
+        ${l.vendedor ? `Vendedor: ${l.vendedor} • ` : ''}
+        ${l.timestamp ? `Captado em ${l.timestamp}` : 'Lead recente'}
+      </div>
+    `;
+    
+    div.appendChild(node);
+  });
+}
+
+function getStatusClass(status) {
+  const statusMap = {
+    'NOVO': 'status-novo',
+    'EM_ATENDIMENTO': 'status-atendimento',
+    'AGENDADO': 'status-agendado',
+    'CONVERTIDO': 'status-convertido',
+    'PERDIDO': 'status-perdido'
+  };
+  return statusMap[status] || 'status-novo';
+}
+
+function getStatusText(status) {
+  const statusMap = {
+    'NOVO': 'NOVO',
+    'EM_ATENDIMENTO': 'EM ATENDIMENTO',
+    'AGENDADO': 'AGENDADO',
+    'CONVERTIDO': 'CONVERTIDO',
+    'PERDIDO': 'PERDIDO'
+  };
+  return statusMap[status] || 'NOVO';
+}
+
+function exportarLeads() {
+  if (leadsCache.length === 0) {
+    alert('Nenhum lead para exportar');
+    return;
+  }
+  
+  const csvContent = "data:text/csv;charset=utf-8," 
+    + "Nome,Telefone,Endereço,Bairro,Cidade,Provedor,Interesse,Status,Observações,Vendedor,Data\n"
+    + leadsCache.map(lead => 
+        `"${lead.nomeLead || ''}","${lead.telefone || ''}","${lead.endereco || ''}","${lead.bairro || ''}","${lead.cidade || ''}","${lead.provedor || ''}","${lead.interesse || ''}","${lead.status || ''}","${(lead.observacao || '').replace(/"/g, '""')}","${lead.vendedor || ''}","${lead.timestamp || ''}"`
+      ).join("\n");
+  
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `leads_${loggedUser}_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ==============================
+//  COMUNICAÇÃO COM API - JSONP (mantida igual)
 // ==============================
 function apiCall(route, data = null) {
   return new Promise((resolve) => {
-    // Tenta JSONP primeiro
     if (!data) {
       jsonpCall(route, resolve);
     } else {
-      // Para POST, tenta fetch direto e fallback offline
       postWithFallback(route, data, resolve);
     }
   });
@@ -134,7 +241,6 @@ function jsonpCall(route, resolve) {
 }
 
 async function postWithFallback(route, data, resolve) {
-  // Tenta fetch normal primeiro
   try {
     const response = await fetch(API_DIRECT, {
       method: 'POST',
@@ -152,13 +258,12 @@ async function postWithFallback(route, data, resolve) {
     console.log(`❌ POST ${route} falhou:`, error.message);
   }
   
-  // Fallback offline
   console.log(`📴 Modo offline para: ${route}`);
   resolve(getFallbackData(route, data));
 }
 
 // ==============================
-//  DADOS OFFLINE DE FALLBACK
+//  DADOS OFFLINE DE FALLBACK (atualizada)
 // ==============================
 function getFallbackData(route, data = null) {
   console.log(`📋 Dados offline para: ${route}`);
@@ -191,7 +296,9 @@ function getFallbackData(route, data = null) {
             cidade: "Lajeado",
             provedor: "Claro",
             interesse: "ALTO",
-            observacao: "Lead de exemplo para teste"
+            status: "NOVO",
+            observacao: "Lead de exemplo para teste",
+            timestamp: new Date().toLocaleString('pt-BR')
           }
         ]
       };
@@ -200,7 +307,6 @@ function getFallbackData(route, data = null) {
       return { status: 'success', data: [] };
       
     case 'addLead':
-      // Simula salvamento offline
       const newLead = {
         id: leadsCache.length + 1,
         nomeLead: data.nomeLead,
@@ -211,6 +317,7 @@ function getFallbackData(route, data = null) {
         cidade: data.cidade,
         provedor: data.provedor,
         interesse: data.interesse,
+        status: data.status || 'NOVO',
         observacao: data.observacao,
         timestamp: new Date().toLocaleString('pt-BR')
       };
@@ -222,7 +329,6 @@ function getFallbackData(route, data = null) {
       };
       
     case 'saveRoute':
-      // Simula salvamento offline de rota
       const newRoute = {
         routeId: `OFFLINE-${Date.now()}`,
         vendedor: data.vendedor,
@@ -241,7 +347,6 @@ function getFallbackData(route, data = null) {
       };
       
     case 'addVenda':
-      // Simula salvamento offline de venda
       const newVenda = {
         id: Date.now(),
         vendedor: data.vendedor,
@@ -269,7 +374,7 @@ function getFallbackData(route, data = null) {
 }
 
 // ==============================
-//  VENDEDORES
+//  VENDEDORES (mantida igual)
 // ==============================
 async function carregarVendedores(){
   try {
@@ -384,7 +489,7 @@ async function excluirVendedor(id){
 }
 
 // ==============================
-//  NOVA VENDA - CONTRATO
+//  NOVA VENDA - CONTRATO (mantida igual)
 // ==============================
 async function enviarVenda(){
   if (!loggedUser) {
@@ -410,19 +515,16 @@ async function enviarVenda(){
     vencimento: document.getElementById('vendaVencimento').value || ''
   };
 
-  // Validação básica
   if (!payload.nome || !payload.cpf || !payload.email || !payload.telefone1) {
     alert('Preencha os campos obrigatórios: Nome, CPF, E-mail e Telefone 1');
     return;
   }
 
-  // Validação de CPF básica
   if (payload.cpf.length < 11) {
     alert('CPF deve ter pelo menos 11 dígitos');
     return;
   }
 
-  // Validação de email básica
   if (!payload.email.includes('@')) {
     alert('E-mail inválido');
     return;
@@ -458,7 +560,7 @@ function limparFormularioVenda() {
 }
 
 // ==============================
-//  LEADS
+//  LEADS (atualizada)
 // ==============================
 async function enviarLead(){
   if (!loggedUser) {
@@ -477,10 +579,10 @@ async function enviarLead(){
     bairro:    document.getElementById('leadBairro').value || '',
     observacao:document.getElementById('leadObs').value || '',
     provedor:  document.getElementById('leadProvedor').value || '',
-    interesse: document.getElementById('leadInteresse').value || 'MEDIO'
+    interesse: document.getElementById('leadInteresse').value || 'MEDIO',
+    status:    document.getElementById('leadStatus').value || 'NOVO'
   };
 
-  // Validação básica
   if(!payload.nomeLead || !payload.telefone) {
     return alert('Preencha pelo menos nome e telefone');
   }
@@ -499,8 +601,10 @@ async function enviarLead(){
     document.getElementById('leadObs').value='';
     document.getElementById('leadProvedor').value='';
     document.getElementById('leadInteresse').value='MEDIO';
+    document.getElementById('leadStatus').value='NOVO';
     
     carregarLeads();
+    showPage('gestaoLeads');
   } else {
     alert("❌ Erro: " + (json.message || 'Tente novamente'));
   }
@@ -524,36 +628,8 @@ async function carregarLeads(){
   }
 }
 
-function renderLeads(){
-  const q = document.getElementById('searchLead').value.toLowerCase();
-  const div = document.getElementById('listaLeads');
-
-  div.innerHTML = '';
-
-  leadsCache
-    .filter(l =>
-      !q ||
-      (l.nomeLead||'').toLowerCase().includes(q) ||
-      (l.telefone||'').toLowerCase().includes(q) ||
-      (l.provedor||'').toLowerCase().includes(q)
-    )
-    .forEach(l => {
-      const node = document.createElement('div');
-      node.className = 'lead-card';
-      node.innerHTML = `
-        <strong>${l.nomeLead}</strong>
-        <div class="muted">${l.vendedor} - ${l.telefone}</div>
-        <div>${l.endereco} ${l.bairro} - ${l.cidade}</div>
-        <div style="margin-top:8px;color:#0ea5a4">${l.provedor} • Interesse: ${l.interesse}</div>
-        ${l.observacao ? `<div style="margin-top:4px;font-size:12px;color:#666">${l.observacao}</div>` : ''}
-        ${l.timestamp ? `<div style="margin-top:4px;font-size:10px;color:#999">Captado em ${l.timestamp}</div>` : ''}
-      `;
-      div.appendChild(node);
-    });
-}
-
 // ==============================
-//  ROTAS
+//  ROTAS (mantida igual)
 // ==============================
 let routeActive = false;
 let routeCoords = [];
@@ -691,7 +767,7 @@ function renderRotas(){
 }
 
 // ==============================
-//  ESTATÍSTICAS
+//  ESTATÍSTICAS (atualizada)
 // ==============================
 function carregarEstatisticas(){
   if (loggedUser) {
@@ -699,33 +775,28 @@ function carregarEstatisticas(){
     const userLeads = leadsCache.filter(lead => lead.vendedor === loggedUser);
     const userRotas = routesCache.filter(rota => rota.vendedor === loggedUser);
     
+    // Leads
     document.getElementById('statLeads').innerText = userLeads.length || 0;
+    document.getElementById('statLeadsNovos').innerText = `${userLeads.filter(l => l.status === 'NOVO').length} novos`;
+    
+    // Rotas
     document.getElementById('statRotas').innerText = userRotas.length || 0;
+    const totalKm = userRotas.reduce((sum, rota) => {
+      const km = parseFloat(rota.distancia) || 0;
+      return sum + km;
+    }, 0);
+    document.getElementById('statRotasKm').innerText = `${totalKm.toFixed(1)} km`;
     
-    // Calcula taxa de conversão simples
-    const totalLeads = userLeads.length;
-    const leadsComInteresse = userLeads.filter(l => 
-      l.interesse && l.interesse.toUpperCase() === 'ALTO'
-    ).length;
-    
-    const taxa = totalLeads > 0 ? ((leadsComInteresse / totalLeads) * 100).toFixed(1) : 0;
+    // Conversão
+    const leadsConvertidos = userLeads.filter(l => l.status === 'CONVERTIDO').length;
+    const taxa = userLeads.length > 0 ? ((leadsConvertidos / userLeads.length) * 100).toFixed(1) : 0;
     document.getElementById('statConv').innerText = `${taxa}%`;
-  } else {
-    document.getElementById('statLeads').innerText = leadsCache.length || 0;
-    document.getElementById('statRotas').innerText = routesCache.length || 0;
-    
-    const totalLeads = leadsCache.length;
-    const leadsComInteresse = leadsCache.filter(l => 
-      l.interesse && l.interesse.toUpperCase() === 'ALTO'
-    ).length;
-    
-    const taxa = totalLeads > 0 ? ((leadsComInteresse / totalLeads) * 100).toFixed(1) : 0;
-    document.getElementById('statConv').innerText = `${taxa}%`;
+    document.getElementById('statFechados').innerText = `${leadsConvertidos} fechados`;
   }
 }
 
 // ==============================
-//  FUNÇÕES AUXILIARES
+//  FUNÇÕES AUXILIARES (mantidas)
 // ==============================
 function calculateDuration(startISO, endISO) {
   try {
@@ -773,4 +844,9 @@ function addFavicon() {
   link.rel = 'icon';
   link.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>';
   document.head.appendChild(link);
+}
+
+// Função para compatibilidade com a página antiga
+function renderLeadsOld(){
+  renderLeads();
 }
