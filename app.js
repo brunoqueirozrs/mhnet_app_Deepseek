@@ -2,16 +2,8 @@
 //  FRONTEND PWA – API MHNET
 // ==============================
 const API_BASE = 'AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7';
-// const API = `https://corsproxy.io/?https://script.google.com/macros/s/${API_BASE}/exec`;
+const API_DIRECT = `https://script.google.com/macros/s/${API_BASE}/exec`;
 
-// Tente estes proxies alternativos em ordem:
-const PROXIES = [
-  `https://api.codetabs.com/v1/proxy?quest=https://script.google.com/macros/s/${API_BASE}/exec`,
-  `https://cors-anywhere.herokuapp.com/https://script.google.com/macros/s/${API_BASE}/exec`,
-  `https://thingproxy.freeboard.io/fetch/https://script.google.com/macros/s/${API_BASE}/exec`
-];
-
-let API = PROXIES[0]; // Usa o primeiro proxy
 let leadsCache = [];
 let routesCache = [];
 let vendedoresCache = [];
@@ -23,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   showPage('dashboard');
   carregarVendedores();
   carregarEstatisticas();
+  
+  // Adiciona favicon dinâmico
+  addFavicon();
 });
 
 // ==============================
@@ -45,49 +40,73 @@ function showPage(id){
 }
 
 // ==============================
-//  FUNÇÃO DE FETCH COM FALLBACK
+//  COMUNICAÇÃO COM API - JSONP
 // ==============================
-async function apiCall(route, data = null) {
-  for (let i = 0; i < PROXIES.length; i++) {
-    try {
-      API = PROXIES[i];
-      console.log(`🔄 Tentando proxy ${i + 1}: ${route}`);
-      
-      const url = data ? API : `${API}?route=${route}`;
-      
-      const options = data ? {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      } : { method: 'GET' };
-
-      const response = await fetch(url, options);
-      
-      if (!response.ok) continue; // Tenta próximo proxy
-      
-      const text = await response.text();
-      console.log(`📄 Resposta bruta ${route}:`, text.substring(0, 100));
-      
-      const result = JSON.parse(text);
-      console.log(`✅ Sucesso com proxy ${i + 1}:`, result.status);
-      return result;
-      
-    } catch (error) {
-      console.log(`❌ Proxy ${i + 1} falhou:`, error.message);
-      continue; // Tenta próximo proxy
+function apiCall(route, data = null) {
+  return new Promise((resolve) => {
+    // Tenta JSONP primeiro
+    if (!data) {
+      jsonpCall(route, resolve);
+    } else {
+      // Para POST, tenta fetch direto e fallback offline
+      postWithFallback(route, data, resolve);
     }
+  });
+}
+
+function jsonpCall(route, resolve) {
+  const callbackName = 'jsonp_callback_' + Date.now();
+  const url = `${API_DIRECT}?route=${route}&callback=${callbackName}`;
+  
+  const script = document.createElement('script');
+  script.src = url;
+  
+  window[callbackName] = function(response) {
+    delete window[callbackName];
+    document.body.removeChild(script);
+    console.log(`✅ JSONP ${route}:`, response);
+    resolve(response);
+  };
+  
+  script.onerror = function() {
+    delete window[callbackName];
+    document.body.removeChild(script);
+    console.log(`❌ JSONP ${route} falhou, usando fallback`);
+    resolve(getFallbackData(route));
+  };
+  
+  document.body.appendChild(script);
+}
+
+async function postWithFallback(route, data, resolve) {
+  // Tenta fetch normal primeiro
+  try {
+    const response = await fetch(API_DIRECT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log(`✅ POST ${route}:`, result);
+      resolve(result);
+      return;
+    }
+  } catch (error) {
+    console.log(`❌ POST ${route} falhou:`, error.message);
   }
   
-  // Se todos os proxies falharem, usa fallback offline
-  console.log('📴 Todos os proxies falharam, usando modo offline');
-  return getFallbackData(route);
+  // Fallback offline
+  console.log(`📴 Modo offline para: ${route}`);
+  resolve(getFallbackData(route, data));
 }
 
 // ==============================
 //  DADOS OFFLINE DE FALLBACK
 // ==============================
-function getFallbackData(route) {
-  console.log(`📋 Usando dados offline para: ${route}`);
+function getFallbackData(route, data = null) {
+  console.log(`📋 Dados offline para: ${route}`);
   
   switch(route) {
     case 'getVendedores':
@@ -104,7 +123,6 @@ function getFallbackData(route) {
       };
       
     case 'getLeads':
-      // Dados de exemplo para teste
       return { 
         status: 'success', 
         data: [
@@ -127,10 +145,45 @@ function getFallbackData(route) {
       return { status: 'success', data: [] };
       
     case 'addLead':
-      return { status: 'success', message: 'Lead salvo localmente (modo offline)' };
+      // Simula salvamento offline
+      const newLead = {
+        id: leadsCache.length + 1,
+        nomeLead: data.nomeLead,
+        telefone: data.telefone,
+        vendedor: data.vendedor,
+        endereco: data.endereco,
+        bairro: data.bairro,
+        cidade: data.cidade,
+        provedor: data.provedor,
+        interesse: data.interesse,
+        observacao: data.observacao,
+        timestamp: new Date().toLocaleString('pt-BR')
+      };
+      leadsCache.push(newLead);
+      return { 
+        status: 'success', 
+        message: 'Lead salvo localmente (modo offline)',
+        data: newLead
+      };
       
     case 'saveRoute':
-      return { status: 'success', message: 'Rota salva localmente (modo offline)' };
+      // Simula salvamento offline de rota
+      const newRoute = {
+        routeId: `OFFLINE-${Date.now()}`,
+        vendedor: data.vendedor,
+        inicio: new Date(data.inicioISO).toLocaleString('pt-BR'),
+        fim: new Date(data.fimISO).toLocaleString('pt-BR'),
+        duracao: calculateDuration(data.inicioISO, data.fimISO),
+        distancia: calculateDistance(data.coords),
+        qtdLeads: data.qtdLeads,
+        kmlUrl: null
+      };
+      routesCache.push(newRoute);
+      return { 
+        status: 'success', 
+        message: 'Rota salva localmente (modo offline)',
+        data: newRoute
+      };
       
     default:
       return { status: 'error', message: 'Rota offline: ' + route };
@@ -278,7 +331,7 @@ async function enviarLead(){
   if(json.status === 'duplicate'){
     alert('Telefone já cadastrado!');
   } else if(json.status === 'success'){
-    alert('Lead salvo! ' + (json.message || ''));
+    alert('✅ Lead salvo! ' + (json.message || ''));
     // Limpa formulário
     document.getElementById('leadNome').value='';
     document.getElementById('leadTelefone').value='';
@@ -290,7 +343,7 @@ async function enviarLead(){
     
     carregarLeads();
   } else {
-    alert("Erro: " + (json.message || 'Tente novamente'));
+    alert("❌ Erro: " + (json.message || 'Tente novamente'));
   }
 }
 
@@ -329,7 +382,8 @@ function renderLeads(){
         <div class="muted">${l.vendedor} - ${l.telefone}</div>
         <div>${l.endereco} ${l.bairro} - ${l.cidade}</div>
         <div style="margin-top:8px;color:#0ea5a4">${l.provedor} • Interesse: ${l.interesse}</div>
-        <div style="margin-top:4px;font-size:12px;color:#666">${l.observacao}</div>
+        ${l.observacao ? `<div style="margin-top:4px;font-size:12px;color:#666">${l.observacao}</div>` : ''}
+        ${l.timestamp ? `<div style="margin-top:4px;font-size:10px;color:#999">Captado em ${l.timestamp}</div>` : ''}
       `;
       div.appendChild(node);
     });
@@ -415,9 +469,6 @@ async function stopRoute(){
 
     if(json.status === 'success'){
       alert("✅ Rota salva com sucesso! " + (json.message || ''));
-      if(json.kmlUrl) {
-        console.log('📎 KML disponível em:', json.kmlUrl);
-      }
       carregarRotas();
     } else {
       alert("❌ Erro ao salvar rota: " + (json.message || ''));
@@ -463,7 +514,8 @@ function renderRotas(){
       <strong>${r.routeId || 'Rota'}</strong>
       <div class="muted">${r.vendedor} • ${r.inicio} → ${r.fim}</div>
       <div>Duração: ${r.duracao} • Distância: ${r.distancia}</div>
-      ${r.kmlUrl ? `<a style="margin-top:8px; display:block; color:#0ea5a4" href="${r.kmlUrl}" target="_blank">📎 Baixar KML</a>` : ''}
+      ${r.kmlUrl ? `<a style="margin-top:8px; display:block; color:#0ea5a4" href="${r.kmlUrl}" target="_blank">📎 Baixar KML</a>` : 
+        '<div style="margin-top:8px; color:#666; font-size:12px">📱 Rota salva localmente</div>'}
     `;
     div.appendChild(node);
   });
@@ -487,12 +539,52 @@ function carregarEstatisticas(){
 }
 
 // ==============================
-//  SOLUÇÃO FAVICON
+//  FUNÇÕES AUXILIARES
 // ==============================
-// Adiciona favicon dinamicamente para evitar erro 404
-(function() {
+function calculateDuration(startISO, endISO) {
+  try {
+    const start = new Date(startISO);
+    const end = new Date(endISO);
+    const diffMs = end - start;
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${remainingMinutes}min`;
+    }
+    return `${minutes} min`;
+  } catch (e) {
+    return 'N/A';
+  }
+}
+
+function calculateDistance(coords) {
+  if (!coords || coords.length < 2) return '0 km';
+  
+  let totalDistance = 0;
+  for (let i = 1; i < coords.length; i++) {
+    totalDistance += haversineDistance(coords[i-1], coords[i]);
+  }
+  
+  return `${totalDistance.toFixed(2)} km`;
+}
+
+function haversineDistance(coord1, coord2) {
+  const R = 6371; // Raio da Terra em km
+  const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+  const dLon = (coord2.lng - coord1.lng) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(coord1.lat * Math.PI / 180) * Math.cos(coord2.lat * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function addFavicon() {
   const link = document.createElement('link');
   link.rel = 'icon';
   link.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>';
   document.head.appendChild(link);
-})();
+}
