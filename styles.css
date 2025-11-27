@@ -208,4 +208,171 @@ body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica
   .lead-status {
     align-self: flex-start;
   }
+
+  /* Tabela de Leads */
+.table-container {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
+
+.leads-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.leads-table th {
+  background: #f8fafc;
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 2px solid var(--border);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.leads-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--border);
+  color: #334155;
+}
+
+.leads-table tr:hover {
+  background: #f8fafc;
+}
+
+.leads-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status na tabela */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-novo { background: #dbeafe; color: #1d4ed8; }
+.status-contato { background: #fef3c7; color: #d97706; }
+.status-convertido { background: #d1fae5; color: #065f46; }
+.status-agendado { background: #ddd6fe; color: #7c3aed; }
+.status-perdido { background: #fecaca; color: #dc2626; }
+
+/* Ações na tabela */
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.whatsapp-btn-table {
+  background: #25D366;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.whatsapp-btn-table:hover {
+  background: #128C7E;
+  transform: translateY(-1px);
+}
+
+.edit-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+/* Footer da tabela */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.table-info {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Estados vazios */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+}
+
+.empty-state .icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Responsividade para tabela */
+@media (max-width: 1024px) {
+  .table-container {
+    overflow-x: auto;
+  }
+  
+  .leads-table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 768px) {
+  .leads-table th,
+  .leads-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+  
+  .table-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .whatsapp-btn-table,
+  .edit-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+}
+
+
