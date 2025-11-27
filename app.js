@@ -1112,3 +1112,30 @@ function addFavicon() {
 function renderLeadsOld(){
   renderLeads();
 }
+
+// ==============================
+//  FUNÇÕES AUXILIARES - STATUS
+// ==============================
+function getStatusClass(status) {
+  const statusMap = {
+    'NOVO': 'status-novo',
+    'CONTATO': 'status-contato',
+    'EM_ATENDIMENTO': 'status-contato',
+    'AGENDADO': 'status-agendado',
+    'CONVERTIDO': 'status-convertido',
+    'PERDIDO': 'status-perdido'
+  };
+  return statusMap[status] || 'status-novo';
+}
+
+function getStatusText(status) {
+  const statusMap = {
+    'NOVO': 'NOVO',
+    'CONTATO': 'CONTATO',
+    'EM_ATENDIMENTO': 'EM ATEND.',
+    'AGENDADO': 'AGENDADO',
+    'CONVERTIDO': 'CONVERTIDO',
+    'PERDIDO': 'PERDIDO'
+  };
+  return statusMap[status] || 'NOVO';
+}
