@@ -374,6 +374,268 @@ function getFallbackData(route, data = null) {
 }
 
 // ==============================
+//  GESTÃO DE LEADS - TABELA
+// ==============================
+function renderLeadsTabela() {
+  const q = document.getElementById('searchLead')?.value.toLowerCase() || '';
+  const tbody = document.getElementById('tabelaLeads');
+  const infoElement = document.getElementById('infoLeads');
+
+  if (!tbody) {
+    console.error('❌ Elemento tabelaLeads não encontrado');
+    return;
+  }
+
+  console.log('🎨 Renderizando tabela de leads...', leadsCache.length, 'leads disponíveis');
+
+  const leadsFiltrados = leadsCache.filter(l => {
+    const searchMatch = !q || 
+      (l.nomeLead||'').toLowerCase().includes(q) ||
+      (l.telefone||'').toLowerCase().includes(q) ||
+      (l.bairro||'').toLowerCase().includes(q) ||
+      (l.provedor||'').toLowerCase().includes(q) ||
+      (l.email||'').toLowerCase().includes(q);
+    
+    return searchMatch;
+  });
+
+  console.log('🔍 Leads após filtro:', leadsFiltrados.length);
+
+  if (leadsFiltrados.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8">
+          <div class="empty-state">
+            <div class="icon">📭</div>
+            <h3>Nenhum lead encontrado</h3>
+            <p>${q ? 'Tente ajustar os termos da busca' : 'Comece cadastrando seu primeiro lead!'}</p>
+            ${!q ? `
+              <button class="btn primary" onclick="showPage('cadLead')" style="margin-top:16px;">
+                ➕ Cadastrar Primeiro Lead
+              </button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+    infoElement.textContent = 'Nenhum lead encontrado';
+    return;
+  }
+
+  tbody.innerHTML = '';
+
+  leadsFiltrados.forEach((lead, index) => {
+    const row = document.createElement('tr');
+    
+    // Formatar telefone para WhatsApp
+    const phone = (lead.telefone || '').replace(/\D/g, '');
+    const whatsappUrl = phone ? `https://wa.me/55${phone}?text=Olá ${encodeURIComponent(lead.nomeLead || '')}, tudo bem? Sou da MHnet e gostaria de conversar sobre nossos planos de internet!` : '#';
+    
+    // Determinar status
+    const statusClass = getStatusClass(lead.status || 'NOVO');
+    const statusText = getStatusText(lead.status || 'NOVO');
+    
+    row.innerHTML = `
+      <td>
+        <strong>${lead.nomeLead || 'Sem nome'}</strong>
+        ${lead.observacao ? `<div style="font-size:11px; color:#666; margin-top:4px;">${lead.observacao}</div>` : ''}
+      </td>
+      <td>${lead.telefone || 'N/A'}</td>
+      <td>${lead.email || 'N/A'}</td>
+      <td>${lead.bairro || 'N/A'}</td>
+      <td>${lead.cidade || 'Lajeado'}</td>
+      <td>
+        <span class="status-badge ${statusClass}">${statusText}</span>
+        ${lead.interesse ? `<div style="font-size:11px; color:#666; margin-top:4px;">${lead.interesse}</div>` : ''}
+      </td>
+      <td>${lead.vendedor || 'N/A'}</td>
+      <td>
+        <div class="table-actions">
+          ${phone ? `
+            <a href="${whatsappUrl}" target="_blank" class="whatsapp-btn-table">
+              <span>💬</span>
+              WhatsApp
+            </a>
+          ` : ''}
+          <button class="edit-btn" onclick="editarLead(${index})">
+            <span>✏️</span>
+            Editar
+          </button>
+        </div>
+      </td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+
+  // Atualizar informações
+  const totalLeads = leadsCache.length;
+  const showingLeads = leadsFiltrados.length;
+  infoElement.textContent = `Mostrando ${showingLeads} de ${totalLeads} leads${q ? ` (filtrado por "${q}")` : ''}`;
+
+  console.log('✅ Tabela de leads renderizada com sucesso');
+}
+
+// Função para filtrar leads em tempo real
+function filtrarLeads() {
+  renderLeadsTabela();
+}
+
+// Função para editar lead
+function editarLead(index) {
+  const lead = leadsCache[index];
+  if (!lead) return;
+  
+  // Preencher formulário de edição
+  document.getElementById('leadNome').value = lead.nomeLead || '';
+  document.getElementById('leadTelefone').value = lead.telefone || '';
+  document.getElementById('leadEndereco').value = lead.endereco || '';
+  document.getElementById('leadBairro').value = lead.bairro || '';
+  document.getElementById('leadCidade').value = lead.cidade || 'Lajeado';
+  document.getElementById('leadProvedor').value = lead.provedor || '';
+  document.getElementById('leadInteresse').value = lead.interesse || 'MEDIO';
+  document.getElementById('leadStatus').value = lead.status || 'NOVO';
+  document.getElementById('leadObs').value = lead.observacao || '';
+  
+  // Mostrar página de cadastro (que funcionará como edição)
+  showPage('cadLead');
+  
+  // Alterar o botão para "Atualizar Lead"
+  const btnSalvar = document.querySelector('#cadLead .btn.primary');
+  if (btnSalvar) {
+    btnSalvar.innerHTML = '💾 Atualizar Lead';
+    btnSalvar.onclick = function() { atualizarLead(index); };
+  }
+  
+  alert(`Editando lead: ${lead.nomeLead}`);
+}
+
+// Função para atualizar lead
+function atualizarLead(index) {
+  const payload = {
+    route: 'updateLead',
+    id: leadsCache[index].id,
+    nomeLead: document.getElementById('leadNome').value || '',
+    telefone: document.getElementById('leadTelefone').value || '',
+    endereco: document.getElementById('leadEndereco').value || '',
+    cidade: document.getElementById('leadCidade').value || 'Lajeado',
+    bairro: document.getElementById('leadBairro').value || '',
+    observacao: document.getElementById('leadObs').value || '',
+    provedor: document.getElementById('leadProvedor').value || '',
+    interesse: document.getElementById('leadInteresse').value || 'MEDIO',
+    status: document.getElementById('leadStatus').value || 'NOVO',
+    vendedor: loggedUser
+  };
+
+  if(!payload.nomeLead || !payload.telefone) {
+    return alert('Preencha pelo menos nome e telefone');
+  }
+
+  // Chamada API para atualizar
+  apiCall('updateLead', payload).then(json => {
+    if(json.status === 'success'){
+      alert('✅ Lead atualizado com sucesso!');
+      
+      // Atualizar cache local
+      leadsCache[index] = { ...leadsCache[index], ...payload };
+      
+      // Voltar para gestão de leads
+      showPage('gestaoLeads');
+    } else {
+      alert("❌ Erro ao atualizar lead: " + (json.message || 'Tente novamente'));
+    }
+  });
+}
+
+// Função de importação (simulada)
+function importarLeads() {
+  alert('📥 Funcionalidade de importação em desenvolvimento...\n\nEsta função permitirá importar leads da planilha "Acompanhamento de Lead | Abordagens"');
+}
+
+// Atualizar a função carregarLeads para usar a tabela
+async function carregarLeads(){
+  try{
+    console.log('📥 Carregando leads...', 'Usuário logado:', loggedUser);
+    
+    const json = await apiCall('getLeads');
+    
+    if(json.status === 'success'){
+      leadsCache = json.data || [];
+      console.log('📊 Leads carregados:', leadsCache.length, 'leads totais');
+      
+      // Filtrar leads apenas do vendedor logado
+      if (loggedUser) {
+        const leadsFiltrados = leadsCache.filter(lead => {
+          const match = lead.vendedor === loggedUser;
+          console.log('🔍 Verificando lead:', lead.nomeLead, 'Vendedor:', lead.vendedor, 'Match:', match);
+          return match;
+        });
+        
+        leadsCache = leadsFiltrados;
+        console.log('✅ Leads filtrados:', leadsCache.length, 'leads do vendedor', loggedUser);
+      } else {
+        console.log('⚠️ Nenhum usuário logado, mostrando todos os leads');
+      }
+      
+      // Usar renderização de tabela
+      renderLeadsTabela();
+      carregarEstatisticas();
+    } else {
+      console.error('❌ Erro ao carregar leads:', json.message);
+    }
+  } catch(e){
+    console.error('💥 Erro em carregarLeads:', e);
+  }
+}
+
+// Atualizar a função showPage para usar tabela na gestão de leads
+function showPage(id){
+  if (!loggedUser && id !== 'userMenu') {
+    console.log('⚠️ Usuário não logado, redirecionando para menu');
+    showUserMenu();
+    return;
+  }
+  
+  console.log('📄 Mostrando página:', id, 'Usuário:', loggedUser);
+  
+  document.querySelectorAll('.page, .dashboard, .actions').forEach(el => {
+    el.style.display = 'none';
+    el.classList.remove('active');
+  });
+
+  if(id === 'dashboard'){
+    document.querySelector('.dashboard').style.display = 'block';
+    document.querySelector('.actions').style.display = 'block';
+    document.querySelector('.dashboard').classList.add('active');
+    carregarEstatisticas();
+  } else {
+    const el = document.getElementById(id);
+    if(el) {
+      el.style.display = 'block';
+      el.classList.add('active');
+    }
+  }
+
+  // Carregar dados específicos da página
+  switch(id) {
+    case 'cadLead':
+    case 'iniciarRota':
+      carregarVendedores();
+      break;
+    case 'gestaoLeads':
+      console.log('🔄 Carregando leads para gestão...');
+      carregarLeads(); // Agora usa a tabela
+      break;
+    case 'minhasRotas':
+      carregarRotas();
+      break;
+    case 'novaVenda':
+      limparFormularioVenda();
+      break;
+  }
+}
+
+// ==============================
 //  VENDEDORES (mantida igual)
 // ==============================
 async function carregarVendedores(){
