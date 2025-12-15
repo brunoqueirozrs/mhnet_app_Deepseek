@@ -394,19 +394,46 @@ function renderLeads() {
     return;
   }
 
-  div.innerHTML = filtrados.map(l => `
-    <div class="lead-card-gestao" style="background:white; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #eee; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-      <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-        <span style="font-weight:bold; color:#004AAD">${l.nomeLead}</span>
-        <span style="background:#eee; padding:2px 6px; border-radius:4px; font-size:0.8em; font-weight:bold">${l.interesse || 'NOVO'}</span>
+  div.innerHTML = filtrados.map(l => {
+    // Cores baseadas no interesse
+    let statusColor = '#f0f0f0';
+    let statusTextColor = '#555';
+    const interesse = (l.interesse || 'NOVO').toLowerCase();
+    
+    if(interesse.includes('alto')) { statusColor = '#e6fffa'; statusTextColor = '#008f75'; } // Verde
+    else if(interesse.includes('médio') || interesse.includes('medio')) { statusColor = '#fffaf0'; statusTextColor = '#c05621'; } // Laranja
+    else if(interesse.includes('baixo')) { statusColor = '#fff5f5'; statusTextColor = '#c53030'; } // Vermelho
+
+    // Link do WhatsApp
+    const wppLink = `https://wa.me/55${(l.telefone || '').replace(/\D/g, '')}`;
+
+    return `
+    <div class="lead-card-gestao" style="background:white; padding:16px; margin-bottom:12px; border-radius:12px; border:1px solid #edf2f7; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+        <div>
+          <div style="font-weight:bold; color:#2d3748; font-size:1.1em; margin-bottom:2px">${l.nomeLead}</div>
+          <div style="font-size:0.85em; color:#718096">📅 ${new Date(l.timestamp).toLocaleDateString('pt-BR')}</div>
+        </div>
+        <span style="background:${statusColor}; color:${statusTextColor}; padding:4px 8px; border-radius:20px; font-size:0.75em; font-weight:800; text-transform:uppercase; letter-spacing:0.5px">${l.interesse || 'NOVO'}</span>
       </div>
-      <div style="font-size:0.9em; color:#555">📞 ${l.telefone}</div>
-      <div style="font-size:0.9em; color:#555">📍 ${l.bairro || ''} - ${l.cidade || ''}</div>
-      <div style="font-size:0.8em; color:#999; text-align:right; margin-top:5px">
-        ${l.vendedor ? `Vend: ${l.vendedor}` : ''}
+      
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="flex:1">
+          <div style="font-size:0.95em; color:#4a5568; margin-bottom:4px; display:flex; align-items:center">
+             <span style="margin-right:6px">📞</span> ${l.telefone}
+          </div>
+          <div style="font-size:0.95em; color:#4a5568; display:flex; align-items:center">
+             <span style="margin-right:6px">📍</span> ${l.bairro || 'Não informado'}
+          </div>
+        </div>
+
+        <a href="${wppLink}" target="_blank" style="margin-left:10px; background:#25D366; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 6px rgba(37, 211, 102, 0.3); transition: transform 0.2s">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-8.68-2.031-.967-.272-.099-.47-.149-.669.198-.198.347-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.495.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.248-.57-.397z"/></svg>
+        </a>
       </div>
     </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function atualizarDashboard() {
@@ -417,10 +444,10 @@ function atualizarDashboard() {
     
     if (elContent) {
       elContent.innerHTML = `
-        <div style="font-weight:bold; font-size:1.1em; color:#004AAD">${l.nomeLead}</div>
-        <div style="color:#555">${l.bairro || 'Sem bairro'} - ${l.cidade || 'Lajeado'}</div>
-        <div style="font-size:0.85em; color:#888; margin-top:5px">
-          🕒 ${new Date(l.timestamp).toLocaleString('pt-BR')}
+        <div style="font-weight:bold; font-size:1.1em; color:#004AAD; margin-bottom:5px">${l.nomeLead}</div>
+        <div style="color:#555; font-size:0.95em">📍 ${l.bairro || 'Sem bairro'} - ${l.cidade || 'Lajeado'}</div>
+        <div style="font-size:0.85em; color:#888; margin-top:8px; border-top:1px solid #f0f0f0; padding-top:6px">
+          🕒 Cadastrado em: ${new Date(l.timestamp).toLocaleString('pt-BR')}
         </div>
       `;
     }
