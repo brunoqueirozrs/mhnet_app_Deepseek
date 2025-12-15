@@ -1,535 +1,231 @@
-/* =========================================
-   ESTILOS GERAIS & VARIÁVEIS
-   ========================================= */
-:root {
-  /* Paleta de Cores MHNET */
-  --primary: #004AAD;
-  --primary-dark: #003380;
-  --primary-light: #e6f0ff;
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#004AAD">
+  <title>Mhnet Vendas v4.2</title>
   
-  /* Cores de Estado */
-  --success: #28a745;
-  --success-dark: #218838;
-  --danger: #dc3545;
-  --danger-dark: #c82333;
-  --warning: #ffc107;
-  --info: #17a2b8;
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <style>
+    /* Aviso de Offline */
+    #offline-banner {
+      display: none;
+      background: #dc3545;
+      color: white;
+      text-align: center;
+      padding: 8px;
+      font-size: 0.85rem;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 2000;
+    }
+  </style>
+</head>
+<body>
 
-  /* Cores Neutras */
-  --light: #f8f9fa;
-  --gray-100: #e9ecef;
-  --gray-200: #dee2e6;
-  --gray-600: #6c757d;
-  --dark: #343a40;
-  --white: #ffffff;
+  <!-- Aviso Offline -->
+  <div id="offline-banner">⚠️ Sem conexão com a internet</div>
 
-  /* UI */
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
-  --radius: 12px;
-  --transition: 0.3s ease;
-}
+  <!-- Dica de Instalação (Mobile) -->
+  <div id="mobileTip" style="display:none; background:#004AAD; color:white; padding:12px; border-radius:0 0 12px 12px; text-align:center; font-size:14px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    📱 <b>Instalar App:</b> Toque em <b>⋮</b> (ou Compartilhar) e selecione <b>"Adicionar à Tela Inicial"</b>.
+  </div>
 
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
+  <div class="container">
+    
+    <!-- Cabeçalho Fixo -->
+    <div class="header">
+      <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgNzMiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzMiPgogIDx0ZXh0IHg9IjEwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzAwNEFBRCI+TWhuZXQ8L3RleHQ+Cjwvc3ZnPg==" alt="Mhnet Logo">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+        <div>
+          <h2 style="margin:0; font-size:1.2rem;">Vendas Externas</h2>
+          <small class="version" id="userInfo">Aguardando login...</small>
+        </div>
+        <button class="btn ghost" onclick="toggleUserMenu()" style="width:auto; padding:8px 12px; font-size:1.2rem;">👤</button>
+      </div>
+    </div>
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background-color: #f0f2f5;
-  margin: 0;
-  padding: 15px;
-  color: var(--dark);
-  line-height: 1.5;
-}
+    <!-- TELA 1: LOGIN / SELEÇÃO DE VENDEDOR (Inicial) -->
+    <div id="userMenu" class="user-menu-card" style="display:block;">
+      <h3>👋 Bem-vindo!</h3>
+      <div class="form-group">
+        <label>Quem é você?</label>
+        <select id="userSelect">
+          <option value="">Carregando equipe...</option>
+        </select>
+      </div>
+      <button class="btn primary" onclick="setLoggedUser()">Entrar no Sistema</button>
+    </div>
 
-/* =========================================
-   CONTAINER & LAYOUT
-   ========================================= */
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  background: var(--white);
-  padding: 25px 20px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  min-height: 90vh; /* Ocupa quase toda a altura em mobile */
-  display: flex;
-  flex-direction: column;
-}
+    <!-- CONTEÚDO PRINCIPAL (Escondido até o login) -->
+    <main id="mainContent" style="display:none;">
 
-.header {
-  text-align: center;
-  margin-bottom: 25px;
-  position: relative;
-}
+      <!-- PÁGINA: DASHBOARD -->
+      <section id="dashboard" class="page">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-title">Leads Hoje</div>
+            <div class="stat-value" id="statLeads">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Tempo Rota</div>
+            <div class="stat-value" id="timer">00:00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Pontos GPS</div>
+            <div class="stat-value" id="points">0</div>
+          </div>
+        </div>
 
-.logo {
-  max-width: 180px;
-  height: auto;
-  margin-bottom: 12px;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
-}
+        <div class="actions-grid">
+          <button class="action-card blue" onclick="showPage('iniciarRota')">
+            <span class="action-icon">📍</span>
+            <span class="action-title">Iniciar Rota</span>
+          </button>
+          <button class="action-card green" onclick="showPage('gestaoLeads')">
+            <span class="action-icon">📋</span>
+            <span class="action-title">Gerir Leads</span>
+          </button>
+        </div>
 
-.header h2 {
-  margin: 5px 0;
-  color: var(--primary);
-  font-size: 1.5rem;
-  font-weight: 700;
-}
+        <button class="btn ghost" onclick="gerarCoachIA()" style="border-color: #6b21a8; color: #6b21a8; margin-bottom: 20px; border-width: 2px;">
+          ✨ Pedir Dica do Coach IA
+        </button>
 
-.version {
-  font-size: 0.75rem;
-  color: var(--gray-600);
-  margin-top: 2px;
-}
+        <div class="lead-management">
+          <h3>Último Lead Cadastrado</h3>
+          <div id="lastLeadContent">
+            <span style="color:#666; font-style:italic;">Nenhum registro recente.</span>
+          </div>
+        </div>
+      </section>
 
-.status-badge {
-  display: inline-block;
-  font-size: 0.85rem;
-  background: var(--gray-100);
-  padding: 6px 12px;
-  border-radius: 20px;
-  color: var(--gray-600);
-  font-weight: 600;
-  margin-top: 10px;
-  transition: var(--transition);
-}
+      <!-- PÁGINA: CONTROLE DE ROTA -->
+      <section id="iniciarRota" class="page" style="display:none;">
+        <div style="text-align:center; margin-bottom:20px;">
+          <h2>📍 Controle de Rota</h2>
+          <div class="status-badge" id="gpsStatus">GPS: Aguardando...</div>
+        </div>
+        
+        <div class="actions">
+          <button id="btnStart" class="btn btn-start">▶ INICIAR RASTREAMENTO</button>
+          <button id="btnStop" class="btn btn-stop">⏹ FINALIZAR E ENVIAR</button>
+        </div>
+        
+        <div style="margin-top:20px; background:#f8f9fa; padding:15px; border-radius:10px; font-size:0.9rem; color:#666;">
+          ℹ️ <b>Como funciona:</b> Clique em iniciar ao sair para a rua. O app gravará seu trajeto automaticamente. Ao terminar o turno, clique em finalizar.
+        </div>
 
-/* =========================================
-   NAVEGAÇÃO & MENU USUÁRIO
-   ========================================= */
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
+        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar ao Menu</button>
+      </section>
 
-.menu-btn {
-  background: none;
-  border: none;
-  font-size: 1.8rem;
-  cursor: pointer;
-  color: var(--primary);
-  padding: 5px;
-  transition: transform 0.2s;
-}
+      <!-- PÁGINA: GESTÃO DE LEADS -->
+      <section id="gestaoLeads" class="page" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h2>📋 Meus Leads</h2>
+          <button class="lead-action-btn primary" onclick="showPage('cadLead')" style="width:auto;">➕ Novo</button>
+        </div>
 
-.menu-btn:active {
-  transform: scale(0.9);
-}
+        <input id="searchLead" type="text" class="search-input" placeholder="🔍 Buscar por nome, telefone ou bairro..." oninput="renderLeads()">
+        
+        <div id="listaLeadsGestao" style="min-height:200px;"></div>
+        <div id="infoLeads" style="text-align:center; color:#999; font-size:0.8rem; margin-top:10px;"></div>
+        
+        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar</button>
+      </section>
 
-.user-menu-card {
-  position: absolute;
-  top: 70px;
-  right: 20px;
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  padding: 20px;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  z-index: 100;
-  width: 280px;
-  animation: slideIn 0.2s ease-out;
-}
+      <!-- PÁGINA: CADASTRAR NOVO LEAD -->
+      <section id="cadLead" class="page" style="display:none;">
+        <h2>➕ Novo Cadastro</h2>
+        
+        <div class="form-group">
+          <label>Nome do Cliente</label>
+          <input id="leadNome" type="text" placeholder="Ex: João da Silva">
+        </div>
 
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+        <div class="form-group">
+          <label>WhatsApp / Telefone</label>
+          <input id="leadTelefone" type="tel" placeholder="Ex: (51) 99999-9999">
+        </div>
 
-.user-menu-card h3 {
-  margin-top: 0;
-  color: var(--primary);
-  font-size: 1.1rem;
-}
+        <div class="form-group">
+          <label>Endereço Completo</label>
+          <input id="leadEndereco" type="text" placeholder="Rua, Número, Complemento">
+        </div>
 
-/* =========================================
-   FORMULÁRIOS
-   ========================================= */
-.form-group {
-  margin-bottom: 20px;
-}
+        <div class="form-group">
+          <label>Bairro</label>
+          <input id="leadBairro" type="text" placeholder="Ex: Centro">
+        </div>
 
-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--dark);
-}
+        <div class="form-group">
+          <label>Cidade</label>
+          <input id="leadCidade" type="text" value="Lajeado">
+        </div>
 
-select, input, textarea {
-  width: 100%;
-  padding: 14px;
-  border: 2px solid var(--gray-200);
-  border-radius: 10px;
-  font-size: 1rem;
-  background: var(--white);
-  color: var(--dark);
-  transition: border-color 0.2s, box-shadow 0.2s;
-  outline: none;
-  /* Remove estilo padrão do iOS */
-  -webkit-appearance: none; 
-  appearance: none;
-}
+        <div class="form-group">
+          <label>Nível de Interesse</label>
+          <select id="leadInteresse">
+            <option value="ALTO">🔥 Alto</option>
+            <option value="MEDIO" selected>😐 Médio</option>
+            <option value="BAIXO">❄️ Baixo</option>
+          </select>
+        </div>
 
-select {
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1em;
-}
+        <div class="form-group">
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            Observações / Abordagem
+            <button onclick="gerarAbordagemIA()" style="background:none; border:none; color:#6b21a8; font-weight:bold; cursor:pointer; font-size:0.8rem;">
+              ✨ Gerar com IA
+            </button>
+          </label>
+          <textarea id="leadObs" placeholder="Detalhes adicionais..."></textarea>
+        </div>
 
-select:focus, input:focus, textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0, 74, 173, 0.1);
-}
+        <div class="actions">
+          <button class="btn primary" onclick="enviarLead()">💾 SALVAR LEAD</button>
+          <button class="btn ghost" onclick="showPage('gestaoLeads')">Cancelar</button>
+        </div>
+      </section>
 
-textarea {
-  resize: vertical;
-  min-height: 100px;
-}
+    </main>
 
-/* =========================================
-   BOTÕES
-   ========================================= */
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: auto; /* Empurra botões para baixo se sobrar espaço */
-}
+    <!-- Rodapé -->
+    <footer style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #eee; color:#ccc; font-size:0.8rem;">
+      <small>MHNET Vendas Externas • <span id="footerUser"></span></small>
+    </footer>
 
-.btn {
-  width: 100%;
-  padding: 16px;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--white);
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
+  </div>
 
-.btn:active {
-  transform: scale(0.98);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+  <!-- Overlay de Carregamento -->
+  <div id="loader" class="overlay">
+    <div class="spinner"></div>
+    <div id="loaderText">Carregando...</div>
+  </div>
 
-.btn:disabled {
-  background-color: var(--gray-200) !important;
-  color: var(--gray-600);
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
-}
+  <!-- Scripts -->
+  <script src="app.js"></script>
+  <script>
+    // Registro do Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('Service Worker registrado:', reg.scope))
+          .catch(err => console.log('Falha no Service Worker:', err));
+      });
+    }
 
-.btn.primary {
-  background-color: var(--primary);
-}
-.btn.primary:hover {
-  background-color: var(--primary-dark);
-}
-
-.btn.ghost {
-  background-color: transparent;
-  color: var(--primary);
-  border: 2px solid var(--primary);
-  box-shadow: none;
-}
-.btn.ghost:hover {
-  background-color: var(--primary-light);
-}
-
-.btn-start {
-  background-color: var(--success);
-}
-.btn-start:hover {
-  background-color: var(--success-dark);
-}
-
-.btn-stop {
-  background-color: var(--danger);
-  display: none; /* Controlado via JS */
-}
-.btn-stop:hover {
-  background-color: var(--danger-dark);
-}
-
-.btn-lead {
-  background-color: var(--primary);
-}
-.btn-lead:hover {
-  background-color: var(--primary-dark);
-}
-
-.lead-actions {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.lead-action-btn {
-  flex: 1;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: white;
-  transition: opacity 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-.lead-action-btn:active { opacity: 0.8; }
-.lead-action-btn.primary { background-color: var(--primary); }
-.lead-action-btn.secondary { background-color: var(--gray-600); }
-
-/* =========================================
-   DASHBOARD & CARDS
-   ========================================= */
-.dashboard {
-  margin-bottom: 25px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  background: var(--light);
-  padding: 15px 10px;
-  border-radius: 10px;
-  text-align: center;
-  border: 1px solid var(--gray-200);
-  transition: transform 0.2s;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--primary);
-}
-
-.stat-title {
-  font-size: 0.7rem;
-  color: var(--gray-600);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--primary);
-  line-height: 1.2;
-}
-
-.actions-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 25px;
-}
-
-.action-card {
-  padding: 25px 15px;
-  border-radius: 12px;
-  text-align: center;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: var(--shadow-md);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-card:active {
-  transform: scale(0.97);
-}
-
-.action-card.blue {
-  background: linear-gradient(135deg, #004AAD, #007bff);
-}
-
-.action-card.green {
-  background: linear-gradient(135deg, #28a745, #20c997);
-}
-
-.action-icon {
-  font-size: 2.2rem;
-  margin-bottom: 8px;
-}
-
-.action-title {
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-/* =========================================
-   LISTA DE LEADS & CARDS
-   ========================================= */
-.lead-management {
-  background: #f0f7ff;
-  padding: 15px;
-  border-radius: 10px;
-  border-left: 5px solid var(--primary);
-  margin-top: 10px;
-}
-
-.lead-management h3 {
-  margin: 0 0 10px 0;
-  font-size: 1rem;
-  color: var(--primary);
-}
-
-.lead-card-gestao {
-  background: var(--white);
-  padding: 16px;
-  border-radius: 10px;
-  margin-bottom: 12px;
-  border: 1px solid var(--gray-200);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.2s;
-}
-
-.lead-card-gestao:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.lead-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--gray-100);
-}
-
-.lead-name {
-  font-weight: 700;
-  color: var(--primary);
-  font-size: 1.05rem;
-}
-
-.lead-status {
-  font-size: 0.75rem;
-  background: var(--gray-100);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  color: var(--gray-600);
-}
-
-.lead-info-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-  font-size: 0.9rem;
-  color: var(--dark);
-}
-
-.lead-timestamp {
-  font-size: 0.8rem;
-  color: var(--gray-600);
-  margin-top: 8px;
-  text-align: right;
-  font-style: italic;
-}
-
-.search-input {
-  width: 100%;
-  padding: 12px 12px 12px 40px; /* Espaço para ícone se adicionar via CSS */
-  border-radius: 25px;
-  border: 1px solid var(--gray-200);
-  margin-bottom: 20px;
-  background: var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E") no-repeat 15px center;
-}
-
-/* =========================================
-   OVERLAY & LOADING
-   ========================================= */
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(4px); /* Efeito de vidro */
-  z-index: 9999;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid var(--gray-200);
-  border-top: 5px solid var(--primary);
-  border-radius: 50%;
-  animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
-  margin-bottom: 15px;
-}
-
-#loaderText {
-  font-weight: 600;
-  color: var(--primary);
-  font-size: 1.1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* =========================================
-   MEDIA QUERIES (Mobile)
-   ========================================= */
-@media (max-width: 480px) {
-  .container {
-    padding: 15px;
-    border-radius: 0;
-    box-shadow: none;
-    min-height: 100vh;
-  }
-  
-  .stats-grid {
-    gap: 8px;
-  }
-  
-  .stat-card {
-    padding: 10px 5px;
-  }
-  
-  .stat-value {
-    font-size: 1.1rem;
-  }
-}
+    // Monitoramento de Conexão
+    window.addEventListener('online', () => {
+      document.getElementById('offline-banner').style.display = 'none';
+    });
+    window.addEventListener('offline', () => {
+      document.getElementById('offline-banner').style.display = 'block';
+    });
+  </script>
+</body>
+</html>
