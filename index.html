@@ -1,274 +1,213 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MHNET Externas — Rota & Leads</title>
-  <meta name="theme-color" content="#0f766e"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#004AAD">
+  <title>Mhnet Vendas Externas v4.1 (IA)</title>
+  
+  <!-- Links para os arquivos do GitHub -->
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <img src="mhnet-logo.png" alt="MHnet Logo" class="logo">
-      <div class="brand-text">
-        <div class="title">App Rota Lajeado</div>
-        <div class="subtitle" id="userInfo">Selecione um vendedor</div>
+
+  <!-- Dica de Instalação (Mobile) -->
+  <div id="mobileTip" style="display:none; background:#004AAD; color:white; padding:12px; border-radius:0 0 12px 12px; text-align:center; font-size:14px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    📱 <b>Instalar App:</b> Toque em <b>⋮</b> (ou Compartilhar) e selecione <b>"Adicionar à Tela Inicial"</b>.
+  </div>
+
+  <div class="container">
+    
+    <!-- Cabeçalho Fixo -->
+    <div class="header">
+      <!-- Logo Base64 -->
+      <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgNzMiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzMiPgogIDx0ZXh0IHg9IjEwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzAwNEFBRCI+TWhuZXQ8L3RleHQ+Cjwvc3ZnPg==" alt="Mhnet Logo">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+        <div>
+          <h2 style="margin:0; font-size:1.2rem;">Vendas Externas</h2>
+          <small class="version" id="userInfo">Aguardando login...</small>
+        </div>
+        <button class="btn ghost" onclick="toggleUserMenu()" style="width:auto; padding:8px 12px; font-size:1.2rem;">👤</button>
       </div>
     </div>
-    <button id="menuBtn" class="menu-btn" aria-label="menu" onclick="toggleUserMenu()">👤</button>
-  </header>
 
-  <!-- Menu de seleção de usuário -->
-  <div id="userMenu" class="card" style="display:none; position:absolute; top:70px; right:20px; z-index:1000; width:250px;">
-    <h3>Selecionar Vendedor</h3>
-    <select id="userSelect" style="width:100%; padding:10px; margin-bottom:12px; border-radius:8px; border:1px solid #ddd;">
-      <option value="">Selecione...</option>
-    </select>
-    <button class="btn primary" onclick="setLoggedUser()" style="width:100%;">Confirmar</button>
-    <button class="btn" onclick="logout()" style="width:100%; margin-top:8px; background:#f8f9fa;">Trocar Vendedor</button>
-  </div>
-
-  <main class="container" id="mainContent" style="display:none;">
-    <section id="dashboard" class="card dashboard">
-      <h1>Dashboard</h1>
-      <p class="muted">Visão geral das suas atividades em campo</p>
-
-      <div class="grid stats">
-        <div class="stat card-sm">
-          <div class="stat-title">Total de Leads</div>
-          <div class="stat-value" id="statLeads">0</div>
-          <div class="stat-sub" id="statLeadsNovos">0 novos</div>
-        </div>
-        <div class="stat card-sm">
-          <div class="stat-title">Rotas Realizadas</div>
-          <div class="stat-value" id="statRotas">0</div>
-          <div class="stat-sub" id="statRotasKm">0.0 km</div>
-        </div>
-        <div class="stat card-sm">
-          <div class="stat-title">Taxa de Conversão</div>
-          <div class="stat-value" id="statConv">0%</div>
-          <div class="stat-sub" id="statFechados">0 fechados</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card actions">
-      <button class="action-btn blue" onclick="showPage('iniciarRota')">📍 Iniciar Rota</button>
-      <button class="action-btn green" onclick="showPage('gestaoLeads')">📋 Gestão de Leads</button>
-      <button class="action-btn purple" onclick="showPage('minhasRotas')">🛣️ Minhas Rotas</button>
-      <button class="action-btn orange" onclick="showPage('novaVenda')">💰 Nova Venda</button>
-    </section>
-
-    <!-- Gestão de Leads (NOVA PÁGINA) -->
-    <section id="gestaoLeads" class="card page" style="display:none;">
-      <h2>📋 Gestão de Leads</h2>
-      <p class="muted">Gerencie e acompanhe seus leads</p>
-
-      <div class="lead-actions">
-        <button class="lead-action-btn primary" onclick="showPage('cadLead')">➕ Cadastrar Lead</button>
-        <button class="lead-action-btn secondary" onclick="carregarLeads()">🔄 Atualizar Lista</button>
-        <button class="lead-action-btn tertiary" onclick="exportarLeads()">📤 Exportar Leads</button>
-      </div>
-
-      <div style="margin:20px 0;">
-        <input id="searchLead" placeholder="🔍 Buscar por nome, telefone ou bairro..." 
-               style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;"
-               oninput="renderLeads()">
-      </div>
-
-      <div id="listaLeadsGestao"></div>
-    </section>
-
-    <!-- Cadastrar Lead -->
-    <section id="cadLead" class="card page" style="display:none;">
-      <h2>➕ Cadastrar Lead</h2>
-      <p class="muted">Adicione um novo lead potencial</p>
-
-      <div class="form-row">
-        <input id="leadNome" placeholder="👤 Nome completo">
-        <input id="leadTelefone" placeholder="📞 Telefone/WhatsApp" type="tel">
-        <input id="leadEndereco" placeholder="🏠 Endereço (Rua, nº)">
-        <input id="leadCidade" placeholder="🌎 Cidade" value="Lajeado">
-        <input id="leadBairro" placeholder="📍 Bairro">
-        <input id="leadProvedor" placeholder="📡 Provedor atual">
-        <select id="leadInteresse">
-          <option value="">🎯 Nível de interesse</option>
-          <option value="ALTO">ALTO</option>
-          <option value="MEDIO">MÉDIO</option>
-          <option value="BAIXO">BAIXO</option>
-        </select>
-        <select id="leadStatus">
-          <option value="">📊 Status do lead</option>
-          <option value="NOVO">NOVO</option>
-          <option value="EM_ATENDIMENTO">EM ATENDIMENTO</option>
-          <option value="AGENDADO">AGENDADO</option>
-          <option value="CONVERTIDO">CONVERTIDO</option>
-          <option value="PERDIDO">PERDIDO</option>
-        </select>
-        <textarea id="leadObs" placeholder="📝 Observações e anotações"></textarea>
-      </div>
-
-      <div class="row">
-        <button class="btn primary" onclick="enviarLead()">💾 Salvar Lead</button>
-        <button class="btn" onclick="showPage('gestaoLeads')">↩️ Voltar</button>
-      </div>
-    </section>
-
-    <!-- Nova Venda -->
-    <section id="novaVenda" class="card page" style="display:none;">
-      <h2>💰 Nova Venda - Rodar Contrato</h2>
-      <p class="muted">Preencha os dados para gerar o contrato</p>
-
-      <div class="form-row">
-        <input type="text" id="vendaNome" placeholder="✏️ Nome completo" required>
-        <input type="date" id="vendaNascimento" placeholder="📅 Data de nascimento" required>
-        <input type="text" id="vendaCPF" placeholder="🔢 CPF" required>
-        <input type="email" id="vendaEmail" placeholder="📧 E-mail (obrigatório)" required>
-        <input type="tel" id="vendaTelefone1" placeholder="📞 Telefone de contato 1" required>
-        <input type="tel" id="vendaTelefone2" placeholder="📞 Telefone de contato 2">
-        <input type="text" id="vendaEndereco" placeholder="🏠 Endereço completo" required>
-        <input type="text" id="vendaBairro" placeholder="📍 Bairro" required>
-        <input type="text" id="vendaCidade" placeholder="🌎 Cidade" value="Lajeado" required>
-        <select id="vendaPlano" required>
-          <option value="">🌐 Plano escolhido</option>
-          <option value="100MB">100MB - R$ 99,90</option>
-          <option value="200MB">200MB - R$ 129,90</option>
-          <option value="300MB">300MB - R$ 159,90</option>
-          <option value="500MB">500MB - R$ 199,90</option>
-        </select>
-        <select id="vendaVencimento" required>
-          <option value="">🗓️ Dia de vencimento</option>
-          <option value="5">Dia 5</option>
-          <option value="10">Dia 10</option>
-          <option value="15">Dia 15</option>
-          <option value="20">Dia 20</option>
-          <option value="25">Dia 25</option>
+    <!-- TELA 1: LOGIN / SELEÇÃO DE VENDEDOR (Inicial) -->
+    <div id="userMenu" class="user-menu-card" style="display:block;">
+      <h3>👋 Bem-vindo!</h3>
+      <div class="form-group">
+        <label>Quem é você?</label>
+        <select id="userSelect">
+          <option value="">Carregando equipe...</option>
         </select>
       </div>
-
-      <div class="row">
-        <button class="btn primary" onclick="enviarVenda()">📋 Gerar Contrato</button>
-        <button class="btn" onclick="showPage('dashboard')">↩️ Voltar</button>
-      </div>
-    </section>
-
-    <!-- Iniciar Rota -->
-    <section id="iniciarRota" class="card page" style="display:none;">
-      <h2>📍 Iniciar Rota</h2>
-      <p class="muted" id="rotaVendedorInfo">Vendedor: </p>
-      
-      <div class="row" style="gap:10px;">
-        <button class="btn start" id="startBtn" onclick="startRoute()">▶️ Iniciar</button>
-        <button class="btn stop" id="stopBtn" onclick="stopRoute()" disabled>⏹️ Finalizar</button>
-      </div>
-      
-      <div id="routeInfo" class="muted" style="margin-top:10px; padding:10px; background:#f8f9fa; border-radius:8px;"></div>
-      
-      <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:15px;">↩️ Voltar</button>
-    </section>
-
-    <!-- Minhas Rotas -->
-    <section id="minhasRotas" class="card page" style="display:none;">
-      <h2>🛣️ Minhas Rotas</h2>
-      <p class="muted">Histórico de rotas realizadas</p>
-      
-      <div id="listaRotas"></div>
-      
-      <div class="row" style="margin-top:15px;">
-        <button class="btn" onclick="carregarRotas()">🔄 Atualizar</button>
-        <button class="btn" onclick="showPage('dashboard')">↩️ Voltar</button>
-      </div>
-    </section>
-
-    <!-- Ver Leads (antiga página) -->
-    <section id="verLeads" class="card page" style="display:none;">
-      <h2>Leads</h2>
-      <input id="searchLeadOld" placeholder="Buscar por nome, telefone ou provedor" oninput="renderLeadsOld()">
-      <div id="listaLeads"></div>
-      <button class="btn" onclick="showPage('dashboard')">Voltar</button>
-    </section>
-<!-- Gestão de Leads -->
-<section id="gestaoLeads" class="card page" style="display:none;">
-  <h2>📋 Gestão de Leads</h2>
-  <p class="muted">Gerencie e acompanhe seus leads</p>
-
-  <div class="lead-actions">
-    <button class="lead-action-btn primary" onclick="showPage('cadLead')">
-      <span>➕</span>
-      Cadastrar Lead
-    </button>
-    <button class="lead-action-btn secondary" onclick="carregarLeads()">
-      <span>🔄</span>
-      Atualizar
-    </button>
-    <button class="lead-action-btn tertiary" onclick="exportarLeads()">
-      <span>📤</span>
-      Exportar Dados
-    </button>
-    <button class="lead-action-btn" style="background:var(--warning); color:white;" onclick="importarLeads()">
-      <span>📥</span>
-      Importar Dados
-    </button>
-  </div>
-
-  <div class="search-container">
-    <input id="searchLead" placeholder="Buscar por nome, telefone, bairro ou provedor..." oninput="filtrarLeads()">
-  </div>
-
-  <!-- Tabela de Leads -->
-  <div class="table-container">
-    <table class="leads-table">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Telefone</th>
-          <th>Email</th>
-          <th>Bairro</th>
-          <th>Cidade</th>
-          <th>Status</th>
-          <th>Vendedor</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="tabelaLeads">
-        <!-- Leads serão carregados aqui via JavaScript -->
-      </tbody>
-    </table>
-  </div>
-
-  <div class="table-footer">
-    <div class="table-info" id="infoLeads">
-      Mostrando 0 leads
+      <button class="btn primary" onclick="setLoggedUser()">Entrar no Sistema</button>
     </div>
-    <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">
-      <span>↩️</span>
-      Voltar ao Dashboard
-    </button>
+
+    <!-- CONTEÚDO PRINCIPAL (Escondido até o login) -->
+    <main id="mainContent" style="display:none;">
+
+      <!-- PÁGINA: DASHBOARD -->
+      <section id="dashboard" class="page">
+        <!-- Cards de Estatísticas -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-title">Leads Hoje</div>
+            <div class="stat-value" id="statLeads">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Tempo Rota</div>
+            <div class="stat-value" id="timer">00:00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">Pontos GPS</div>
+            <div class="stat-value" id="points">0</div>
+          </div>
+        </div>
+
+        <!-- Botões de Ação Principal -->
+        <div class="actions-grid">
+          <button class="action-card blue" onclick="showPage('iniciarRota')">
+            <span class="action-icon">📍</span>
+            <span class="action-title">Iniciar Rota</span>
+          </button>
+          <button class="action-card green" onclick="showPage('gestaoLeads')">
+            <span class="action-icon">📋</span>
+            <span class="action-title">Gerir Leads</span>
+          </button>
+        </div>
+
+        <!-- Botão Coach IA -->
+        <button class="btn ghost" onclick="gerarCoachIA()" style="border-color: #6b21a8; color: #6b21a8; margin-bottom: 20px; border-width: 2px;">
+          ✨ Pedir Dica do Coach IA
+        </button>
+
+        <!-- Card do Último Lead -->
+        <div class="lead-management">
+          <h3>Último Lead Cadastrado</h3>
+          <div id="lastLeadContent">
+            <span style="color:#666; font-style:italic;">Nenhum registro recente.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PÁGINA: CONTROLE DE ROTA -->
+      <section id="iniciarRota" class="page" style="display:none;">
+        <div style="text-align:center; margin-bottom:20px;">
+          <h2>📍 Controle de Rota</h2>
+          <div class="status-badge" id="gpsStatus">GPS: Aguardando...</div>
+        </div>
+        
+        <div class="actions">
+          <button id="btnStart" class="btn btn-start">▶ INICIAR RASTREAMENTO</button>
+          <button id="btnStop" class="btn btn-stop">⏹ FINALIZAR E ENVIAR</button>
+        </div>
+        
+        <div style="margin-top:20px; background:#f8f9fa; padding:15px; border-radius:10px; font-size:0.9rem; color:#666;">
+          ℹ️ <b>Como funciona:</b> Clique em iniciar ao sair para a rua. O app gravará seu trajeto automaticamente. Ao terminar o turno, clique em finalizar.
+        </div>
+
+        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar ao Menu</button>
+      </section>
+
+      <!-- PÁGINA: GESTÃO DE LEADS -->
+      <section id="gestaoLeads" class="page" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <h2>📋 Meus Leads</h2>
+          <button class="lead-action-btn primary" onclick="showPage('cadLead')" style="width:auto;">➕ Novo</button>
+        </div>
+
+        <input id="searchLead" type="text" class="search-input" placeholder="🔍 Buscar por nome, telefone ou bairro..." oninput="renderLeads()">
+        
+        <!-- Lista de Leads (Renderizada via JS) -->
+        <div id="listaLeadsGestao" style="min-height:200px;"></div>
+        <div id="infoLeads" style="text-align:center; color:#999; font-size:0.8rem; margin-top:10px;"></div>
+        
+        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar</button>
+      </section>
+
+      <!-- PÁGINA: CADASTRAR NOVO LEAD -->
+      <section id="cadLead" class="page" style="display:none;">
+        <h2>➕ Novo Cadastro</h2>
+        
+        <div class="form-group">
+          <label>Nome do Cliente</label>
+          <input id="leadNome" type="text" placeholder="Ex: João da Silva">
+        </div>
+
+        <div class="form-group">
+          <label>WhatsApp / Telefone</label>
+          <input id="leadTelefone" type="tel" placeholder="Ex: (51) 99999-9999">
+        </div>
+
+        <div class="form-group">
+          <label>Endereço Completo</label>
+          <input id="leadEndereco" type="text" placeholder="Rua, Número, Complemento">
+        </div>
+
+        <div class="form-group">
+          <label>Bairro</label>
+          <input id="leadBairro" type="text" placeholder="Ex: Centro">
+        </div>
+
+        <div class="form-group">
+          <label>Cidade</label>
+          <input id="leadCidade" type="text" value="Lajeado">
+        </div>
+
+        <div class="form-group">
+          <label>Nível de Interesse</label>
+          <select id="leadInteresse">
+            <option value="ALTO">🔥 Alto</option>
+            <option value="MEDIO" selected>😐 Médio</option>
+            <option value="BAIXO">❄️ Baixo</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            Observações / Abordagem
+            <button onclick="gerarAbordagemIA()" style="background:none; border:none; color:#6b21a8; font-weight:bold; cursor:pointer; font-size:0.8rem;">
+              ✨ Gerar com IA
+            </button>
+          </label>
+          <textarea id="leadObs" placeholder="Detalhes adicionais..."></textarea>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" onclick="enviarLead()">💾 SALVAR LEAD</button>
+          <button class="btn ghost" onclick="showPage('gestaoLeads')">Cancelar</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #eee; color:#ccc; font-size:0.8rem;">
+      <small>MHNET Vendas Externas • <span id="footerUser"></span></small>
+    </footer>
+
   </div>
-</section>
-    <!-- Configurações (Gerenciar vendedores) -->
-    <section id="configVendedores" class="card page" style="display:none;">
-      <h2>👥 Vendedores</h2>
-      <p class="muted">Gerencie a equipe de vendedores</p>
-      
-      <div class="form-row">
-        <input id="novoVend" placeholder="Nome do novo vendedor">
-        <button class="btn primary" onclick="addNovoVendedor()">➕ Adicionar</button>
-      </div>
-      
-      <div id="listaVend" style="margin-top:15px;"></div>
-      
-      <button class="btn" onclick="showPage('dashboard')" style="margin-top:15px;">↩️ Voltar</button>
-    </section>
 
-  </main>
+  <!-- Overlay de Carregamento -->
+  <div id="loader" class="overlay">
+    <div class="spinner"></div>
+    <div id="loaderText">Carregando...</div>
+  </div>
 
-  <footer class="footer">
-    <small>MHnet • App Rota Lajeado • Vendedor: <span id="footerUser">Não logado</span></small>
-  </footer>
-
+  <!-- Scripts -->
   <script src="app.js"></script>
+  <script>
+    // Registro do Service Worker para funcionar Offline
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('Service Worker registrado:', reg.scope))
+          .catch(err => console.log('Falha no Service Worker:', err));
+      });
+    }
+  </script>
 </body>
 </html>
