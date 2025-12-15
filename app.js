@@ -1,184 +1,402 @@
-// ==============================
-//  FRONTEND PWA – API MHNET
-// ==============================
-const API_BASE = 'AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7';
-const API_DIRECT = `https://script.google.com/macros/s/${API_BASE}/exec`;
-const PLANILHA_VENDAS_ID = '19U8KDUFQUhMOLPIniKCkUfGXZCBY7i3uFyjOQYU003w';
+/**
+ * ============================================================
+ * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v4.0 Final)
+ * Conecta com o Backend Google Apps Script
+ * ============================================================
+ */
 
+// CONFIGURAÇÃO DA API
+// NOTA: Usamos o link /exec (App da Web), não o link /library
+const DEPLOY_ID = 'AKfycbwkTMJ1Y8Pqv_hk0POHg44ep2SUPY05v_Oy6cDAPnJVW20RBHl58wwFK4-iu7aGbrx7'; 
+const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
+const TOKEN = "MHNET2025#SEG";
+
+// --- ESTADO GLOBAL ---
+let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
-let routesCache = [];
-let vendedoresCache = [];
-let loggedUser = null;
+let routeCoords = [];
+let watchId = null;
+let timerInterval = null;
+let seconds = 0;
+let routeStartTime = null;
 
-
-  const user = select.value;
-  if (user) {
-    loggedUser = user;
-    localStorage.setItem('loggedUser', user);
-    showMainContent();
+// --- INICIALIZAÇÃO ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Verifica se já existe um usuário logado
+  if (loggedUser) {
+    initApp();
   } else {
-    alert('Selecione um vendedor');
+    showUserMenu();
+    carregarVendedores(); // Carrega lista para o login
+  }
+});
+
+function initApp() {
+  document.getElementById('userMenu').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  
+  // Atualiza nome no topo e rodapé
+  const userDisplay = `Vendedor: ${loggedUser}`;
+  const elUserInfo = document.getElementById('userInfo');
+  const elFooterUser = document.getElementById('footerUser');
+  
+  if (elUserInfo) elUserInfo.textContent = userDisplay;
+  if (elFooterUser) elFooterUser.textContent = loggedUser;
+
+  showPage('dashboard');
+  carregarLeads(); // Carrega leads em background para a lista
+}
+
+// --- NAVEGAÇÃO ---
+function showPage(pageId) {
+  // Esconde todas as páginas
+  document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+  
+  // Mostra a página desejada
+  const target = document.getElementById(pageId);
+  if (target) {
+    target.style.display = 'block';
+    window.scrollTo(0, 0); // Rola para o topo
+  }
+  
+  if (pageId === 'dashboard') atualizarDashboard();
+}
+
+function toggleUserMenu() {
+  const menu = document.getElementById('userMenu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    if (menu.style.display === 'block') carregarVendedores();
+  }
+}
+
+// --- GESTÃO DE USUÁRIO ---
+async function carregarVendedores() {
+  const select = document.getElementById('userSelect');
+  if (!select) return;
+  
+  select.innerHTML = '<option>Carregando...</option>';
+  
+  try {
+    const res = await apiCall('getVendedores');
+    // Fallback se a API falhar ou vier vazia
+    const lista = (res && res.data && res.data.length) ? res.data : [
+      {nome: "Ana Paula Rodrigues"}, {nome: "Vitoria Caroline"}, 
+      {nome: "João Vithor"}, {nome: "João Paulo"}, 
+      {nome: "Claudia Maria"}, {nome: "Diulia Vitoria"}, {nome: "Elton da Silva"}
+    ];
+    
+    select.innerHTML = '<option value="">Selecione...</option>';
+    lista.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.nome;
+      opt.innerText = v.nome;
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    console.error(e);
+    select.innerHTML = '<option value="">Erro ao carregar (Offline)</option>';
+    // Adiciona opções offline se necessário
+  }
+}
+
+function setLoggedUser() {
+  const select = document.getElementById('userSelect');
+  if (select && select.value) {
+    loggedUser = select.value;
+    localStorage.setItem('loggedUser', loggedUser);
+    initApp();
+  } else {
+    alert('Por favor, selecione um vendedor da lista!');
   }
 }
 
 function logout() {
-  localStorage.removeItem('loggedUser');
-  loggedUser = null;
-  showUserMenu();
+  if(confirm("Tem a certeza que deseja sair?")) {
+    localStorage.removeItem('loggedUser');
+    location.reload();
+  }
 }
 
-// ==============================
-//  CONTROLE DE PÁGINAS
-// ==============================
-function showPage(id){
-  if (!loggedUser && id !== 'userMenu') {
-    showUserMenu();
-    return;
-  }
+// --- ROTA & GPS ---
+function startRoute() {
+  if (!navigator.geolocation) return alert('GPS não suportado neste dispositivo.');
   
-  document.querySelectorAll('.page, .dashboard, .actions').forEach(el => el.style.display = 'none');
+  routeCoords = [];
+  seconds = 0;
+  routeStartTime = new Date().toISOString();
+  
+  // Atualiza UI
+  updateRouteUI(true);
+  
+  // Inicia Timer
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    seconds++;
+    const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2,'0');
+    const s = (seconds % 60).toString().padStart(2,'0');
+    
+    const elTimer = document.getElementById('timer');
+    if (elTimer) elTimer.innerText = `${h}:${m}:${s}`;
+  }, 1000);
 
-  if(id === 'dashboard'){
-    document.querySelector('.dashboard').style.display = 'block';
-    document.querySelector('.actions').style.display   = 'block';
-    carregarEstatisticas();
-  } else {
-    const el = document.getElementById(id);
-    if(el) el.style.display = 'block';
-  }
-
-  if(id === 'cadLead' || id === 'iniciarRota') carregarVendedores();
-  if(id === 'gestaoLeads' || id === 'verLeads') carregarLeads();
-  if(id === 'minhasRotas') carregarRotas();
-  if(id === 'novaVenda') limparFormularioVenda();
+  // Inicia Rastreamento GPS
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      routeCoords.push({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      
+      // Atualiza UI com dados reais
+      const elPoints = document.getElementById('points');
+      const elGps = document.getElementById('gpsStatus');
+      
+      if (elPoints) elPoints.innerText = routeCoords.length;
+      if (elGps) {
+        elGps.innerText = "✅ Rastreando";
+        elGps.style.background = "#d4edda";
+        elGps.style.color = "#155724";
+      }
+    },
+    err => {
+      const elGps = document.getElementById('gpsStatus');
+      if (elGps) {
+        elGps.innerText = "❌ Erro GPS";
+        elGps.style.background = "#f8d7da";
+        elGps.style.color = "#721c24";
+      }
+      console.error("Erro GPS:", err);
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
 }
 
-// ==============================
-//  GESTÃO DE LEADS - NOVA FUNCIONALIDADE
-// ==============================
+async function stopRoute() {
+  if (!confirm("Deseja finalizar a rota e enviar os dados para a central?")) return;
+  
+  // Para tudo
+  clearInterval(timerInterval);
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+  
+  showLoading(true, "Salvando Rota...");
+  
+  const payload = {
+    vendedor: loggedUser,
+    inicioISO: routeStartTime,
+    fimISO: new Date().toISOString(),
+    coordenadas: routeCoords
+  };
+  
+  const res = await apiCall('saveRoute', payload);
+  showLoading(false);
+  
+  if (res && res.status === 'success') {
+    alert('Rota finalizada e salva com sucesso!');
+    resetRouteUI();
+    showPage('dashboard');
+  } else {
+    alert('Erro ao salvar rota: ' + (res?.message || 'Verifique sua conexão'));
+  }
+}
+
+function updateRouteUI(isTracking) {
+  const btnStart = document.getElementById('btnStart');
+  const btnStop = document.getElementById('btnStop');
+  const elGps = document.getElementById('gpsStatus');
+  
+  if (btnStart) btnStart.style.display = isTracking ? 'none' : 'flex';
+  if (btnStop) btnStop.style.display = isTracking ? 'flex' : 'none';
+  
+  if (isTracking && elGps) elGps.innerText = "Iniciando GPS...";
+}
+
+function resetRouteUI() {
+  updateRouteUI(false);
+  
+  const elGps = document.getElementById('gpsStatus');
+  const elTimer = document.getElementById('timer');
+  const elPoints = document.getElementById('points');
+
+  if (elGps) {
+    elGps.innerText = "Aguardando...";
+    elGps.style.background = "#eee";
+    elGps.style.color = "#666";
+  }
+  if (elTimer) elTimer.innerText = "00:00:00";
+  if (elPoints) elPoints.innerText = "0";
+  
+  routeCoords = [];
+  seconds = 0;
+}
+
+// --- LEADS ---
+async function enviarLead() {
+  const nome = document.getElementById('leadNome').value;
+  const tel = document.getElementById('leadTelefone').value;
+  
+  if (!nome || !tel) return alert("Preencha pelo menos Nome e Telefone");
+  
+  showLoading(true, "Salvando Lead...");
+  
+  const payload = {
+    vendedor: loggedUser,
+    lead: nome, 
+    nomeLead: nome,
+    telefone: tel,
+    whatsapp: tel,
+    endereco: document.getElementById('leadEndereco').value,
+    bairro: document.getElementById('leadBairro').value,
+    cidade: document.getElementById('leadCidade').value,
+    interesse: document.getElementById('leadInteresse').value,
+    observacao: document.getElementById('leadObs').value
+  };
+  
+  const res = await apiCall('addLead', payload);
+  showLoading(false);
+  
+  if (res && res.status === 'success') {
+    alert('Lead salvo com sucesso!');
+    
+    // Limpa formulário
+    document.getElementById('leadNome').value = '';
+    document.getElementById('leadTelefone').value = '';
+    document.getElementById('leadEndereco').value = '';
+    document.getElementById('leadObs').value = '';
+    
+    carregarLeads(); // Atualiza a lista local
+    showPage('gestaoLeads');
+  } else {
+    alert('Erro ao salvar: ' + (res?.message || 'Tente novamente'));
+  }
+}
+
+async function carregarLeads() {
+  const lista = document.getElementById('listaLeadsGestao');
+  if (lista && lista.innerHTML === '') lista.innerHTML = '<div style="text-align:center; padding:20px; color:#666">Carregando...</div>';
+
+  const res = await apiCall('getLeads');
+  
+  if (res && res.status === 'success') {
+    leadsCache = res.data;
+    renderLeads();
+    atualizarDashboard();
+  } else {
+    if (lista) lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Erro ao carregar leads. Verifique a conexão.</div>';
+  }
+}
+
 function renderLeads() {
-  const q = document.getElementById('searchLead').value.toLowerCase();
   const div = document.getElementById('listaLeadsGestao');
+  if (!div) return;
 
-  div.innerHTML = '';
-
-  const leadsFiltrados = leadsCache
-    .filter(l => 
-      !q ||
-      (l.nomeLead||'').toLowerCase().includes(q) ||
-      (l.telefone||'').toLowerCase().includes(q) ||
-      (l.bairro||'').toLowerCase().includes(q) ||
-      (l.provedor||'').toLowerCase().includes(q)
-    );
-
-  if (leadsFiltrados.length === 0) {
-    div.innerHTML = '<div class="muted" style="text-align:center; padding:40px;">Nenhum lead encontrado</div>';
+  const searchInput = document.getElementById('searchLead');
+  const term = (searchInput ? searchInput.value : '').toLowerCase();
+  
+  const filtrados = leadsCache.filter(l => 
+    (l.nomeLead && l.nomeLead.toLowerCase().includes(term)) || 
+    (l.telefone && l.telefone.includes(term)) ||
+    (l.bairro && l.bairro.toLowerCase().includes(term))
+  );
+  
+  if (filtrados.length === 0) {
+    div.innerHTML = '<div style="text-align:center; padding:20px; color:#888">Nenhum lead encontrado.</div>';
     return;
   }
 
-  leadsFiltrados.forEach(l => {
-    const node = document.createElement('div');
-    node.className = 'lead-card-gestao';
-    
-    // Determinar classe do status
-    const statusClass = getStatusClass(l.status || 'NOVO');
-    const statusText = getStatusText(l.status || 'NOVO');
-    
-    // Formatar telefone para WhatsApp
-    const phone = (l.telefone || '').replace(/\D/g, '');
-    const whatsappUrl = phone ? `https://wa.me/55${phone}?text=Olá ${encodeURIComponent(l.nomeLead || '')}, tudo bem? Sou da MHnet e gostaria de conversar sobre nossos planos de internet!` : '#';
-    
-    node.innerHTML = `
-      <div class="lead-header">
-        <div class="lead-name">${l.nomeLead || 'Sem nome'}</div>
-        <div class="lead-status ${statusClass}">${statusText}</div>
+  div.innerHTML = filtrados.map(l => `
+    <div class="lead-card-gestao" style="background:white; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #eee; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+        <span style="font-weight:bold; color:#004AAD">${l.nomeLead}</span>
+        <span style="background:#eee; padding:2px 6px; border-radius:4px; font-size:0.8em; font-weight:bold">${l.interesse || 'NOVO'}</span>
       </div>
-      
-      <div class="lead-contact">
-        <span class="lead-info">📞 ${l.telefone || 'Sem telefone'}</span>
-        ${phone ? `<a href="${whatsappUrl}" target="_blank" class="whatsapp-btn">💬 WhatsApp</a>` : ''}
+      <div style="font-size:0.9em; color:#555">📞 ${l.telefone}</div>
+      <div style="font-size:0.9em; color:#555">📍 ${l.bairro || ''} - ${l.cidade || ''}</div>
+      <div style="font-size:0.8em; color:#999; text-align:right; margin-top:5px">
+        ${l.vendedor ? `Vend: ${l.vendedor}` : ''}
       </div>
-      
-      <div class="lead-info">🏠 ${l.endereco || ''} ${l.bairro || ''} - ${l.cidade || 'Lajeado'}</div>
-      <div class="lead-info">📡 ${l.provedor || 'Sem provedor'} • 🎯 ${l.interesse || 'MEDIO'}</div>
-      
-      ${l.observacao ? `<div class="lead-obs">📝 ${l.observacao}</div>` : ''}
-      
-      <div class="lead-timestamp">
-        ${l.vendedor ? `Vendedor: ${l.vendedor} • ` : ''}
-        ${l.timestamp ? `Captado em ${l.timestamp}` : 'Lead recente'}
+    </div>
+  `).join('');
+  
+  // Opcional: Atualizar algum contador se existir na UI
+}
+
+function atualizarDashboard() {
+  // Último lead card
+  if (leadsCache.length > 0) {
+    const l = leadsCache[0]; // Como o backend retorna reverso, o 0 é o mais recente
+    const elContent = document.getElementById('lastLeadContent'); // ID usado no index.html
+    const elContentBackup = document.getElementById('lastLeadCardContent');
+    
+    const html = `
+      <div style="font-weight:bold; font-size:1.1em; color:#004AAD">${l.nomeLead}</div>
+      <div style="color:#555">${l.bairro || 'Sem bairro'} - ${l.cidade || 'Lajeado'}</div>
+      <div style="font-size:0.85em; color:#888; margin-top:5px">
+        🕒 ${new Date(l.timestamp).toLocaleString('pt-BR')}
       </div>
     `;
     
-    div.appendChild(node);
-  });
-}
-
-function getStatusClass(status) {
-  const statusMap = {
-    'NOVO': 'status-novo',
-    'EM_ATENDIMENTO': 'status-atendimento',
-    'AGENDADO': 'status-agendado',
-    'CONVERTIDO': 'status-convertido',
-    'PERDIDO': 'status-perdido'
-  };
-  return statusMap[status] || 'status-novo';
-}
-
-function getStatusText(status) {
-  const statusMap = {
-    'NOVO': 'NOVO',
-    'EM_ATENDIMENTO': 'EM ATENDIMENTO',
-    'AGENDADO': 'AGENDADO',
-    'CONVERTIDO': 'CONVERTIDO',
-    'PERDIDO': 'PERDIDO'
-  };
-  return statusMap[status] || 'NOVO';
-}
-
-function exportarLeads() {
-  if (leadsCache.length === 0) {
-    alert('Nenhum lead para exportar');
-    return;
+    if (elContent) elContent.innerHTML = html;
+    if (elContentBackup) elContentBackup.innerHTML = html;
   }
   
-  const csvContent = "data:text/csv;charset=utf-8," 
-    + "Nome,Telefone,Endereço,Bairro,Cidade,Provedor,Interesse,Status,Observações,Vendedor,Data\n"
-    + leadsCache.map(lead => 
-        `"${lead.nomeLead || ''}","${lead.telefone || ''}","${lead.endereco || ''}","${lead.bairro || ''}","${lead.cidade || ''}","${lead.provedor || ''}","${lead.interesse || ''}","${lead.status || ''}","${(lead.observacao || '').replace(/"/g, '""')}","${lead.vendedor || ''}","${lead.timestamp || ''}"`
-      ).join("\n");
+  // Stats do dia
+  const hoje = new Date();
+  const leadsHoje = leadsCache.filter(l => {
+    const d = new Date(l.timestamp);
+    return d.getDate() === hoje.getDate() && 
+           d.getMonth() === hoje.getMonth() && 
+           d.getFullYear() === hoje.getFullYear();
+  }).length;
   
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `leads_${loggedUser}_${new Date().toISOString().split('T')[0]}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const elStat = document.getElementById('statLeads');
+  if (elStat) elStat.innerText = leadsHoje;
 }
 
-// ==============================
-//  COMUNICAÇÃO COM API - JSONP (mantida igual)
-// ==============================
-function apiCall(route, data = null) {
-  return new Promise((resolve) => {
-    if (!data) {
-      jsonpCall(route, resolve);
-    } else {
-      postWithFallback(route, data, resolve);
+// --- COMUNICAÇÃO API (FETCH) ---
+async function apiCall(route, payload = {}) {
+  // Validação simples
+  if (!API_URL || API_URL.includes("SUA_URL")) {
+    alert("ERRO DE CONFIGURAÇÃO: Verifique a API_URL no arquivo app.js");
+    return null;
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ 
+        route: route, // Compatível com Backend v4.0 (handleRequest)
+        payload: payload, 
+        token: TOKEN 
+      })
+    });
+    
+    const json = await response.json();
+    
+    if (json.status === 'error') {
+      throw new Error(json.message);
     }
-  });
+    return json; // Retorna o objeto completo {status, data}
+    
+  } catch (e) {
+    console.error("API Error:", e);
+    // Tratamento amigável de erro
+    if (e.message.includes("Failed to fetch")) {
+      alert("Erro de conexão. Verifique se o Google Apps Script está publicado como 'Qualquer Pessoa'.");
+    } else {
+      alert("Erro no sistema: " + e.message);
+    }
+    return null;
+  }
 }
 
-function jsonpCall(route, resolve) {
-  const callbackName = 'jsonp_callback_' + Date.now();
-  const url = `${API_DIRECT}?route=${route}&callback=${callbackName}`;
+// --- UI HELPERS ---
+function showLoading(show, text) {
+  const el = document.getElementById('loader');
+  const txt = document.getElementById('loaderText');
   
-  const script = document.createElement('script');
-  script.src = url;
-  
-  window[callbackName] = function(response) {
-    delete window[callbackName];
-    document.body.removeChild(script);
-    console.log(`✅ JSONP ${route}:`, response);
- 
+  if (show) {
+    if(txt) txt.innerText = text || "Carregando...";
+    if(el) el.style.display = 'flex';
+  } else {
+    if(el) el.style.display = 'none';
+  }
+}
