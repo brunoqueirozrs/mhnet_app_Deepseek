@@ -21,9 +21,8 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Classes utilitárias específicas */
+        /* Classes utilitárias */
         .btn-primary { @apply bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition-transform w-full flex justify-center items-center gap-2; }
-        .btn-secondary { @apply bg-white text-blue-700 border border-blue-200 font-bold py-3 px-4 rounded-xl shadow-sm active:scale-95 transition-transform w-full flex justify-center items-center gap-2; }
         .input-field { @apply w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all; }
         .card { @apply bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4; }
         
@@ -33,7 +32,7 @@
         .status-badge.error { @apply bg-red-100 text-red-700; }
 
         /* Ajuste para inputs em mobile */
-        input, select, textarea { font-size: 16px !important; /* Evita zoom no iOS */ }
+        input, select, textarea { font-size: 16px !important; }
         
         /* Bottom Navigation */
         .nav-item { @apply flex flex-col items-center justify-center text-gray-400 text-xs gap-1 py-2 w-full transition-colors; }
@@ -50,7 +49,7 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- LOGIN SCREEN (User Menu) -->
+    <!-- LOGIN SCREEN -->
     <div id="userMenu" class="fixed inset-0 bg-blue-800 z-50 flex flex-col items-center justify-center p-6 text-white" style="display: flex;">
         <div class="mb-8 text-center fade-in">
             <div class="bg-white p-4 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4 shadow-xl">
@@ -65,12 +64,11 @@
             <select id="userSelect" class="input-field mb-4 bg-white">
                 <option value="">Carregando lista...</option>
             </select>
-            
             <button onclick="setLoggedUser()" class="btn-primary bg-blue-600 hover:bg-blue-700">
                 <i class="fas fa-sign-in-alt"></i> Acessar Sistema
             </button>
         </div>
-        <p class="absolute bottom-6 text-xs text-blue-300 opacity-60">Versão 5.0 AI</p>
+        <p class="absolute bottom-6 text-xs text-blue-300 opacity-60">Versão 5.3 (Fix Dashboard)</p>
     </div>
 
     <!-- MAIN APP CONTENT -->
@@ -107,15 +105,16 @@
                     </button>
                 </div>
 
-                <!-- Quick Actions -->
+                <!-- Quick Actions (CORRIGIDOS) -->
                 <div class="grid grid-cols-2 gap-3 mb-6">
-                    <button onclick="document.querySelector('[onclick=\'showPage(\\\'cadastroLead\\\')\']').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
+                    <!-- Agora clica diretamente no botão do rodapé pelo ID -->
+                    <button onclick="document.getElementById('nav-novo').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
                         <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
                             <i class="fas fa-plus"></i>
                         </div>
                         <span class="text-sm font-medium text-gray-600">Novo Lead</span>
                     </button>
-                    <button onclick="document.querySelector('[onclick=\'showPage(\\\'rota\\\')\']').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
+                    <button onclick="document.getElementById('nav-rota').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
                         <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
                             <i class="fas fa-map-marker-alt"></i>
                         </div>
@@ -132,14 +131,12 @@
             <!-- CADASTRO LEAD -->
             <div id="cadastroLead" class="page hidden fade-in">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Novo Cliente</h2>
-                
                 <div class="space-y-4">
                     <div>
                         <label class="text-xs font-bold text-gray-500 uppercase ml-1">Dados Pessoais</label>
                         <input type="text" id="leadNome" placeholder="Nome Completo" class="input-field mt-1">
                         <input type="tel" id="leadTelefone" placeholder="WhatsApp (com DDD)" class="input-field mt-3">
                     </div>
-
                     <div>
                         <label class="text-xs font-bold text-gray-500 uppercase ml-1">Endereço</label>
                         <input type="text" id="leadBairro" placeholder="Bairro" class="input-field mt-1">
@@ -148,7 +145,6 @@
                             <input type="text" id="leadEndereco" placeholder="Rua e Número" class="input-field">
                         </div>
                     </div>
-
                     <div>
                         <label class="text-xs font-bold text-gray-500 uppercase ml-1">Interesse</label>
                         <select id="leadInteresse" class="input-field mt-1 bg-white">
@@ -157,7 +153,6 @@
                             <option value="Baixo">❄️ Baixo (Só curiosidade)</option>
                         </select>
                     </div>
-
                     <div>
                         <div class="flex justify-between items-end mb-1">
                             <label class="text-xs font-bold text-gray-500 uppercase ml-1">Observações</label>
@@ -167,16 +162,13 @@
                                 </button>
                             </div>
                         </div>
-                        <textarea id="leadObs" rows="3" class="input-field" placeholder="Ex: Cliente quer internet barata, reclamou da atual..."></textarea>
-                        
-                        <!-- Botão IA para Refinar -->
+                        <textarea id="leadObs" rows="3" class="input-field" placeholder="Detalhes..."></textarea>
                         <div class="flex justify-end mt-2">
                              <button onclick="refinarObservacaoIA()" class="text-xs text-purple-600 font-bold flex items-center gap-1 hover:text-purple-800">
                                 <i class="fas fa-magic"></i> ✨ Melhorar Texto
                             </button>
                         </div>
                     </div>
-
                     <div class="pt-2">
                         <button onclick="enviarLead()" class="btn-primary bg-green-600 hover:bg-green-700 shadow-green-200">
                             <i class="fas fa-paper-plane"></i> Salvar Lead
@@ -199,26 +191,16 @@
                         <input type="text" id="searchLead" onkeyup="renderLeads()" placeholder="Buscar nome, bairro..." class="input-field pl-10 rounded-full shadow-sm">
                     </div>
                 </div>
-                
-                <div id="listaLeadsGestao" class="pb-4">
-                    <!-- Cards inseridos via JS -->
-                    <div class="text-center py-10">
-                        <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
-                    </div>
-                </div>
+                <div id="listaLeadsGestao" class="pb-4"></div>
             </div>
 
             <!-- ROTA (GPS) -->
             <div id="rota" class="page hidden fade-in text-center">
                 <h2 class="text-xl font-bold text-gray-800 mb-6">Controle de Rota</h2>
-                
                 <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 mx-auto max-w-xs relative">
-                    <!-- Decorativo -->
                     <div class="absolute inset-0 rounded-3xl border-4 border-blue-50 pointer-events-none"></div>
-                    
                     <div class="text-gray-400 text-sm font-medium mb-1">TEMPO DE ROTA</div>
                     <div id="timer" class="text-5xl font-mono font-bold text-gray-800 tracking-wider mb-6">00:00:00</div>
-                    
                     <div class="grid grid-cols-2 gap-4 text-left border-t border-gray-100 pt-6">
                         <div>
                             <div class="text-xs text-gray-400 uppercase">Pontos</div>
@@ -230,39 +212,33 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="space-y-3 max-w-xs mx-auto">
                     <button id="btnStart" onclick="startRoute()" class="btn-primary bg-blue-600 hover:bg-blue-700 py-4">
                         <i class="fas fa-play"></i> Iniciar Rota
                     </button>
-                    
                     <button id="btnStop" onclick="stopRoute()" class="btn-primary bg-red-500 hover:bg-red-600 py-4 hidden">
                         <i class="fas fa-stop"></i> Finalizar Rota
                     </button>
                 </div>
-                
-                <p class="text-xs text-gray-400 mt-8 px-8">
-                    Mantenha a tela desbloqueada para melhor precisão do GPS.
-                </p>
+                <p class="text-xs text-gray-400 mt-8 px-8">Mantenha a tela desbloqueada.</p>
             </div>
-
         </main>
 
-        <!-- BOTTOM NAVIGATION -->
+        <!-- BOTTOM NAVIGATION (IDs Adicionados) -->
         <nav class="bg-white border-t border-gray-200 flex justify-around px-2 pb-safe pt-1 absolute bottom-0 w-full z-20">
-            <button onclick="showPage('dashboard'); setActiveNav(this)" class="nav-item active">
+            <button id="nav-home" onclick="showPage('dashboard'); setActiveNav(this)" class="nav-item active">
                 <i class="fas fa-home"></i>
                 <span>Início</span>
             </button>
-            <button onclick="showPage('cadastroLead'); setActiveNav(this)" class="nav-item">
+            <button id="nav-novo" onclick="showPage('cadastroLead'); setActiveNav(this)" class="nav-item">
                 <i class="fas fa-user-plus"></i>
                 <span>Novo</span>
             </button>
-            <button onclick="showPage('gestaoLeads'); setActiveNav(this)" class="nav-item">
+            <button id="nav-lista" onclick="showPage('gestaoLeads'); setActiveNav(this)" class="nav-item">
                 <i class="fas fa-list-alt"></i>
                 <span>Lista</span>
             </button>
-            <button onclick="showPage('rota'); setActiveNav(this)" class="nav-item">
+            <button id="nav-rota" onclick="showPage('rota'); setActiveNav(this)" class="nav-item">
                 <i class="fas fa-map-marked-alt"></i>
                 <span>Rota</span>
             </button>
@@ -279,7 +255,6 @@
     <!-- SCRIPTS -->
     <script src="app.js"></script>
     <script>
-        // Pequeno script para UI da navegação
         function setActiveNav(element) {
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('active', 'text-blue-600', 'font-semibold');
@@ -288,8 +263,6 @@
             element.classList.add('active', 'text-blue-600', 'font-semibold');
             element.classList.remove('text-gray-400');
         }
-
-        // Ajuste para iOS Safe Area (ex: iPhone X home bar)
         if (window.CSS && CSS.supports("padding-bottom: env(safe-area-inset-bottom)")) {
             document.querySelector('nav').style.paddingBottom = "env(safe-area-inset-bottom)";
             document.querySelector('main').style.paddingBottom = "calc(4rem + env(safe-area-inset-bottom))";
