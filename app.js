@@ -5,14 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#004AAD">
-  <title>Mhnet Vendas Externas v4.1 (IA)</title>
+  <title>Mhnet Vendas v4.2</title>
   
-  <!-- Links para os arquivos do GitHub -->
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="dashboard.css">
+  <style>
+    /* Aviso de Offline */
+    #offline-banner {
+      display: none;
+      background: #dc3545;
+      color: white;
+      text-align: center;
+      padding: 8px;
+      font-size: 0.85rem;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 2000;
+    }
+  </style>
 </head>
 <body>
+
+  <!-- Aviso Offline -->
+  <div id="offline-banner">⚠️ Sem conexão com a internet</div>
 
   <!-- Dica de Instalação (Mobile) -->
   <div id="mobileTip" style="display:none; background:#004AAD; color:white; padding:12px; border-radius:0 0 12px 12px; text-align:center; font-size:14px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -23,7 +39,6 @@
     
     <!-- Cabeçalho Fixo -->
     <div class="header">
-      <!-- Logo Base64 -->
       <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgNzMiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzMiPgogIDx0ZXh0IHg9IjEwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzAwNEFBRCI+TWhuZXQ8L3RleHQ+Cjwvc3ZnPg==" alt="Mhnet Logo">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
         <div>
@@ -51,7 +66,6 @@
 
       <!-- PÁGINA: DASHBOARD -->
       <section id="dashboard" class="page">
-        <!-- Cards de Estatísticas -->
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-title">Leads Hoje</div>
@@ -67,7 +81,6 @@
           </div>
         </div>
 
-        <!-- Botões de Ação Principal -->
         <div class="actions-grid">
           <button class="action-card blue" onclick="showPage('iniciarRota')">
             <span class="action-icon">📍</span>
@@ -79,12 +92,10 @@
           </button>
         </div>
 
-        <!-- Botão Coach IA -->
         <button class="btn ghost" onclick="gerarCoachIA()" style="border-color: #6b21a8; color: #6b21a8; margin-bottom: 20px; border-width: 2px;">
           ✨ Pedir Dica do Coach IA
         </button>
 
-        <!-- Card do Último Lead -->
         <div class="lead-management">
           <h3>Último Lead Cadastrado</h3>
           <div id="lastLeadContent">
@@ -121,7 +132,6 @@
 
         <input id="searchLead" type="text" class="search-input" placeholder="🔍 Buscar por nome, telefone ou bairro..." oninput="renderLeads()">
         
-        <!-- Lista de Leads (Renderizada via JS) -->
         <div id="listaLeadsGestao" style="min-height:200px;"></div>
         <div id="infoLeads" style="text-align:center; color:#999; font-size:0.8rem; margin-top:10px;"></div>
         
@@ -200,7 +210,7 @@
   <!-- Scripts -->
   <script src="app.js"></script>
   <script>
-    // Registro do Service Worker para funcionar Offline
+    // Registro do Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
@@ -208,6 +218,14 @@
           .catch(err => console.log('Falha no Service Worker:', err));
       });
     }
+
+    // Monitoramento de Conexão
+    window.addEventListener('online', () => {
+      document.getElementById('offline-banner').style.display = 'none';
+    });
+    window.addEventListener('offline', () => {
+      document.getElementById('offline-banner').style.display = 'block';
+    });
   </script>
 </body>
 </html>
