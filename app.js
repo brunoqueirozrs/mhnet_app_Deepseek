@@ -1,231 +1,514 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#004AAD">
-  <title>Mhnet Vendas v4.2</title>
+/**
+ * ============================================================
+ * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v4.4 - Atualizado)
+ * Conecta com Backend Google Apps Script + Gemini AI
+ * ============================================================
+ */
+
+// --- CONFIGURAÇÃO DA API ---
+// Atualizado com a sua nova URL fornecida
+const DEPLOY_ID = 'AKfycbyWYgd3r5pA1dYB5LD_PY6m4V2FjWG-Oi6vYjlvNBre9r_eGiPlhia-HtJjD2Mnfc9F'; 
+const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
+
+// Token de segurança (Deve ser igual ao do Code.gs)
+const TOKEN = "MHNET2025#SEG";
+
+// Chave da API Gemini (Opcional - Para funcionalidades de IA)
+const GEMINI_KEY = ""; 
+
+// --- ESTADO GLOBAL ---
+let loggedUser = localStorage.getItem('loggedUser');
+let leadsCache = [];
+let routeCoords = [];
+let watchId = null;
+let timerInterval = null;
+let seconds = 0;
+let routeStartTime = null;
+
+// --- INICIALIZAÇÃO ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Verifica se a URL foi configurada corretamente
+  if (API_URL.includes("COLE_SUA")) {
+    alert("ERRO CRÍTICO: Configure a URL da API no arquivo app.js");
+    return;
+  }
+
+  // Verifica se já existe um usuário logado
+  if (loggedUser) {
+    initApp();
+  } else {
+    showUserMenu();
+    carregarVendedores(); // Carrega lista para o login
+  }
+});
+
+function initApp() {
+  const menu = document.getElementById('userMenu');
+  const main = document.getElementById('mainContent');
+  const userInfo = document.getElementById('userInfo');
+  const footerUser = document.getElementById('footerUser');
+
+  if(menu) menu.style.display = 'none';
+  if(main) main.style.display = 'block';
   
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="dashboard.css">
-  <style>
-    /* Aviso de Offline */
-    #offline-banner {
-      display: none;
-      background: #dc3545;
-      color: white;
-      text-align: center;
-      padding: 8px;
-      font-size: 0.85rem;
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 2000;
-    }
-  </style>
-</head>
-<body>
+  const userDisplay = `Vendedor: ${loggedUser}`;
+  if (userInfo) userInfo.textContent = userDisplay;
+  if (footerUser) footerUser.textContent = loggedUser;
 
-  <!-- Aviso Offline -->
-  <div id="offline-banner">⚠️ Sem conexão com a internet</div>
+  showPage('dashboard');
+  carregarLeads(); // Carrega leads em background
+}
 
-  <!-- Dica de Instalação (Mobile) -->
-  <div id="mobileTip" style="display:none; background:#004AAD; color:white; padding:12px; border-radius:0 0 12px 12px; text-align:center; font-size:14px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    📱 <b>Instalar App:</b> Toque em <b>⋮</b> (ou Compartilhar) e selecione <b>"Adicionar à Tela Inicial"</b>.
-  </div>
+// --- NAVEGAÇÃO ---
+function showPage(pageId) {
+  // Esconde todas as páginas
+  document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+  
+  // Mostra a página desejada
+  const target = document.getElementById(pageId);
+  if (target) {
+    target.style.display = 'block';
+    window.scrollTo(0, 0); // Rola para o topo
+  }
+  
+  if (pageId === 'dashboard') atualizarDashboard();
+}
 
-  <div class="container">
+function toggleUserMenu() {
+  const menu = document.getElementById('userMenu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    if (menu.style.display === 'block') carregarVendedores();
+  }
+}
+
+// --- GESTÃO DE USUÁRIO (COM FALLBACK DE SEGURANÇA) ---
+async function carregarVendedores() {
+  const select = document.getElementById('userSelect');
+  if (!select) return;
+  
+  select.innerHTML = '<option>Carregando...</option>';
+  
+  // Lista de segurança caso a API falhe ou esteja offline
+  const listaSeguranca = [
+    {nome: "Ana Paula Rodrigues"}, {nome: "Vitoria Caroline Baldez Rosales"}, 
+    {nome: "João Vithor Sader"}, {nome: "João Paulo da Silva Santos"}, 
+    {nome: "Claudia Maria Semmler"}, {nome: "Diulia Vitoria Machado Borges"}, 
+    {nome: "Elton da Silva Rodrigo Gonçalves"}
+  ];
+
+  try {
+    // Tenta buscar do servidor sem bloquear a tela (showLoader = false)
+    const res = await apiCall('getVendedores', {}, false, true); 
     
-    <!-- Cabeçalho Fixo -->
-    <div class="header">
-      <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgNzMiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzMiPgogIDx0ZXh0IHg9IjEwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzAwNEFBRCI+TWhuZXQ8L3RleHQ+Cjwvc3ZnPg==" alt="Mhnet Logo">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-        <div>
-          <h2 style="margin:0; font-size:1.2rem;">Vendas Externas</h2>
-          <small class="version" id="userInfo">Aguardando login...</small>
-        </div>
-        <button class="btn ghost" onclick="toggleUserMenu()" style="width:auto; padding:8px 12px; font-size:1.2rem;">👤</button>
-      </div>
-    </div>
+    let listaFinal = [];
 
-    <!-- TELA 1: LOGIN / SELEÇÃO DE VENDEDOR (Inicial) -->
-    <div id="userMenu" class="user-menu-card" style="display:block;">
-      <h3>👋 Bem-vindo!</h3>
-      <div class="form-group">
-        <label>Quem é você?</label>
-        <select id="userSelect">
-          <option value="">Carregando equipe...</option>
-        </select>
-      </div>
-      <button class="btn primary" onclick="setLoggedUser()">Entrar no Sistema</button>
-    </div>
-
-    <!-- CONTEÚDO PRINCIPAL (Escondido até o login) -->
-    <main id="mainContent" style="display:none;">
-
-      <!-- PÁGINA: DASHBOARD -->
-      <section id="dashboard" class="page">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-title">Leads Hoje</div>
-            <div class="stat-value" id="statLeads">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-title">Tempo Rota</div>
-            <div class="stat-value" id="timer">00:00</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-title">Pontos GPS</div>
-            <div class="stat-value" id="points">0</div>
-          </div>
-        </div>
-
-        <div class="actions-grid">
-          <button class="action-card blue" onclick="showPage('iniciarRota')">
-            <span class="action-icon">📍</span>
-            <span class="action-title">Iniciar Rota</span>
-          </button>
-          <button class="action-card green" onclick="showPage('gestaoLeads')">
-            <span class="action-icon">📋</span>
-            <span class="action-title">Gerir Leads</span>
-          </button>
-        </div>
-
-        <button class="btn ghost" onclick="gerarCoachIA()" style="border-color: #6b21a8; color: #6b21a8; margin-bottom: 20px; border-width: 2px;">
-          ✨ Pedir Dica do Coach IA
-        </button>
-
-        <div class="lead-management">
-          <h3>Último Lead Cadastrado</h3>
-          <div id="lastLeadContent">
-            <span style="color:#666; font-style:italic;">Nenhum registro recente.</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- PÁGINA: CONTROLE DE ROTA -->
-      <section id="iniciarRota" class="page" style="display:none;">
-        <div style="text-align:center; margin-bottom:20px;">
-          <h2>📍 Controle de Rota</h2>
-          <div class="status-badge" id="gpsStatus">GPS: Aguardando...</div>
-        </div>
-        
-        <div class="actions">
-          <button id="btnStart" class="btn btn-start">▶ INICIAR RASTREAMENTO</button>
-          <button id="btnStop" class="btn btn-stop">⏹ FINALIZAR E ENVIAR</button>
-        </div>
-        
-        <div style="margin-top:20px; background:#f8f9fa; padding:15px; border-radius:10px; font-size:0.9rem; color:#666;">
-          ℹ️ <b>Como funciona:</b> Clique em iniciar ao sair para a rua. O app gravará seu trajeto automaticamente. Ao terminar o turno, clique em finalizar.
-        </div>
-
-        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar ao Menu</button>
-      </section>
-
-      <!-- PÁGINA: GESTÃO DE LEADS -->
-      <section id="gestaoLeads" class="page" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-          <h2>📋 Meus Leads</h2>
-          <button class="lead-action-btn primary" onclick="showPage('cadLead')" style="width:auto;">➕ Novo</button>
-        </div>
-
-        <input id="searchLead" type="text" class="search-input" placeholder="🔍 Buscar por nome, telefone ou bairro..." oninput="renderLeads()">
-        
-        <div id="listaLeadsGestao" style="min-height:200px;"></div>
-        <div id="infoLeads" style="text-align:center; color:#999; font-size:0.8rem; margin-top:10px;"></div>
-        
-        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar</button>
-      </section>
-
-      <!-- PÁGINA: CADASTRAR NOVO LEAD -->
-      <section id="cadLead" class="page" style="display:none;">
-        <h2>➕ Novo Cadastro</h2>
-        
-        <div class="form-group">
-          <label>Nome do Cliente</label>
-          <input id="leadNome" type="text" placeholder="Ex: João da Silva">
-        </div>
-
-        <div class="form-group">
-          <label>WhatsApp / Telefone</label>
-          <input id="leadTelefone" type="tel" placeholder="Ex: (51) 99999-9999">
-        </div>
-
-        <div class="form-group">
-          <label>Endereço Completo</label>
-          <input id="leadEndereco" type="text" placeholder="Rua, Número, Complemento">
-        </div>
-
-        <div class="form-group">
-          <label>Bairro</label>
-          <input id="leadBairro" type="text" placeholder="Ex: Centro">
-        </div>
-
-        <div class="form-group">
-          <label>Cidade</label>
-          <input id="leadCidade" type="text" value="Lajeado">
-        </div>
-
-        <div class="form-group">
-          <label>Nível de Interesse</label>
-          <select id="leadInteresse">
-            <option value="ALTO">🔥 Alto</option>
-            <option value="MEDIO" selected>😐 Médio</option>
-            <option value="BAIXO">❄️ Baixo</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label style="display:flex; justify-content:space-between; align-items:center;">
-            Observações / Abordagem
-            <button onclick="gerarAbordagemIA()" style="background:none; border:none; color:#6b21a8; font-weight:bold; cursor:pointer; font-size:0.8rem;">
-              ✨ Gerar com IA
-            </button>
-          </label>
-          <textarea id="leadObs" placeholder="Detalhes adicionais..."></textarea>
-        </div>
-
-        <div class="actions">
-          <button class="btn primary" onclick="enviarLead()">💾 SALVAR LEAD</button>
-          <button class="btn ghost" onclick="showPage('gestaoLeads')">Cancelar</button>
-        </div>
-      </section>
-
-    </main>
-
-    <!-- Rodapé -->
-    <footer style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #eee; color:#ccc; font-size:0.8rem;">
-      <small>MHNET Vendas Externas • <span id="footerUser"></span></small>
-    </footer>
-
-  </div>
-
-  <!-- Overlay de Carregamento -->
-  <div id="loader" class="overlay">
-    <div class="spinner"></div>
-    <div id="loaderText">Carregando...</div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="app.js"></script>
-  <script>
-    // Registro do Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .then(reg => console.log('Service Worker registrado:', reg.scope))
-          .catch(err => console.log('Falha no Service Worker:', err));
-      });
+    if (res && res.status === 'success' && res.data && res.data.length > 0) {
+      console.log("Vendedores carregados da API");
+      listaFinal = res.data;
+    } else {
+      console.warn("API vazia ou falhou. Usando lista local.");
+      listaFinal = listaSeguranca;
     }
 
-    // Monitoramento de Conexão
-    window.addEventListener('online', () => {
-      document.getElementById('offline-banner').style.display = 'none';
+    renderizarOpcoesVendedores(select, listaFinal);
+
+  } catch (e) {
+    console.error("Erro ao carregar vendedores:", e);
+    renderizarOpcoesVendedores(select, listaSeguranca);
+  }
+}
+
+function renderizarOpcoesVendedores(selectElement, lista) {
+  selectElement.innerHTML = '<option value="">Selecione...</option>';
+  lista.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v.nome;
+    opt.innerText = v.nome;
+    selectElement.appendChild(opt);
+  });
+}
+
+function setLoggedUser() {
+  const select = document.getElementById('userSelect');
+  if (select && select.value) {
+    loggedUser = select.value;
+    localStorage.setItem('loggedUser', loggedUser);
+    initApp();
+  } else {
+    alert('Por favor, selecione um vendedor da lista!');
+  }
+}
+
+function logout() {
+  if(confirm("Tem a certeza que deseja sair?")) {
+    localStorage.removeItem('loggedUser');
+    location.reload();
+  }
+}
+
+// --- INTEGRAÇÃO IA (GEMINI) ---
+async function chamarGemini(prompt) {
+  if (!GEMINI_KEY) return "IA não configurada no app.js (Adicione a GEMINI_KEY).";
+  
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
-    window.addEventListener('offline', () => {
-      document.getElementById('offline-banner').style.display = 'block';
-    });
-  </script>
-</body>
-</html>
+    
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta da IA.";
+  } catch (error) {
+    console.error("Erro IA:", error);
+    return "Erro ao conectar com a IA.";
+  }
+}
+
+async function gerarAbordagemIA() {
+  const nome = document.getElementById('leadNome').value;
+  const interesse = document.getElementById('leadInteresse').value;
+  const bairro = document.getElementById('leadBairro').value || "Lajeado";
+  
+  if (!nome) return alert("Preencha o nome do cliente primeiro!");
+  
+  showLoading(true, "IA Criando Abordagem...");
+  
+  const prompt = `
+    Aja como um vendedor experiente da provedora de internet MHNET.
+    Crie uma mensagem curta e persuasiva para WhatsApp para o cliente ${nome}.
+    Nível de interesse: ${interesse}.
+    Bairro: ${bairro}.
+    Destaque: Fibra óptica, estabilidade e instalação rápida.
+    Tom: Profissional mas amigável. Use emojis. Sem hashtags.
+  `;
+  
+  const txt = await chamarGemini(prompt);
+  document.getElementById('leadObs').value = txt;
+  showLoading(false);
+}
+
+async function gerarCoachIA() {
+  showLoading(true, "Coach IA Analisando...");
+  
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const leadsHoje = leadsCache.filter(l => new Date(l.timestamp).toLocaleDateString('pt-BR') === hoje).length;
+  
+  const prompt = `
+    Aja como um gerente de vendas motivacional.
+    Hoje é ${hoje}. O vendedor ${loggedUser} cadastrou ${leadsHoje} leads.
+    Meta diária sugerida: 10 leads.
+    Dê um feedback curto (máx 3 frases). Se estiver abaixo da meta, motive. Se estiver acima, parabenize.
+    Use emojis.
+  `;
+  
+  const txt = await chamarGemini(prompt);
+  alert(`🤖 Coach IA diz:\n\n${txt}`);
+  showLoading(false);
+}
+
+// --- ROTA & GPS ---
+function startRoute() {
+  if (!navigator.geolocation) return alert('GPS não suportado neste dispositivo.');
+  
+  routeCoords = [];
+  seconds = 0;
+  routeStartTime = new Date().toISOString();
+  
+  updateRouteUI(true);
+  
+  // Inicia Timer
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    seconds++;
+    const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2,'0');
+    const s = (seconds % 60).toString().padStart(2,'0');
+    
+    const elTimer = document.getElementById('timer');
+    if (elTimer) elTimer.innerText = `${h}:${m}:${s}`;
+  }, 1000);
+
+  // Inicia Rastreamento GPS
+  watchId = navigator.geolocation.watchPosition(
+    pos => {
+      routeCoords.push({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      
+      const elPoints = document.getElementById('points');
+      const elGps = document.getElementById('gpsStatus');
+      
+      if (elPoints) elPoints.innerText = routeCoords.length;
+      if (elGps) {
+        elGps.innerText = "✅ Rastreando";
+        elGps.className = "status-badge success"; // Classe CSS verde
+      }
+    },
+    err => {
+      const elGps = document.getElementById('gpsStatus');
+      if (elGps) {
+        elGps.innerText = "❌ Erro GPS";
+        elGps.className = "status-badge error";
+      }
+      console.error("Erro GPS:", err);
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
+}
+
+async function stopRoute() {
+  if (!confirm("Deseja finalizar a rota e enviar os dados para a central?")) return;
+  
+  clearInterval(timerInterval);
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+  
+  showLoading(true, "Salvando Rota...");
+  
+  const payload = {
+    vendedor: loggedUser,
+    inicioISO: routeStartTime,
+    fimISO: new Date().toISOString(),
+    coordenadas: routeCoords
+  };
+  
+  const res = await apiCall('saveRoute', payload);
+  showLoading(false);
+  
+  if (res && res.status === 'success') {
+    alert('Rota finalizada e salva com sucesso!');
+    resetRouteUI();
+    showPage('dashboard');
+  } else {
+    alert('Erro ao salvar rota: ' + (res?.message || 'Verifique sua conexão'));
+    // Não limpa UI para permitir nova tentativa
+  }
+}
+
+function updateRouteUI(isTracking) {
+  const btnStart = document.getElementById('btnStart');
+  const btnStop = document.getElementById('btnStop');
+  const elGps = document.getElementById('gpsStatus');
+  
+  if (btnStart) btnStart.style.display = isTracking ? 'none' : 'flex';
+  if (btnStop) btnStop.style.display = isTracking ? 'flex' : 'none';
+  if (isTracking && elGps) elGps.innerText = "Iniciando GPS...";
+}
+
+function resetRouteUI() {
+  updateRouteUI(false);
+  const elGps = document.getElementById('gpsStatus');
+  const elTimer = document.getElementById('timer');
+  const elPoints = document.getElementById('points');
+
+  if (elGps) {
+    elGps.innerText = "Aguardando...";
+    elGps.className = "status-badge";
+  }
+  if (elTimer) elTimer.innerText = "00:00:00";
+  if (elPoints) elPoints.innerText = "0";
+  
+  routeCoords = [];
+  seconds = 0;
+}
+
+// --- LEADS ---
+async function enviarLead() {
+  const nome = document.getElementById('leadNome').value;
+  const tel = document.getElementById('leadTelefone').value;
+  
+  if (!nome || !tel) return alert("Preencha pelo menos Nome e Telefone");
+  
+  showLoading(true, "Salvando Lead...");
+  
+  const payload = {
+    vendedor: loggedUser,
+    lead: nome, 
+    nomeLead: nome, // Compatibilidade
+    telefone: tel,
+    whatsapp: tel,
+    endereco: document.getElementById('leadEndereco').value,
+    bairro: document.getElementById('leadBairro').value,
+    cidade: document.getElementById('leadCidade').value,
+    interesse: document.getElementById('leadInteresse').value,
+    observacao: document.getElementById('leadObs').value
+  };
+  
+  const res = await apiCall('addLead', payload);
+  showLoading(false);
+  
+  if (res && res.status === 'success') {
+    alert('Lead salvo com sucesso!');
+    
+    // Limpa formulário
+    document.getElementById('leadNome').value = '';
+    document.getElementById('leadTelefone').value = '';
+    document.getElementById('leadEndereco').value = '';
+    document.getElementById('leadObs').value = '';
+    
+    carregarLeads(); 
+    showPage('gestaoLeads');
+  } else {
+    alert('Erro ao salvar: ' + (res?.message || 'Tente novamente'));
+  }
+}
+
+async function carregarLeads() {
+  const lista = document.getElementById('listaLeadsGestao');
+  
+  // Loading discreto se a lista estiver vazia
+  if (lista && !lista.hasChildNodes()) {
+    lista.innerHTML = '<div style="text-align:center; padding:20px; color:#666">Carregando...</div>';
+  }
+
+  const res = await apiCall('getLeads', {}, false, true);
+  
+  if (res && res.status === 'success') {
+    // Cache local dos leads deste vendedor
+    leadsCache = res.data.filter(l => l.vendedor === loggedUser);
+    renderLeads();
+    atualizarDashboard();
+  } else {
+    if (lista && leadsCache.length === 0) {
+      lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Erro ao carregar leads.</div>';
+    }
+  }
+}
+
+function renderLeads() {
+  const div = document.getElementById('listaLeadsGestao');
+  if (!div) return;
+
+  const searchInput = document.getElementById('searchLead');
+  const term = (searchInput ? searchInput.value : '').toLowerCase();
+  
+  const filtrados = leadsCache.filter(l => 
+    (l.nomeLead && l.nomeLead.toLowerCase().includes(term)) || 
+    (l.telefone && l.telefone.includes(term)) ||
+    (l.bairro && l.bairro.toLowerCase().includes(term))
+  );
+  
+  if (filtrados.length === 0) {
+    div.innerHTML = '<div style="text-align:center; padding:20px; color:#888">Nenhum lead encontrado.</div>';
+    return;
+  }
+
+  div.innerHTML = filtrados.map(l => `
+    <div class="lead-card-gestao" style="background:white; padding:15px; margin-bottom:10px; border-radius:8px; border:1px solid #eee; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+      <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+        <span style="font-weight:bold; color:#004AAD">${l.nomeLead}</span>
+        <span style="background:#eee; padding:2px 6px; border-radius:4px; font-size:0.8em; font-weight:bold">${l.interesse || 'NOVO'}</span>
+      </div>
+      <div style="font-size:0.9em; color:#555">📞 ${l.telefone}</div>
+      <div style="font-size:0.9em; color:#555">📍 ${l.bairro || ''} - ${l.cidade || ''}</div>
+      <div style="font-size:0.8em; color:#999; text-align:right; margin-top:5px">
+        ${l.vendedor ? `Vend: ${l.vendedor}` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function atualizarDashboard() {
+  // Último lead card
+  if (leadsCache.length > 0) {
+    const l = leadsCache[0]; 
+    const elContent = document.getElementById('lastLeadContent');
+    
+    if (elContent) {
+      elContent.innerHTML = `
+        <div style="font-weight:bold; font-size:1.1em; color:#004AAD">${l.nomeLead}</div>
+        <div style="color:#555">${l.bairro || 'Sem bairro'} - ${l.cidade || 'Lajeado'}</div>
+        <div style="font-size:0.85em; color:#888; margin-top:5px">
+          🕒 ${l.timestamp}
+        </div>
+      `;
+    }
+  }
+  
+  // Stats do dia
+  const hojeStr = new Date().toLocaleDateString('pt-BR');
+  const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hojeStr)).length;
+  
+  const elStat = document.getElementById('statLeads');
+  if (elStat) elStat.innerText = leadsHoje;
+}
+
+// --- COMUNICAÇÃO API (SISTEMA ROBUSTO DE RETRY) ---
+async function apiCall(action, payload = {}, showLoader = true, suppressAlert = false) {
+  // Validação simples
+  if (!API_URL || API_URL.includes("SUA_URL")) {
+    alert("ERRO DE CONFIGURAÇÃO: Verifique a API_URL no arquivo app.js");
+    return null;
+  }
+  
+  if (showLoader) showLoading(true, "Processando...");
+
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+  
+  while (attempt < MAX_RETRIES) {
+    try {
+      // Timeout controller para evitar travamentos longos (15s)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ 
+          route: action, 
+          payload: payload, 
+          token: TOKEN 
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      const json = await response.json();
+      if (showLoader) showLoading(false);
+      
+      if (json.status === 'error') throw new Error(json.message);
+      return json; // Retorna o objeto completo {status, data}
+
+    } catch (e) {
+      attempt++;
+      console.warn(`Tentativa ${attempt} falhou:`, e);
+      
+      if (showLoader) {
+        const loaderText = document.getElementById('loaderText');
+        if(loaderText) loaderText.innerText = `Reconectando (${attempt}/${MAX_RETRIES})...`;
+      }
+
+      if (attempt === MAX_RETRIES) {
+        if (showLoader) showLoading(false);
+        console.error("Falha final na API:", e);
+        
+        let msg = "Erro de conexão.";
+        if (e.name === 'AbortError') msg = "Tempo limite excedido.";
+        if (e.message && e.message.includes('Failed to fetch')) msg = "Sem internet ou bloqueio de rede.";
+        
+        if (!suppressAlert && !action.startsWith('get')) {
+          alert(`Falha: ${msg} Tente novamente.`);
+        }
+        return null;
+      }
+      
+      // Espera exponencial (1s, 2s, 4s) antes de tentar de novo
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+    }
+  }
+}
+
+// --- UI HELPERS ---
+function showLoading(show, text) {
+  const el = document.getElementById('loader');
+  const txt = document.getElementById('loaderText');
+  
+  if (show) {
+    if(txt) txt.innerText = text || "Carregando...";
+    if(el) el.style.display = 'flex';
+  } else {
+    if(el) el.style.display = 'none';
+  }
+}
