@@ -1,7 +1,7 @@
 /**
  * ============================================================
- * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v5.1 - Fix Básico)
- * Foco: Correção de Rota e Listagem de Leads
+ * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v5.2 - Test Mode)
+ * Foco: Logs Detalhados para Fase de Testes "Item por Item"
  * ============================================================
  */
 
@@ -22,14 +22,24 @@ let routeStartTime = null;
 
 // --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
+  console.log("🚀 App Iniciado. Verificando estado...");
+  
   if (API_URL.includes("COLE_SUA")) {
     alert("ERRO CRÍTICO: Configure a URL da API no arquivo app.js");
     return;
   }
 
+  // Debug: Verifica se elementos críticos existem
+  const checkEls = ['userMenu', 'mainContent', 'btnStart', 'listaLeadsGestao'];
+  checkEls.forEach(id => {
+    if (!document.getElementById(id)) console.warn(`⚠️ Atenção: Elemento HTML '${id}' não encontrado.`);
+  });
+
   if (loggedUser) {
+    console.log("👤 Usuário recuperado:", loggedUser);
     initApp();
   } else {
+    console.log("👤 Nenhum usuário logado. Mostrando menu.");
     showUserMenu();
     carregarVendedores();
   }
@@ -52,12 +62,15 @@ function initApp() {
 
 // --- NAVEGAÇÃO ---
 function showPage(pageId) {
+  console.log("Navagando para:", pageId);
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
   
   const target = document.getElementById(pageId);
   if (target) {
     target.style.display = 'block';
     window.scrollTo(0, 0);
+  } else {
+    console.error(`Página '${pageId}' não encontrada no HTML.`);
   }
   
   if (pageId === 'dashboard') atualizarDashboard();
@@ -85,6 +98,7 @@ function toggleUserMenu() {
 
 // --- GESTÃO DE USUÁRIO ---
 async function carregarVendedores() {
+  console.log("🔄 Buscando vendedores...");
   const select = document.getElementById('userSelect');
   if (!select) return;
   
@@ -101,9 +115,15 @@ async function carregarVendedores() {
 
   try {
     const res = await apiCall('getVendedores', {}, false, true); 
-    renderizarOpcoesVendedores(select, (res && res.status === 'success' && res.data) ? res.data : listaSeguranca);
+    if (res && res.status === 'success' && res.data) {
+      console.log("✅ Vendedores carregados via API:", res.data.length);
+      renderizarOpcoesVendedores(select, res.data);
+    } else {
+      console.warn("⚠️ Falha na API de vendedores. Usando lista local.");
+      renderizarOpcoesVendedores(select, listaSeguranca);
+    }
   } catch (e) {
-    console.error("Erro ao carregar vendedores:", e);
+    console.error("❌ Erro ao carregar vendedores:", e);
     renderizarOpcoesVendedores(select, listaSeguranca);
   }
 }
@@ -127,6 +147,7 @@ function setLoggedUser() {
   if (select && select.value) {
     loggedUser = select.value;
     localStorage.setItem('loggedUser', loggedUser);
+    console.log("✅ Login efetuado:", loggedUser);
     initApp();
   } else {
     alert('Por favor, selecione um vendedor da lista!');
@@ -142,7 +163,12 @@ function logout() {
 
 // --- INTEGRAÇÃO IA (GEMINI) ---
 async function chamarGemini(prompt) {
-  if (!GEMINI_KEY) return null;
+  if (!GEMINI_KEY) {
+    console.warn("⚠️ IA desativada: Sem chave API.");
+    return null;
+  }
+  
+  console.log("🤖 Chamando Gemini...");
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`;
   try {
     const response = await fetch(url, {
@@ -151,9 +177,11 @@ async function chamarGemini(prompt) {
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log("🤖 Resposta Gemini recebida.");
+    return result;
   } catch (error) {
-    console.error("Erro IA:", error);
+    console.error("❌ Erro IA:", error);
     return null;
   }
 }
@@ -201,7 +229,12 @@ async function gerarCoachIA() {
 
 // --- ROTA & GPS (CORRIGIDO) ---
 function startRoute() {
-  if (!navigator.geolocation) return alert('Seu dispositivo não suporta GPS ou permissão foi negada.');
+  console.log("📍 Tentando iniciar Rota...");
+  
+  if (!navigator.geolocation) {
+    console.error("❌ Geolocation API não suportada.");
+    return alert('Seu dispositivo não suporta GPS ou permissão foi negada.');
+  }
   
   // Limpa estados anteriores
   routeCoords = [];
@@ -225,8 +258,12 @@ function startRoute() {
   // Inicia GPS com tratamento de erro robusto
   const gpsOptions = { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 };
   
+  console.log("📍 Aguardando posição GPS...");
   watchId = navigator.geolocation.watchPosition(
     pos => {
+      // Log apenas nas primeiras coordenadas para não floodar o console
+      if (routeCoords.length < 3) console.log("📍 Posição recebida:", pos.coords.latitude, pos.coords.longitude);
+      
       routeCoords.push({ lat: pos.coords.latitude, lon: pos.coords.longitude });
       
       const elPoints = document.getElementById('points');
@@ -239,7 +276,7 @@ function startRoute() {
       }
     },
     err => {
-      console.error("Erro GPS:", err);
+      console.error("❌ Erro no GPS:", err.code, err.message);
       const elGps = document.getElementById('gpsStatus');
       let msg = "Erro GPS";
       if (err.code === 1) msg = "Permissão Negada"; // Usuário bloqueou
@@ -250,10 +287,10 @@ function startRoute() {
         elGps.innerText = `❌ ${msg}`;
         elGps.className = "status-badge error";
       }
-      // Tenta reiniciar com precisão menor se falhar por timeout
+      
+      // Fallback: Se der timeout, tenta sem alta precisão
       if (err.code === 3) {
-         console.warn("Tentando reiniciar GPS com baixa precisão...");
-         // Lógica de fallback poderia vir aqui se necessário
+         console.warn("⚠️ Tentando reiniciar GPS com baixa precisão...");
       }
     },
     gpsOptions
@@ -263,6 +300,7 @@ function startRoute() {
 async function stopRoute() {
   if (!confirm("Finalizar rota e enviar dados?")) return;
   
+  console.log("🛑 Finalizando rota. Pontos capturados:", routeCoords.length);
   clearInterval(timerInterval);
   if (watchId) navigator.geolocation.clearWatch(watchId);
   
@@ -283,6 +321,7 @@ async function stopRoute() {
     resetRouteUI();
     showPage('dashboard');
   } else {
+    console.error("❌ Erro ao salvar rota:", res);
     alert('Erro ao salvar. Verifique conexão.');
   }
 }
@@ -291,6 +330,10 @@ function updateRouteUI(isTracking) {
   const btnStart = document.getElementById('btnStart');
   const btnStop = document.getElementById('btnStop');
   const elGps = document.getElementById('gpsStatus');
+  
+  // Debug visual
+  if (!btnStart) console.error("❌ Botão btnStart não encontrado!");
+  if (!btnStop) console.error("❌ Botão btnStop não encontrado!");
   
   if (btnStart) btnStart.style.display = isTracking ? 'none' : 'flex';
   if (btnStop) btnStop.style.display = isTracking ? 'flex' : 'none';
@@ -326,6 +369,7 @@ function normalizeData(data) {
 }
 
 async function enviarLead() {
+  console.log("📤 Enviando lead...");
   const nome = document.getElementById('leadNome').value;
   const tel = document.getElementById('leadTelefone').value;
   
@@ -358,31 +402,39 @@ async function enviarLead() {
     carregarLeads(); 
     showPage('gestaoLeads');
   } else {
+    console.error("❌ Erro ao salvar lead:", res);
     alert('Erro: ' + (res?.message || 'Tente novamente'));
   }
 }
 
 async function carregarLeads() {
+  console.log("🔄 Atualizando lista de leads...");
   const lista = document.getElementById('listaLeadsGestao');
   if (lista && !lista.hasChildNodes()) lista.innerHTML = '<div style="text-align:center; padding:20px; color:#666">Atualizando lista...</div>';
 
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
-    // Normaliza para evitar erros de coluna
     const dadosBrutos = res.data || [];
+    console.log(`📥 Recebidos ${dadosBrutos.length} leads brutos.`);
+    
+    // Normaliza para evitar erros de coluna
     const dadosNormalizados = normalizeData(dadosBrutos);
     
-    // Filtra pelo vendedor logado (comparando nomes em minúsculo por segurança)
+    // Filtra pelo vendedor logado
     leadsCache = dadosNormalizados.filter(l => {
       const vend = (l.vendedor || l.nomevendedor || '').toString().toLowerCase();
       const user = loggedUser.toLowerCase();
+      // Debug: Mostra se o filtro está falhando
+      // console.log(`Comparando: Lead(${vend}) vs Logado(${user})`);
       return vend.includes(user) || user.includes(vend);
     });
 
+    console.log(`✅ ${leadsCache.length} leads encontrados para ${loggedUser}.`);
     renderLeads();
     atualizarDashboard();
   } else {
+    console.error("❌ Falha ao buscar leads:", res);
     if (lista && leadsCache.length === 0) {
       lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Não foi possível carregar os leads.</div>';
     }
@@ -391,7 +443,10 @@ async function carregarLeads() {
 
 function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
-  if (!div) return;
+  if (!div) {
+    console.error("❌ Elemento 'listaLeadsGestao' não encontrado no HTML.");
+    return;
+  }
 
   const searchInput = document.getElementById('searchLead');
   const term = (searchInput ? searchInput.value : '').toLowerCase();
@@ -500,6 +555,7 @@ async function apiCall(action, payload = {}, showLoader = true, suppressAlert = 
     return null;
   }
   
+  console.log(`📡 API Call: ${action}`, payload);
   if (showLoader) showLoading(true, "Processando...");
   const MAX_RETRIES = 3;
   let attempt = 0;
@@ -516,15 +572,16 @@ async function apiCall(action, payload = {}, showLoader = true, suppressAlert = 
       clearTimeout(timeoutId);
       const text = await response.text();
       let json;
-      try { json = JSON.parse(text); } catch (e) { throw new Error("Erro JSON servidor"); }
+      try { json = JSON.parse(text); } catch (e) { throw new Error("Erro JSON servidor: " + text.slice(0, 30)); }
       if (showLoader) showLoading(false);
       if (json.status === 'error') throw new Error(json.message);
       return json;
     } catch (e) {
       attempt++;
+      console.warn(`⚠️ Tentativa ${attempt} falhou:`, e);
       if (attempt === MAX_RETRIES) {
         if (showLoader) showLoading(false);
-        if (!suppressAlert && !action.startsWith('get')) alert(`Erro de conexão. Tente novamente.`);
+        if (!suppressAlert && !action.startsWith('get')) alert(`Erro de conexão. Detalhe: ${e.message}`);
         return null;
       }
       await new Promise(r => setTimeout(r, 1000));
