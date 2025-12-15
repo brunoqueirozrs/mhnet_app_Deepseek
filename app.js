@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v4.8 - Fix Layout & Data)
+ * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v5.0 - AI Powered)
  * Conecta com Backend Google Apps Script + Gemini AI
  * ============================================================
  */
@@ -13,8 +13,9 @@ const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 // Token de segurança (Deve ser igual ao do Code.gs)
 const TOKEN = "MHNET2025#SEG";
 
-// Chave da API Gemini (Opcional - Para funcionalidades de IA)
-const GEMINI_KEY = ""; 
+// Chave da API Gemini (NECESSÁRIA PARA AS FUNÇÕES DE IA)
+// Adicione sua chave aqui para ativar:
+const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
 // --- ESTADO GLOBAL ---
 let loggedUser = localStorage.getItem('loggedUser');
@@ -46,14 +47,12 @@ function initApp() {
   const menu = document.getElementById('userMenu');
   const main = document.getElementById('mainContent');
   const userInfo = document.getElementById('userInfo');
-  const footerUser = document.getElementById('footerUser');
 
   if(menu) menu.style.display = 'none';
   if(main) main.style.display = 'block';
   
   const userDisplay = `Vendedor: ${loggedUser}`;
   if (userInfo) userInfo.textContent = userDisplay;
-  if (footerUser) footerUser.textContent = loggedUser;
 
   showPage('dashboard');
   carregarLeads(); // Carrega leads em background
@@ -74,22 +73,19 @@ function showPage(pageId) {
   if (pageId === 'dashboard') atualizarDashboard();
 }
 
-// CORREÇÃO: Função que faltava para mostrar a tela de login/vendedores
 function showUserMenu() {
   const menu = document.getElementById('userMenu');
   const main = document.getElementById('mainContent');
   
   // Garante que o menu de usuário (login) apareça e o resto suma
-  if (menu) menu.style.display = 'flex'; // Flex para centralizar se o CSS permitir, ou block
+  if (menu) menu.style.display = 'flex'; 
   if (main) main.style.display = 'none';
 }
 
 function toggleUserMenu() {
   const menu = document.getElementById('userMenu');
   if (menu) {
-    // Se estiver visível, esconde. Se estiver escondido, mostra e carrega vendedores.
     const isVisible = menu.style.display === 'flex' || menu.style.display === 'block';
-    
     if (isVisible) {
       menu.style.display = 'none';
     } else {
@@ -104,12 +100,10 @@ async function carregarVendedores() {
   const select = document.getElementById('userSelect');
   if (!select) return;
   
-  // Mostra carregando apenas se estiver vazio
   if (select.options.length <= 1) {
     select.innerHTML = '<option>Carregando...</option>';
   }
   
-  // Lista de segurança caso a API falhe ou esteja offline
   const listaSeguranca = [
     {nome: "Ana Paula Rodrigues"}, {nome: "Vitoria Caroline Baldez Rosales"}, 
     {nome: "João Vithor Sader"}, {nome: "João Paulo da Silva Santos"}, 
@@ -118,16 +112,13 @@ async function carregarVendedores() {
   ];
 
   try {
-    // Tenta buscar do servidor
     const res = await apiCall('getVendedores', {}, false, true); 
     
     let listaFinal = [];
 
     if (res && res.status === 'success' && res.data && Array.isArray(res.data)) {
-      console.log("Vendedores carregados da API");
       listaFinal = res.data;
     } else {
-      console.warn("API vazia ou falhou no retorno. Usando lista local.");
       listaFinal = listaSeguranca;
     }
 
@@ -142,7 +133,6 @@ async function carregarVendedores() {
 function renderizarOpcoesVendedores(selectElement, lista) {
   selectElement.innerHTML = '<option value="">Selecione seu nome...</option>';
   lista.forEach(v => {
-    // Proteção contra objetos vazios ou mal formatados
     const nome = v.nome || v.Nome || v[0]; 
     if (nome) {
       const opt = document.createElement('option');
@@ -171,9 +161,13 @@ function logout() {
   }
 }
 
-// --- INTEGRAÇÃO IA (GEMINI) ---
-async function chamarGemini(prompt) {
-  if (!GEMINI_KEY) return "IA não configurada no app.js (Adicione a GEMINI_KEY).";
+// --- INTEGRAÇÃO IA (GEMINI API) ---
+// Função auxiliar central para chamar o Gemini
+async function chamarGemini(prompt, modalidade = "texto") {
+  if (!GEMINI_KEY) {
+    alert("⚠️ Chave API Gemini não configurada no arquivo app.js");
+    return null;
+  }
   
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`;
   
@@ -185,13 +179,19 @@ async function chamarGemini(prompt) {
     });
     
     const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta da IA.";
+    const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!texto) throw new Error("Sem resposta da API");
+    return texto;
+    
   } catch (error) {
     console.error("Erro IA:", error);
-    return "Erro ao conectar com a IA.";
+    alert("Erro ao conectar com a Inteligência Artificial. Verifique a conexão.");
+    return null;
   }
 }
 
+// 1. Gerador de Abordagem/Pitch (Para WhatsApp)
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   const interesse = document.getElementById('leadInteresse').value;
@@ -199,24 +199,82 @@ async function gerarAbordagemIA() {
   
   if (!nome) return alert("Preencha o nome do cliente primeiro!");
   
-  showLoading(true, "IA Criando Abordagem...");
+  showLoading(true, "✨ IA Criando Pitch...");
   
   const prompt = `
     Aja como um vendedor experiente da provedora de internet MHNET.
     Crie uma mensagem curta e persuasiva para WhatsApp para o cliente ${nome}.
-    Nível de interesse: ${interesse}.
-    Bairro: ${bairro}.
-    Destaque: Fibra óptica, estabilidade e instalação rápida.
+    Contexto: O cliente mora no bairro ${bairro} e tem interesse nível ${interesse}.
+    Objetivo: Agendar instalação ou visita.
+    Destaque: Fibra óptica, estabilidade.
     Tom: Profissional mas amigável. Use emojis. Sem hashtags.
   `;
   
   const txt = await chamarGemini(prompt);
-  document.getElementById('leadObs').value = txt;
+  if (txt) document.getElementById('leadObs').value = txt;
   showLoading(false);
 }
 
+// 2. Refinador de Notas (Novo!)
+// Pega texto "sujo" (anotação rápida) e transforma em log profissional
+async function refinarObservacaoIA() {
+  const obsField = document.getElementById('leadObs');
+  const rawText = obsField.value;
+
+  if (!rawText || rawText.length < 5) return alert("Escreva algo no campo de observação primeiro.");
+
+  showLoading(true, "✨ IA Refinando Texto...");
+
+  const prompt = `
+    Você é um assistente de CRM. Reescreva a seguinte anotação de um vendedor de campo de forma clara, profissional e gramaticalmente correta.
+    Mantenha a essência da informação, mas remova gírias desnecessárias e melhore a pontuação.
+    Texto original: "${rawText}"
+    Saída (apenas o texto corrigido):
+  `;
+
+  const refinedText = await chamarGemini(prompt);
+  if (refinedText) obsField.value = refinedText.trim();
+  
+  showLoading(false);
+}
+
+// 3. Consultor de Carteira/Estratégia (Novo!)
+// Analisa a lista de leads atual e sugere prioridades
+async function analisarCarteiraIA() {
+  if (leadsCache.length === 0) return alert("Nenhum lead para analisar.");
+
+  showLoading(true, "✨ IA Analisando Carteira...");
+
+  // Prepara resumo dos dados para enviar ao Gemini (Anonimizado para economizar tokens e privacidade)
+  const resumoLeads = leadsCache.map(l => {
+    const bairro = l.bairro || l.Bairro || "Geral";
+    const interesse = l.interesse || l.Interesse || "Médio";
+    return `- Bairro: ${bairro}, Interesse: ${interesse}`;
+  }).slice(0, 30).join("\n"); // Limita a 30 para não estourar tokens simples
+
+  const prompt = `
+    Aja como um estrategista de vendas externas.
+    Analise esta lista de leads pendentes de um vendedor:
+    ${resumoLeads}
+
+    Com base nestes dados, sugira uma estratégia curta (máximo 3 pontos) para o dia de hoje.
+    Exemplo: "Foque no bairro X pois tem alta concentração de interesse Alto".
+    Responda em Tópicos com emojis.
+  `;
+
+  const conselho = await chamarGemini(prompt);
+  
+  showLoading(false);
+  
+  if (conselho) {
+    // Cria um modal simples ou usa alert formatado
+    alert(`🤖 Estratégia do Dia:\n\n${conselho}`);
+  }
+}
+
+// 4. Coach Motivacional (Existente melhorado)
 async function gerarCoachIA() {
-  showLoading(true, "Coach IA Analisando...");
+  showLoading(true, "✨ Coach IA Analisando...");
   
   const hoje = new Date().toLocaleDateString('pt-BR');
   const leadsHoje = leadsCache.filter(l => {
@@ -225,15 +283,19 @@ async function gerarCoachIA() {
   }).length;
   
   const prompt = `
-    Aja como um gerente de vendas motivacional.
-    Hoje é ${hoje}. O vendedor ${loggedUser} cadastrou ${leadsHoje} leads.
-    Meta diária sugerida: 10 leads.
-    Dê um feedback curto (máx 3 frases). Se estiver abaixo da meta, motive. Se estiver acima, parabenize.
-    Use emojis.
+    Aja como um gerente de vendas motivacional enérgico.
+    Hoje é ${hoje}. O vendedor ${loggedUser} cadastrou ${leadsHoje} leads hoje.
+    Meta diária ideal: 10 leads.
+    
+    Se leads < 5: Dê uma bronca motivacional engraçada e encoraje.
+    Se leads >= 5 e < 10: Diga que está quase lá.
+    Se leads >= 10: Parabenize com entusiasmo.
+    
+    Use emojis. Máximo 2 parágrafos curtos.
   `;
   
   const txt = await chamarGemini(prompt);
-  alert(`🤖 Coach IA diz:\n\n${txt}`);
+  if(txt) alert(`🤖 Coach IA diz:\n\n${txt}`);
   showLoading(false);
 }
 
