@@ -1,283 +1,158 @@
-/* dashboard.css - Estilos específicos para o dashboard */
-:root {
-  --dashboard-primary: #00a5b5;
-  --dashboard-secondary: #10b981;
-  --dashboard-tertiary: #7c3aed;
-  --dashboard-warning: #f59e0b;
-  --dashboard-danger: #ef4444;
-}
+/* =========================================
+   ESTILOS ESPECÍFICOS DO DASHBOARD
+   Complementa o styles.css
+   ========================================= */
 
-/* Container principal do dashboard */
-.dashboard-container {
-  padding: 16px;
-}
-
-/* Grid de estatísticas melhorado */
+/* Grid de Estatísticas (Reforço Visual) */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin: 20px 0;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #f8fafc, #ffffff);
-  border-radius: 14px;
-  padding: 20px;
+  background: var(--white);
+  padding: 15px 10px;
+  border-radius: var(--radius);
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(15, 23, 42, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 800;
-  margin: 8px 0;
-  color: var(--dashboard-primary);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
 }
 
 .stat-title {
-  font-size: 14px;
-  color: var(--muted);
-  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--gray-600);
+  margin-bottom: 6px;
   text-transform: uppercase;
+  font-weight: 700;
   letter-spacing: 0.5px;
 }
 
-.stat-sub {
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 4px;
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.2;
 }
 
-/* Botões de ação melhorados */
+/* Grid de Ações Principais */
 .actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin: 24px 0;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 25px;
 }
 
 .action-card {
-  background: var(--card);
-  border-radius: 14px;
-  padding: 20px;
+  padding: 20px 15px;
+  border-radius: var(--radius);
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(15, 23, 42, 0.05);
-  transition: all 0.3s ease;
+  color: var(--white);
   cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: none;
 }
 
-.action-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+.action-card:active {
+  transform: scale(0.97);
 }
 
 .action-card.blue {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
-  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
 }
 
 .action-card.green {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-}
-
-.action-card.purple {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  color: white;
-}
-
-.action-card.orange {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  color: white;
+  background: linear-gradient(135deg, var(--success), var(--success-dark));
 }
 
 .action-icon {
-  font-size: 24px;
+  font-size: 2rem;
   margin-bottom: 8px;
 }
 
 .action-title {
   font-weight: 700;
-  margin-bottom: 8px;
+  font-size: 0.95rem;
 }
 
-.action-description {
-  font-size: 13px;
-  opacity: 0.9;
-}
-
-/* Tabela de leads estilizada */
-.leads-table-container {
-  background: var(--card);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  margin: 20px 0;
-}
-
-.leads-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.leads-table th {
-  background: #f8fafc;
-  padding: 16px 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
-  font-size: 14px;
-}
-
-.leads-table td {
-  padding: 14px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 14px;
-}
-
-.leads-table tr:hover {
-  background: #f8fafc;
-}
-
-/* Status badges */
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-novo {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.status-contato {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.status-convertido {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-/* Botões de ação na tabela */
-.table-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.table-btn.edit {
-  background: var(--dashboard-primary);
-  color: white;
-}
-
-.table-btn.edit:hover {
-  background: #0891b2;
-}
-
-/* Seção de gestão de leads */
+/* Card do Último Lead */
 .lead-management {
-  background: var(--card);
-  border-radius: 14px;
+  background: var(--primary-light);
   padding: 20px;
-  margin: 20px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius);
+  border-left: 5px solid var(--primary);
+  margin-top: 10px;
+  box-shadow: var(--shadow-sm);
 }
 
-.lead-actions {
-  display: flex;
-  gap: 12px;
-  margin: 20px 0;
-  flex-wrap: wrap;
+.lead-management h3 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  color: var(--primary-dark);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.lead-action-btn {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
+#lastLeadCardContent {
+  font-size: 0.95rem;
+  color: var(--dark);
 }
 
-.lead-action-btn.primary {
-  background: var(--dashboard-primary);
-  color: white;
+#lastLeadCardContent strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  color: var(--primary);
 }
 
-.lead-action-btn.secondary {
-  background: var(--dashboard-secondary);
-  color: white;
+#lastLeadCardContent small {
+  display: block;
+  margin-top: 8px;
+  color: var(--gray-600);
+  font-style: italic;
 }
 
-.lead-action-btn.tertiary {
-  background: var(--dashboard-tertiary);
-  color: white;
-}
-
-.lead-action-btn.warning {
-  background: var(--dashboard-warning);
-  color: white;
-}
-
-.lead-action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
+/* Responsividade Mobile para Dashboard */
+@media (max-width: 480px) {
   .stats-grid {
-    grid-template-columns: 1fr;
+    gap: 8px;
   }
   
+  .stat-card {
+    padding: 10px 5px;
+  }
+  
+  .stat-title {
+    font-size: 0.65rem;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+  }
+
   .actions-grid {
-    grid-template-columns: 1fr;
+    gap: 10px;
   }
-  
-  .leads-table {
-    font-size: 12px;
-  }
-  
-  .leads-table th,
-  .leads-table td {
-    padding: 8px 6px;
-  }
-  
-  .lead-actions {
-    flex-direction: column;
-  }
-  
-  .lead-action-btn {
-    width: 100%;
-  }
-}
 
-/* Animações */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.dashboard-section {
-  animation: fadeIn 0.5s ease-out;
+  .action-card {
+    padding: 15px;
+  }
+  
+  .action-icon {
+    font-size: 1.8rem;
+  }
 }
