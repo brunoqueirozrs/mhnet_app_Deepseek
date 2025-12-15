@@ -1,211 +1,299 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#004AAD">
-  <title>Mhnet Externas v4.6</title>
-  
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="dashboard.css">
-</head>
-<body>
-
-  <!-- Dica de Instalação (Mobile) -->
-  <div id="mobileTip" style="display:none; background:#004AAD; color:white; padding:12px; border-radius:0 0 12px 12px; text-align:center; font-size:14px; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-    📱 <b>Instalar App:</b> Toque em <b>⋮</b> e selecione <b>"Adicionar à Tela Inicial"</b>.
-  </div>
-
-  <div class="container">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MHNET Vendas</title>
     
-    <!-- Cabeçalho Fixo -->
-    <div class="header">
-      <img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTAgNzMiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzMiPgogIDx0ZXh0IHg9IjEwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQ4IiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0iIzAwNEFBRCI+TWhuZXQ8L3RleHQ+Cjwvc3ZnPg==" alt="Mhnet Logo">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-        <div>
-          <h2 style="margin:0; font-size:1.2rem;">Vendas Externas</h2>
-          <small class="version" id="userInfo">Aguardando login...</small>
-        </div>
-        <button class="btn ghost" onclick="toggleUserMenu()" style="width:auto; padding:8px 12px; font-size:1.2rem;">👤</button>
-      </div>
-    </div>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonte Google (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- TELA 1: LOGIN / SELEÇÃO DE VENDEDOR (Inicial) -->
-    <div id="userMenu" class="user-menu-card" style="display:block;">
-      <h3>👋 Bem-vindo!</h3>
-      <div class="form-group">
-        <label>Quem é você?</label>
-        <select id="userSelect">
-          <option value="">Carregando equipe...</option>
-        </select>
-      </div>
-      <button class="btn primary" onclick="setLoggedUser()">Entrar no Sistema</button>
-    </div>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7fa; -webkit-tap-highlight-color: transparent; }
+        
+        /* Animações */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Classes utilitárias específicas */
+        .btn-primary { @apply bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg active:scale-95 transition-transform w-full flex justify-center items-center gap-2; }
+        .btn-secondary { @apply bg-white text-blue-700 border border-blue-200 font-bold py-3 px-4 rounded-xl shadow-sm active:scale-95 transition-transform w-full flex justify-center items-center gap-2; }
+        .input-field { @apply w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all; }
+        .card { @apply bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4; }
+        
+        /* Status Badge para Rota */
+        .status-badge { @apply px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600; }
+        .status-badge.success { @apply bg-green-100 text-green-700; }
+        .status-badge.error { @apply bg-red-100 text-red-700; }
 
-    <!-- CONTEÚDO PRINCIPAL (Escondido até o login) -->
-    <main id="mainContent" style="display:none;">
+        /* Ajuste para inputs em mobile */
+        input, select, textarea { font-size: 16px !important; /* Evita zoom no iOS */ }
+        
+        /* Bottom Navigation */
+        .nav-item { @apply flex flex-col items-center justify-center text-gray-400 text-xs gap-1 py-2 w-full transition-colors; }
+        .nav-item.active { @apply text-blue-600 font-semibold; }
+        .nav-item i { @apply text-xl mb-0.5; }
 
-      <!-- PÁGINA: DASHBOARD -->
-      <section id="dashboard" class="page">
-        <!-- Cards de Estatísticas -->
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-title">Leads Hoje</div>
-            <div class="stat-value" id="statLeads">0</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-title">Tempo Rota</div>
-            <div class="stat-value" id="timer">00:00</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-title">Pontos GPS</div>
-            <div class="stat-value" id="points">0</div>
-          </div>
-        </div>
+        /* Botão IA Especial */
+        .btn-ai-magic {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
 
-        <!-- Botões de Ação Principal -->
-        <div class="actions-grid">
-          <button class="action-card blue" onclick="showPage('iniciarRota')">
-            <span class="action-icon">📍</span>
-            <span class="action-title">Iniciar Rota</span>
-          </button>
-          <button class="action-card green" onclick="showPage('gestaoLeads')">
-            <span class="action-icon">📋</span>
-            <span class="action-title">Gerir Leads</span>
-          </button>
-        </div>
-
-        <!-- Botão Coach IA -->
-        <button class="btn ghost" onclick="gerarCoachIA()" style="border-color: #6b21a8; color: #6b21a8; margin-bottom: 20px; border-width: 2px;">
-          ✨ Pedir Dica do Coach IA
-        </button>
-
-        <!-- Card do Último Lead -->
-        <div class="lead-management">
-          <h3>Último Lead Cadastrado</h3>
-          <div id="lastLeadContent">
-            <span style="color:#666; font-style:italic;">Nenhum registro recente.</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- PÁGINA: CONTROLE DE ROTA -->
-      <section id="iniciarRota" class="page" style="display:none;">
-        <div style="text-align:center; margin-bottom:20px;">
-          <h2>📍 Controle de Rota</h2>
-          <div class="status-badge" id="gpsStatus">GPS: Aguardando...</div>
+    <!-- LOGIN SCREEN (User Menu) -->
+    <div id="userMenu" class="fixed inset-0 bg-blue-800 z-50 flex flex-col items-center justify-center p-6 text-white" style="display: flex;">
+        <div class="mb-8 text-center fade-in">
+            <div class="bg-white p-4 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4 shadow-xl">
+                <i class="fas fa-wifi text-4xl text-blue-700"></i>
+            </div>
+            <h1 class="text-2xl font-bold">Vendas Externas</h1>
+            <p class="text-blue-200 text-sm">MHNET Telecom</p>
         </div>
         
-        <div class="actions">
-          <button id="btnStart" class="btn btn-start">▶ INICIAR RASTREAMENTO</button>
-          <button id="btnStop" class="btn btn-stop">⏹ FINALIZAR E ENVIAR</button>
-        </div>
-        
-        <div style="margin-top:20px; background:#f8f9fa; padding:15px; border-radius:10px; font-size:0.9rem; color:#666;">
-          ℹ️ <b>Como funciona:</b> Clique em iniciar ao sair para a rua. O app gravará seu trajeto automaticamente. Ao terminar o turno, clique em finalizar.
-        </div>
-
-        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar ao Menu</button>
-      </section>
-
-      <!-- PÁGINA: GESTÃO DE LEADS -->
-      <section id="gestaoLeads" class="page" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-          <h2>📋 Meus Leads</h2>
-          <button class="lead-action-btn primary" onclick="showPage('cadLead')" style="width:auto;">➕ Novo</button>
-        </div>
-
-        <input id="searchLead" type="text" class="search-input" placeholder="🔍 Buscar por nome, telefone ou bairro..." oninput="renderLeads()">
-        
-        <!-- Lista de Leads (Renderizada via JS) -->
-        <div id="listaLeadsGestao" style="min-height:200px;"></div>
-        <div id="infoLeads" style="text-align:center; color:#999; font-size:0.8rem; margin-top:10px;"></div>
-        
-        <button class="btn ghost" onclick="showPage('dashboard')" style="margin-top:20px;">↩ Voltar</button>
-      </section>
-
-      <!-- PÁGINA: CADASTRAR NOVO LEAD -->
-      <section id="cadLead" class="page" style="display:none;">
-        <h2>➕ Novo Cadastro</h2>
-        
-        <div class="form-group">
-          <label>Nome do Cliente</label>
-          <input id="leadNome" type="text" placeholder="Ex: João da Silva">
-        </div>
-
-        <div class="form-group">
-          <label>WhatsApp / Telefone</label>
-          <input id="leadTelefone" type="tel" placeholder="Ex: (51) 99999-9999">
-        </div>
-
-        <div class="form-group">
-          <label>Endereço Completo</label>
-          <input id="leadEndereco" type="text" placeholder="Rua, Número, Complemento">
-        </div>
-
-        <div class="form-group">
-          <label>Bairro</label>
-          <input id="leadBairro" type="text" placeholder="Ex: Centro">
-        </div>
-
-        <div class="form-group">
-          <label>Cidade</label>
-          <input id="leadCidade" type="text" value="Lajeado">
-        </div>
-
-        <div class="form-group">
-          <label>Nível de Interesse</label>
-          <select id="leadInteresse">
-            <option value="ALTO">🔥 Alto</option>
-            <option value="MEDIO" selected>😐 Médio</option>
-            <option value="BAIXO">❄️ Baixo</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label style="display:flex; justify-content:space-between; align-items:center;">
-            Observações / Abordagem
-            <button onclick="gerarAbordagemIA()" style="background:none; border:none; color:#6b21a8; font-weight:bold; cursor:pointer; font-size:0.8rem;">
-              ✨ Gerar com IA
+        <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-2xl fade-in text-gray-800">
+            <label class="block text-sm font-medium text-gray-600 mb-2">Quem é você?</label>
+            <select id="userSelect" class="input-field mb-4 bg-white">
+                <option value="">Carregando lista...</option>
+            </select>
+            
+            <button onclick="setLoggedUser()" class="btn-primary bg-blue-600 hover:bg-blue-700">
+                <i class="fas fa-sign-in-alt"></i> Acessar Sistema
             </button>
-          </label>
-          <textarea id="leadObs" placeholder="Detalhes adicionais..."></textarea>
         </div>
+        <p class="absolute bottom-6 text-xs text-blue-300 opacity-60">Versão 5.0 AI</p>
+    </div>
 
-        <div class="actions">
-          <button class="btn primary" onclick="enviarLead()">💾 SALVAR LEAD</button>
-          <button class="btn ghost" onclick="showPage('gestaoLeads')">Cancelar</button>
-        </div>
-      </section>
+    <!-- MAIN APP CONTENT -->
+    <div id="mainContent" class="flex-1 flex flex-col overflow-hidden relative" style="display: none;">
+        
+        <!-- HEADER -->
+        <header class="bg-white border-b border-gray-100 px-5 py-4 flex justify-between items-center shadow-sm z-10">
+            <div>
+                <h2 class="text-lg font-bold text-blue-800 leading-tight">MHNET</h2>
+                <p id="userInfo" class="text-xs text-gray-500 font-medium">Carregando...</p>
+            </div>
+            <button onclick="logout()" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+                <i class="fas fa-power-off text-sm"></i>
+            </button>
+        </header>
 
-    </main>
+        <!-- SCROLLABLE CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth">
+            
+            <!-- DASHBOARD -->
+            <div id="dashboard" class="page fade-in">
+                <!-- Welcome Card -->
+                <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-lg mb-6 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
+                        <i class="fas fa-chart-line text-8xl"></i>
+                    </div>
+                    <p class="text-blue-100 text-sm mb-1">Resumo de Hoje</p>
+                    <div class="flex items-baseline gap-2">
+                        <span id="statLeads" class="text-4xl font-bold">0</span>
+                        <span class="text-sm opacity-80">novos leads</span>
+                    </div>
+                    <button onclick="gerarCoachIA()" class="mt-4 text-xs bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-2 transition border border-white/30">
+                        <i class="fas fa-robot"></i> ✨ Feedback do Coach IA
+                    </button>
+                </div>
 
-    <!-- Rodapé -->
-    <footer style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #eee; color:#ccc; font-size:0.8rem;">
-      <small>MHNET Vendas Externas • <span id="footerUser"></span></small>
-    </footer>
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <button onclick="document.querySelector('[onclick=\'showPage(\\\'cadastroLead\\\')\']').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-600">Novo Lead</span>
+                    </button>
+                    <button onclick="document.querySelector('[onclick=\'showPage(\\\'rota\\\')\']').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
+                        <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-600">Minha Rota</span>
+                    </button>
+                </div>
 
-  </div>
+                <h3 class="text-sm font-bold text-gray-700 mb-3 px-1">Última Atividade</h3>
+                <div class="card" id="lastLeadContent">
+                    <div class="text-center text-gray-400 py-4 text-sm">Nenhuma atividade recente</div>
+                </div>
+            </div>
 
-  <!-- Overlay de Carregamento -->
-  <div id="loader" class="overlay">
-    <div class="spinner"></div>
-    <div id="loaderText">Carregando...</div>
-  </div>
+            <!-- CADASTRO LEAD -->
+            <div id="cadastroLead" class="page hidden fade-in">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Novo Cliente</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase ml-1">Dados Pessoais</label>
+                        <input type="text" id="leadNome" placeholder="Nome Completo" class="input-field mt-1">
+                        <input type="tel" id="leadTelefone" placeholder="WhatsApp (com DDD)" class="input-field mt-3">
+                    </div>
 
-  <!-- Scripts -->
-  <script src="app.js"></script>
-  <script>
-    // Registro do Service Worker para funcionar Offline
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-          .then(reg => console.log('Service Worker registrado:', reg.scope))
-          .catch(err => console.log('Falha no Service Worker:', err));
-      });
-    }
-  </script>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase ml-1">Endereço</label>
+                        <input type="text" id="leadBairro" placeholder="Bairro" class="input-field mt-1">
+                        <div class="grid grid-cols-2 gap-3 mt-3">
+                            <input type="text" id="leadCidade" placeholder="Cidade" class="input-field" value="Lajeado">
+                            <input type="text" id="leadEndereco" placeholder="Rua e Número" class="input-field">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase ml-1">Interesse</label>
+                        <select id="leadInteresse" class="input-field mt-1 bg-white">
+                            <option value="Alto">🔥 Alto (Quer instalar)</option>
+                            <option value="Médio">🤔 Médio (Pesquisando)</option>
+                            <option value="Baixo">❄️ Baixo (Só curiosidade)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-end mb-1">
+                            <label class="text-xs font-bold text-gray-500 uppercase ml-1">Observações</label>
+                            <div class="flex gap-2">
+                                <button onclick="gerarAbordagemIA()" class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md font-bold flex items-center gap-1 hover:bg-blue-100">
+                                    <i class="fab fa-whatsapp"></i> Criar Pitch
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="leadObs" rows="3" class="input-field" placeholder="Ex: Cliente quer internet barata, reclamou da atual..."></textarea>
+                        
+                        <!-- Botão IA para Refinar -->
+                        <div class="flex justify-end mt-2">
+                             <button onclick="refinarObservacaoIA()" class="text-xs text-purple-600 font-bold flex items-center gap-1 hover:text-purple-800">
+                                <i class="fas fa-magic"></i> ✨ Melhorar Texto
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button onclick="enviarLead()" class="btn-primary bg-green-600 hover:bg-green-700 shadow-green-200">
+                            <i class="fas fa-paper-plane"></i> Salvar Lead
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GESTÃO LEADS -->
+            <div id="gestaoLeads" class="page hidden fade-in">
+                <div class="sticky top-0 bg-[#f4f7fa] pt-1 pb-4 z-10 shadow-sm mb-4">
+                    <div class="flex justify-between items-center px-1 mb-3">
+                        <h2 class="text-xl font-bold text-gray-800">Meus Leads</h2>
+                        <button onclick="analisarCarteiraIA()" class="text-xs btn-ai-magic px-3 py-1.5 rounded-full font-bold shadow-md active:scale-95 transition">
+                            ✨ Estratégia IA
+                        </button>
+                    </div>
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+                        <input type="text" id="searchLead" onkeyup="renderLeads()" placeholder="Buscar nome, bairro..." class="input-field pl-10 rounded-full shadow-sm">
+                    </div>
+                </div>
+                
+                <div id="listaLeadsGestao" class="pb-4">
+                    <!-- Cards inseridos via JS -->
+                    <div class="text-center py-10">
+                        <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROTA (GPS) -->
+            <div id="rota" class="page hidden fade-in text-center">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">Controle de Rota</h2>
+                
+                <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 mx-auto max-w-xs relative">
+                    <!-- Decorativo -->
+                    <div class="absolute inset-0 rounded-3xl border-4 border-blue-50 pointer-events-none"></div>
+                    
+                    <div class="text-gray-400 text-sm font-medium mb-1">TEMPO DE ROTA</div>
+                    <div id="timer" class="text-5xl font-mono font-bold text-gray-800 tracking-wider mb-6">00:00:00</div>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-left border-t border-gray-100 pt-6">
+                        <div>
+                            <div class="text-xs text-gray-400 uppercase">Pontos</div>
+                            <div id="points" class="text-xl font-bold text-blue-600">0</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-400 uppercase">Status GPS</div>
+                            <div id="gpsStatus" class="status-badge inline-block mt-1">Aguardando</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-3 max-w-xs mx-auto">
+                    <button id="btnStart" onclick="startRoute()" class="btn-primary bg-blue-600 hover:bg-blue-700 py-4">
+                        <i class="fas fa-play"></i> Iniciar Rota
+                    </button>
+                    
+                    <button id="btnStop" onclick="stopRoute()" class="btn-primary bg-red-500 hover:bg-red-600 py-4 hidden">
+                        <i class="fas fa-stop"></i> Finalizar Rota
+                    </button>
+                </div>
+                
+                <p class="text-xs text-gray-400 mt-8 px-8">
+                    Mantenha a tela desbloqueada para melhor precisão do GPS.
+                </p>
+            </div>
+
+        </main>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="bg-white border-t border-gray-200 flex justify-around px-2 pb-safe pt-1 absolute bottom-0 w-full z-20">
+            <button onclick="showPage('dashboard'); setActiveNav(this)" class="nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Início</span>
+            </button>
+            <button onclick="showPage('cadastroLead'); setActiveNav(this)" class="nav-item">
+                <i class="fas fa-user-plus"></i>
+                <span>Novo</span>
+            </button>
+            <button onclick="showPage('gestaoLeads'); setActiveNav(this)" class="nav-item">
+                <i class="fas fa-list-alt"></i>
+                <span>Lista</span>
+            </button>
+            <button onclick="showPage('rota'); setActiveNav(this)" class="nav-item">
+                <i class="fas fa-map-marked-alt"></i>
+                <span>Rota</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <!-- LOADER OVERLAY -->
+    <div id="loader" class="fixed inset-0 bg-white/90 z-[60] hidden flex-col items-center justify-center backdrop-blur-sm">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mb-4"></div>
+        <p id="loaderText" class="text-blue-800 font-medium animate-pulse">Carregando...</p>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="app.js"></script>
+    <script>
+        // Pequeno script para UI da navegação
+        function setActiveNav(element) {
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active', 'text-blue-600', 'font-semibold');
+                el.classList.add('text-gray-400');
+            });
+            element.classList.add('active', 'text-blue-600', 'font-semibold');
+            element.classList.remove('text-gray-400');
+        }
+
+        // Ajuste para iOS Safe Area (ex: iPhone X home bar)
+        if (window.CSS && CSS.supports("padding-bottom: env(safe-area-inset-bottom)")) {
+            document.querySelector('nav').style.paddingBottom = "env(safe-area-inset-bottom)";
+            document.querySelector('main').style.paddingBottom = "calc(4rem + env(safe-area-inset-bottom))";
+        }
+    </script>
 </body>
 </html>
