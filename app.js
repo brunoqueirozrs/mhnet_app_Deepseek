@@ -1,12 +1,12 @@
 /**
  * ============================================================
- * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v4.7 - Fix Vendedores)
+ * MHNET VENDAS EXTERNAS - FRONTEND LOGIC (v4.8 - Fix Layout & Data)
  * Conecta com Backend Google Apps Script + Gemini AI
  * ============================================================
  */
 
 // --- CONFIGURAÇÃO DA API ---
-// Substitua pela URL da sua nova implantação no Google Apps Script
+// Substitua pela URL da sua nova implantação no Google Apps Script se mudou
 const DEPLOY_ID = 'AKfycbyWYgd3r5pA1dYB5LD_PY6m4V2FjWG-Oi6vYjlvNBre9r_eGiPlhia-HtJjD2Mnfc9F'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (loggedUser) {
     initApp();
   } else {
-    showUserMenu();
+    showUserMenu(); // Agora a função existe!
     carregarVendedores(); // Carrega lista para o login
   }
 });
@@ -59,7 +59,7 @@ function initApp() {
   carregarLeads(); // Carrega leads em background
 }
 
-// --- NAVEGAÇÃO ---
+// --- NAVEGAÇÃO & LAYOUT ---
 function showPage(pageId) {
   // Esconde todas as páginas
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
@@ -74,11 +74,28 @@ function showPage(pageId) {
   if (pageId === 'dashboard') atualizarDashboard();
 }
 
+// CORREÇÃO: Função que faltava para mostrar a tela de login/vendedores
+function showUserMenu() {
+  const menu = document.getElementById('userMenu');
+  const main = document.getElementById('mainContent');
+  
+  // Garante que o menu de usuário (login) apareça e o resto suma
+  if (menu) menu.style.display = 'flex'; // Flex para centralizar se o CSS permitir, ou block
+  if (main) main.style.display = 'none';
+}
+
 function toggleUserMenu() {
   const menu = document.getElementById('userMenu');
   if (menu) {
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-    if (menu.style.display === 'block') carregarVendedores();
+    // Se estiver visível, esconde. Se estiver escondido, mostra e carrega vendedores.
+    const isVisible = menu.style.display === 'flex' || menu.style.display === 'block';
+    
+    if (isVisible) {
+      menu.style.display = 'none';
+    } else {
+      menu.style.display = 'flex';
+      carregarVendedores();
+    }
   }
 }
 
@@ -87,7 +104,10 @@ async function carregarVendedores() {
   const select = document.getElementById('userSelect');
   if (!select) return;
   
-  select.innerHTML = '<option>Carregando...</option>';
+  // Mostra carregando apenas se estiver vazio
+  if (select.options.length <= 1) {
+    select.innerHTML = '<option>Carregando...</option>';
+  }
   
   // Lista de segurança caso a API falhe ou esteja offline
   const listaSeguranca = [
@@ -98,34 +118,38 @@ async function carregarVendedores() {
   ];
 
   try {
-    // Tenta buscar do servidor sem bloquear a tela (showLoader = false)
+    // Tenta buscar do servidor
     const res = await apiCall('getVendedores', {}, false, true); 
     
     let listaFinal = [];
 
-    if (res && res.status === 'success' && res.data && res.data.length > 0) {
+    if (res && res.status === 'success' && res.data && Array.isArray(res.data)) {
       console.log("Vendedores carregados da API");
       listaFinal = res.data;
     } else {
-      console.warn("API vazia ou falhou. Usando lista local.");
+      console.warn("API vazia ou falhou no retorno. Usando lista local.");
       listaFinal = listaSeguranca;
     }
 
     renderizarOpcoesVendedores(select, listaFinal);
 
   } catch (e) {
-    console.error("Erro ao carregar vendedores:", e);
+    console.error("Erro fatal ao carregar vendedores:", e);
     renderizarOpcoesVendedores(select, listaSeguranca);
   }
 }
 
 function renderizarOpcoesVendedores(selectElement, lista) {
-  selectElement.innerHTML = '<option value="">Selecione...</option>';
+  selectElement.innerHTML = '<option value="">Selecione seu nome...</option>';
   lista.forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v.nome;
-    opt.innerText = v.nome;
-    selectElement.appendChild(opt);
+    // Proteção contra objetos vazios ou mal formatados
+    const nome = v.nome || v.Nome || v[0]; 
+    if (nome) {
+      const opt = document.createElement('option');
+      opt.value = nome;
+      opt.innerText = nome;
+      selectElement.appendChild(opt);
+    }
   });
 }
 
@@ -195,7 +219,10 @@ async function gerarCoachIA() {
   showLoading(true, "Coach IA Analisando...");
   
   const hoje = new Date().toLocaleDateString('pt-BR');
-  const leadsHoje = leadsCache.filter(l => new Date(l.timestamp).toLocaleDateString('pt-BR') === hoje).length;
+  const leadsHoje = leadsCache.filter(l => {
+    const dataLead = l.timestamp || l.Data || new Date().toISOString();
+    return new Date(dataLead).toLocaleDateString('pt-BR') === hoje;
+  }).length;
   
   const prompt = `
     Aja como um gerente de vendas motivacional.
@@ -281,7 +308,6 @@ async function stopRoute() {
     resetRouteUI();
     showPage('dashboard');
   } else {
-    // CORREÇÃO: Removemos caracteres que causavam SyntaxError no alert
     alert('Erro ao salvar rota. Verifique sua conexão e tente novamente.');
   }
 }
@@ -325,7 +351,7 @@ async function enviarLead() {
   const payload = {
     vendedor: loggedUser,
     lead: nome, 
-    nomeLead: nome, // Compatibilidade
+    nomeLead: nome, // Compatibilidade com colunas variadas
     telefone: tel,
     whatsapp: tel,
     endereco: document.getElementById('leadEndereco').value,
@@ -365,13 +391,14 @@ async function carregarLeads() {
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
-    // Cache local dos leads deste vendedor
-    leadsCache = res.data.filter(l => l.vendedor === loggedUser);
+    // Cache local dos leads deste vendedor (Robustez para dados null)
+    const dados = res.data || [];
+    leadsCache = dados.filter(l => l && (l.vendedor === loggedUser || l.Vendedor === loggedUser));
     renderLeads();
     atualizarDashboard();
   } else {
     if (lista && leadsCache.length === 0) {
-      lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Erro ao carregar leads.</div>';
+      lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Erro ao carregar leads. Verifique a conexão.</div>';
     }
   }
 }
@@ -383,11 +410,17 @@ function renderLeads() {
   const searchInput = document.getElementById('searchLead');
   const term = (searchInput ? searchInput.value : '').toLowerCase();
   
-  const filtrados = leadsCache.filter(l => 
-    (l.nomeLead && l.nomeLead.toLowerCase().includes(term)) || 
-    (l.telefone && l.telefone.includes(term)) ||
-    (l.bairro && l.bairro.toLowerCase().includes(term))
-  );
+  // Helper para pegar propriedades de forma segura (ignora Case Sensitivity)
+  const getProp = (obj, key) => (obj[key] || obj[key.charAt(0).toUpperCase() + key.slice(1)] || '').toString();
+
+  const filtrados = leadsCache.filter(l => {
+    if (!l) return false;
+    const nome = getProp(l, 'nomeLead') || getProp(l, 'lead') || getProp(l, 'nome');
+    const tel = getProp(l, 'telefone');
+    const bairro = getProp(l, 'bairro');
+    
+    return (nome.toLowerCase().includes(term) || tel.includes(term) || bairro.toLowerCase().includes(term));
+  });
   
   if (filtrados.length === 0) {
     div.innerHTML = '<div style="text-align:center; padding:20px; color:#888">Nenhum lead encontrado.</div>';
@@ -395,35 +428,41 @@ function renderLeads() {
   }
 
   div.innerHTML = filtrados.map(l => {
+    // Extração segura de dados
+    const nome = getProp(l, 'nomeLead') || getProp(l, 'lead') || 'Cliente Sem Nome';
+    const tel = getProp(l, 'telefone');
+    const bairro = getProp(l, 'bairro') || 'Bairro ñ informado';
+    const interesse = (getProp(l, 'interesse') || 'NOVO').toUpperCase();
+    const timestamp = l.timestamp || l.Data || new Date().toISOString();
+
     // Cores baseadas no interesse
     let statusColor = '#f0f0f0';
     let statusTextColor = '#555';
-    const interesse = (l.interesse || 'NOVO').toLowerCase();
     
-    if(interesse.includes('alto')) { statusColor = '#e6fffa'; statusTextColor = '#008f75'; } // Verde
-    else if(interesse.includes('médio') || interesse.includes('medio')) { statusColor = '#fffaf0'; statusTextColor = '#c05621'; } // Laranja
-    else if(interesse.includes('baixo')) { statusColor = '#fff5f5'; statusTextColor = '#c53030'; } // Vermelho
+    if(interesse.includes('ALTO')) { statusColor = '#e6fffa'; statusTextColor = '#008f75'; } // Verde
+    else if(interesse.includes('MÉDIO') || interesse.includes('MEDIO')) { statusColor = '#fffaf0'; statusTextColor = '#c05621'; } // Laranja
+    else if(interesse.includes('BAIXO')) { statusColor = '#fff5f5'; statusTextColor = '#c53030'; } // Vermelho
 
     // Link do WhatsApp
-    const wppLink = `https://wa.me/55${(l.telefone || '').replace(/\D/g, '')}`;
+    const wppLink = `https://wa.me/55${tel.replace(/\D/g, '')}`;
 
     return `
     <div class="lead-card-gestao" style="background:white; padding:16px; margin-bottom:12px; border-radius:12px; border:1px solid #edf2f7; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
         <div>
-          <div style="font-weight:bold; color:#2d3748; font-size:1.1em; margin-bottom:2px">${l.nomeLead}</div>
-          <div style="font-size:0.85em; color:#718096">📅 ${new Date(l.timestamp).toLocaleDateString('pt-BR')}</div>
+          <div style="font-weight:bold; color:#2d3748; font-size:1.1em; margin-bottom:2px">${nome}</div>
+          <div style="font-size:0.85em; color:#718096">📅 ${new Date(timestamp).toLocaleDateString('pt-BR')}</div>
         </div>
-        <span style="background:${statusColor}; color:${statusTextColor}; padding:4px 8px; border-radius:20px; font-size:0.75em; font-weight:800; text-transform:uppercase; letter-spacing:0.5px">${l.interesse || 'NOVO'}</span>
+        <span style="background:${statusColor}; color:${statusTextColor}; padding:4px 8px; border-radius:20px; font-size:0.75em; font-weight:800; letter-spacing:0.5px">${interesse}</span>
       </div>
       
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div style="flex:1">
           <div style="font-size:0.95em; color:#4a5568; margin-bottom:4px; display:flex; align-items:center">
-             <span style="margin-right:6px">📞</span> ${l.telefone}
+             <span style="margin-right:6px">📞</span> ${tel}
           </div>
           <div style="font-size:0.95em; color:#4a5568; display:flex; align-items:center">
-             <span style="margin-right:6px">📍</span> ${l.bairro || 'Não informado'}
+             <span style="margin-right:6px">📍</span> ${bairro}
           </div>
         </div>
 
@@ -437,33 +476,41 @@ function renderLeads() {
 }
 
 function atualizarDashboard() {
+  // Stats do dia
+  const hojeStr = new Date().toLocaleDateString('pt-BR');
+  const leadsHoje = leadsCache.filter(l => {
+    const data = l.timestamp || l.Data || new Date().toISOString();
+    return new Date(data).toLocaleDateString('pt-BR') === hojeStr;
+  }).length;
+  
+  const elStat = document.getElementById('statLeads');
+  if (elStat) elStat.innerText = leadsHoje;
+
   // Último lead card
   if (leadsCache.length > 0) {
     const l = leadsCache[0]; 
     const elContent = document.getElementById('lastLeadContent');
+    const getProp = (obj, key) => (obj[key] || obj[key.charAt(0).toUpperCase() + key.slice(1)] || '').toString();
     
     if (elContent) {
+      const nome = getProp(l, 'nomeLead') || getProp(l, 'lead') || 'Recente';
+      const bairro = getProp(l, 'bairro') || 'Geral';
+      const cidade = getProp(l, 'cidade') || '';
+      const data = l.timestamp || l.Data || new Date().toISOString();
+
       elContent.innerHTML = `
-        <div style="font-weight:bold; font-size:1.1em; color:#004AAD; margin-bottom:5px">${l.nomeLead}</div>
-        <div style="color:#555; font-size:0.95em">📍 ${l.bairro || 'Sem bairro'} - ${l.cidade || 'Lajeado'}</div>
+        <div style="font-weight:bold; font-size:1.1em; color:#004AAD; margin-bottom:5px">${nome}</div>
+        <div style="color:#555; font-size:0.95em">📍 ${bairro} ${cidade ? '- ' + cidade : ''}</div>
         <div style="font-size:0.85em; color:#888; margin-top:8px; border-top:1px solid #f0f0f0; padding-top:6px">
-          🕒 Cadastrado em: ${new Date(l.timestamp).toLocaleString('pt-BR')}
+          🕒 ${new Date(data).toLocaleString('pt-BR')}
         </div>
       `;
     }
   }
-  
-  // Stats do dia
-  const hojeStr = new Date().toLocaleDateString('pt-BR');
-  const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hojeStr)).length;
-  
-  const elStat = document.getElementById('statLeads');
-  if (elStat) elStat.innerText = leadsHoje;
 }
 
 // --- COMUNICAÇÃO API (SISTEMA ROBUSTO DE RETRY) ---
 async function apiCall(action, payload = {}, showLoader = true, suppressAlert = false) {
-  // Validação simples
   if (!API_URL || API_URL.includes("SUA_URL")) {
     alert("ERRO DE CONFIGURAÇÃO: Verifique a API_URL no arquivo app.js");
     return null;
@@ -476,7 +523,6 @@ async function apiCall(action, payload = {}, showLoader = true, suppressAlert = 
   
   while (attempt < MAX_RETRIES) {
     try {
-      // Timeout controller para evitar travamentos longos (15s)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -492,11 +538,19 @@ async function apiCall(action, payload = {}, showLoader = true, suppressAlert = 
       
       clearTimeout(timeoutId);
 
-      const json = await response.json();
+      // Tratamento de resposta HTML (erro comum no Google Apps Script)
+      const text = await response.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Resposta do servidor não é JSON válido: " + text.substring(0, 50) + "...");
+      }
+
       if (showLoader) showLoading(false);
       
       if (json.status === 'error') throw new Error(json.message);
-      return json; // Retorna o objeto completo {status, data}
+      return json;
 
     } catch (e) {
       attempt++;
@@ -513,7 +567,7 @@ async function apiCall(action, payload = {}, showLoader = true, suppressAlert = 
         
         let msg = "Erro de conexão.";
         if (e.name === 'AbortError') msg = "Tempo limite excedido.";
-        if (e.message && e.message.includes('Failed to fetch')) msg = "Sem internet ou bloqueio de rede.";
+        if (e.message && e.message.includes('JSON')) msg = "Erro no script do servidor.";
         
         if (!suppressAlert && !action.startsWith('get')) {
           alert(`Falha: ${msg} Tente novamente.`);
@@ -521,7 +575,6 @@ async function apiCall(action, payload = {}, showLoader = true, suppressAlert = 
         return null;
       }
       
-      // Espera exponencial (1s, 2s, 4s) antes de tentar de novo
       await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
     }
   }
