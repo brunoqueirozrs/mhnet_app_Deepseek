@@ -1,24 +1,23 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA v11.2 (CORS + Mobile Fix)
+ * MHNET VENDAS - LÓGICA FRONTEND (v11.5 - Final Sincronizado)
  * ============================================================
  */
 
-// CONFIGURAÇÃO
+// ✅ ID ATUALIZADO (Novo Deploy fornecido)
 const DEPLOY_ID = 'AKfycbzKhx7CpfjmNEd3MqpkJBU6dGK8djfC4jmWkrxh-rWaNsruZdzhWy1fsgo3Q75H-NgN'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
-// LISTA FIXA
+// LISTA FIXA DE SEGURANÇA
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
     "Elton da Silva Rodrigo Gonçalves"
 ];
 
-const PLANOS_CONTEXTO = `CONTEXTO MHNET: 500 Mega: R$ 89,90 | 700 Mega: R$ 99,90 | 1 Giga: R$ 119,90. Instalação grátis.`;
-
+// --- ESTADO GLOBAL ---
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let routeCoords = [];
@@ -27,8 +26,18 @@ let timerInterval = null;
 let seconds = 0;
 let routeStartTime = null;
 
-// INIT
+// ============================================================
+// 1. INICIALIZAÇÃO
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  console.log("🏁 [INIT] Aplicação iniciada.");
+
+  const chatModal = document.getElementById('chatModal');
+  if (chatModal) {
+      chatModal.style.display = 'none';
+      chatModal.classList.add('hidden');
+  }
+
   const select = document.getElementById('userSelect');
   if(select) {
       select.innerHTML = '<option value="">Toque para selecionar...</option>';
@@ -38,32 +47,65 @@ document.addEventListener('DOMContentLoaded', () => {
           opt.innerText = nome;
           select.appendChild(opt);
       });
+      console.log("✅ [INIT] Lista de vendedores injetada.");
   }
 
   if (loggedUser) {
+    console.log(`👤 [AUTH] Usuário recuperado: ${loggedUser}`);
     initApp();
   } else {
-    document.getElementById('userMenu').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'none';
+    console.log("👤 [AUTH] Novo acesso. Mostrando login.");
+    mostrarLogin();
   }
 });
 
-function initApp() {
-  document.getElementById('userMenu').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'block';
-  document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
-  navegarPara('dashboard');
-  carregarLeads();
+function mostrarLogin() {
+    const menu = document.getElementById('userMenu');
+    const main = document.getElementById('mainContent');
+    if(menu) menu.style.display = 'flex';
+    if(main) main.style.display = 'none';
 }
 
-function navegarPara(pageId) {
-  document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-  const target = document.getElementById(pageId);
-  if(target) target.style.display = 'block';
-  
-  const mainScroll = document.getElementById('main-scroll');
-  if(mainScroll) mainScroll.scrollTo(0,0);
+function initApp() {
+  const menu = document.getElementById('userMenu');
+  const main = document.getElementById('mainContent');
+  const uiInfo = document.getElementById('userInfo');
 
+  if(menu) menu.style.display = 'none';
+  if(main) main.style.display = 'block';
+  if(uiInfo) uiInfo.textContent = `Vendedor: ${loggedUser}`;
+  
+  navegarPara('dashboard');
+  
+  // Tenta carregar histórico (sem alerta de erro intrusivo se falhar)
+  setTimeout(() => carregarLeads(), 500);
+}
+
+// ============================================================
+// 2. NAVEGAÇÃO (CORRIGIDA ROLAGEM)
+// ============================================================
+function navegarPara(pageId) {
+  console.log(`🔄 [NAV] Navegando para: ${pageId}`);
+  
+  document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+  
+  const target = document.getElementById(pageId);
+  if(target) {
+      target.style.display = 'block';
+      target.classList.remove('fade-in');
+      void target.offsetWidth; 
+      target.classList.add('fade-in');
+  }
+  
+  // FIX: Rola o container MAIN, não a janela inteira
+  const mainContainer = document.getElementById('main-scroll');
+  if(mainContainer) {
+      mainContainer.scrollTo(0, 0);
+  } else {
+      window.scrollTo(0, 0);
+  }
+
+  // Atualiza botões
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.remove('active', 'text-blue-700');
     el.classList.add('text-slate-400');
@@ -76,7 +118,7 @@ function navegarPara(pageId) {
   if(pageId === 'rota') btnId = 'nav-rota';
 
   const btn = document.getElementById(btnId);
-  if(btn && !btn.querySelector('div')) {
+  if(btn && !btn.querySelector('div')) { 
       btn.classList.add('active', 'text-blue-700');
       btn.classList.remove('text-slate-400');
   }
@@ -91,26 +133,88 @@ function setLoggedUser() {
     localStorage.setItem('loggedUser', loggedUser);
     initApp();
   } else {
-    alert('Selecione seu nome!');
+    alert('Por favor, selecione seu nome na lista!');
   }
 }
 
 function logout() {
-  if(confirm("Sair do sistema?")) {
+  if(confirm("Tem certeza que deseja sair?")) {
     localStorage.removeItem('loggedUser');
     location.reload();
   }
 }
 
-// === API IA ===
+// ============================================================
+// 3. IA (GEMINI)
+// ============================================================
+
+function toggleChat() {
+    const el = document.getElementById('chatModal');
+    if (!el) return;
+
+    const history = document.getElementById('chatHistory');
+    const isHidden = el.style.display === 'none' || el.classList.contains('hidden');
+
+    if(isHidden) {
+        el.style.display = 'block';
+        el.classList.remove('hidden');
+        const content = el.querySelector('div.absolute');
+        if(content) {
+            content.classList.remove('slide-up');
+            void content.offsetWidth;
+            content.classList.add('slide-up');
+        }
+        const input = document.getElementById('chatInput');
+        if(input) setTimeout(() => input.focus(), 300);
+        
+        if(history && (!history.hasChildNodes() || history.innerHTML.trim() === "")) {
+             history.innerHTML = `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[85%]">Olá ${loggedUser ? loggedUser.split(' ')[0] : 'Vendedor'}! Sou o assistente MHNET.</div></div>`;
+        }
+    } else {
+        el.style.display = 'none';
+        el.classList.add('hidden');
+    }
+}
+
+async function enviarMensagemChat() {
+    const input = document.getElementById('chatInput');
+    const history = document.getElementById('chatHistory');
+    if(!input || !history) return;
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
+    input.value = '';
+    history.scrollTop = history.scrollHeight;
+
+    const loadingId = 'loading-' + Date.now();
+    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
+    history.scrollTop = history.scrollHeight;
+
+    const prompt = `Aja como um assistente de vendas da MHNET Telecom. Responda: "${msg}"`;
+    const response = await chamarGemini(prompt);
+    
+    const loadEl = document.getElementById(loadingId);
+    if(loadEl) loadEl.remove();
+
+    if(response) {
+         const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${formatted}</div></div>`;
+    } else {
+        history.innerHTML += `<div class="text-center text-xs text-red-400 mt-2 fade-in">Sem resposta da IA.</div>`;
+    }
+    history.scrollTop = history.scrollHeight;
+}
+
 async function chamarGemini(prompt) {
   if (!GEMINI_KEY) return null;
-  const fullPrompt = `${PLANOS_CONTEXTO}\n\nPERGUNTA: ${prompt}`;
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
+    if (res.status === 403) return null;
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text;
   } catch (e) { return null; }
@@ -119,10 +223,28 @@ async function chamarGemini(prompt) {
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   if(!nome) return alert("Preencha o nome!");
-  showLoading(true, "CRIANDO PITCH...");
-  const txt = await chamarGemini(`Mensagem WhatsApp venda fibra MHNET para ${nome}.`);
+  showLoading(true, "CRIANDO...");
+  const txt = await chamarGemini(`Mensagem WhatsApp curta para vender fibra MHNET para ${nome}.`);
   showLoading(false);
-  if(txt) document.getElementById('leadObs').value = txt.replace(/\*\*/g, '');
+  if(txt) document.getElementById('leadObs').value = txt.replace(/["*]/g, '');
+}
+
+async function analisarCarteiraIA() {
+  if (!leadsCache.length) return alert("Sem leads.");
+  showLoading(true, "ANALISANDO...");
+  const bairros = [...new Set(leadsCache.slice(0, 30).map(l => l.bairro || 'Geral'))].join(', ');
+  const txt = await chamarGemini(`Sugira rota para: ${bairros}.`);
+  showLoading(false);
+  if (txt) alert(`💡 DICA:\n\n${txt}`);
+}
+
+async function gerarCoachIA() {
+  showLoading(true, "COACH...");
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
+  const txt = await chamarGemini(`Vendedor fez ${leadsHoje} leads hoje. Motive-o.`);
+  showLoading(false);
+  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
 }
 
 async function consultarPlanosIA() {
@@ -133,32 +255,10 @@ async function consultarPlanosIA() {
     if(response) history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response}</div></div>`;
 }
 
-function toggleChat() {
-    const el = document.getElementById('chatModal');
-    if(el.classList.contains('hidden')) {
-        el.classList.remove('hidden');
-        setTimeout(() => document.getElementById('chatInput').focus(), 300);
-    } else {
-        el.classList.add('hidden');
-    }
-}
+// ============================================================
+// 4. DADOS E API
+// ============================================================
 
-async function enviarMensagemChat() {
-    const input = document.getElementById('chatInput');
-    const history = document.getElementById('chatHistory');
-    const msg = input.value.trim();
-    if(!msg) return;
-    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
-    input.value = '';
-    history.scrollTop = history.scrollHeight;
-    const response = await chamarGemini(msg);
-    if(response) {
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response}</div></div>`;
-         history.scrollTop = history.scrollHeight;
-    }
-}
-
-// === DADOS ===
 async function enviarLead() {
   const nome = document.getElementById('leadNome').value;
   const tel = document.getElementById('leadTelefone').value;
@@ -236,6 +336,7 @@ function renderLeads() {
     let badgeClass = "bg-gray-100 text-gray-500";
     const inter = (l.interesse || 'MÉDIO').toUpperCase();
     if(inter.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
+    if(inter.includes('MÉDIO')) badgeClass = "bg-yellow-100 text-yellow-700";
     if(inter.includes('BAIXO')) badgeClass = "bg-red-50 text-red-500";
 
     return `
@@ -263,30 +364,14 @@ function atualizarDashboard() {
   if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
-// OUTRAS FUNÇÕES
-async function analisarCarteiraIA() {
-  if (!leadsCache.length) return alert("Sem leads.");
-  showLoading(true, "ANALISANDO...");
-  const bairros = [...new Set(leadsCache.slice(0, 30).map(l => l.bairro || 'Geral'))].join(', ');
-  const txt = await chamarGemini(`Sugira rota para: ${bairros}.`);
-  showLoading(false);
-  if (txt) alert(`💡 DICA:\n\n${txt}`);
-}
-
-async function gerarCoachIA() {
-  showLoading(true, "COACH...");
-  const hoje = new Date().toLocaleDateString('pt-BR');
-  const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  const txt = await chamarGemini(`Vendedor fez ${leadsHoje} leads hoje. Motive-o.`);
-  showLoading(false);
-  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
-}
-
+// ROTA
 function startRoute() {
   if (!navigator.geolocation) return alert('Ative o GPS.');
   routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
+  
   document.getElementById('btnStart').style.display = 'none';
   document.getElementById('btnStop').style.display = 'flex';
+  
   timerInterval = setInterval(() => {
     seconds++;
     const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
@@ -294,6 +379,7 @@ function startRoute() {
     const s = (seconds % 60).toString().padStart(2,'0');
     document.getElementById('timer').innerText = `${h}:${m}:${s}`;
   }, 1000);
+
   watchId = navigator.geolocation.watchPosition(p => {
     routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
     document.getElementById('points').innerText = routeCoords.length;
@@ -315,11 +401,12 @@ function updateRouteUI(on) {
 }
 function resetRouteUI() {
   updateRouteUI(false);
-  document.getElementById('timer').innerText = "00:00:00"; document.getElementById('points').innerText = "0";
+  document.getElementById('timer').innerText = "00:00:00"; 
+  document.getElementById('points').innerText = "0";
   document.getElementById('gpsStatus').innerText = "Parado";
 }
 
-// API
+// API GENÉRICA
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
   try {
@@ -336,6 +423,7 @@ async function apiCall(route, payload, show=true, suppress=false) {
     return json;
   } catch(e) {
     if(show) showLoading(false);
+    // Se for erro de fetch em POST, assume sucesso opaco (CORS)
     if(e.name === 'TypeError' && (route === 'addLead' || route === 'saveRoute')) return 'CORS_ERROR';
     if(!suppress) alert("Erro conexão: " + e.message);
     return null;
