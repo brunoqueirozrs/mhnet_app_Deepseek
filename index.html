@@ -70,16 +70,9 @@
                 <div class="relative mb-8">
                     <i class="fas fa-user-circle absolute left-5 top-1/2 -translate-y-1/2 text-[#004c99] text-2xl pointer-events-none z-20"></i>
                     
-                    <!-- LISTA FIXA NO HTML (GARANTIA DE FUNCIONAMENTO) -->
+                    <!-- ID userSelect crucial para o JS puxar os nomes -->
                     <select id="userSelect" class="w-full pl-14 pr-10 py-5 bg-white border-0 rounded-2xl text-gray-900 font-bold focus:ring-4 focus:ring-blue-400/30 appearance-none shadow-lg text-lg relative z-10">
-                        <option value="">Toque para selecionar...</option>
-                        <option value="Ana Paula Rodrigues">Ana Paula Rodrigues</option>
-                        <option value="Vitoria Caroline Baldez Rosales">Vitoria Caroline Baldez Rosales</option>
-                        <option value="João Vithor Sader">João Vithor Sader</option>
-                        <option value="João Paulo da Silva Santos">João Paulo da Silva Santos</option>
-                        <option value="Claudia Maria Semmler">Claudia Maria Semmler</option>
-                        <option value="Diulia Vitoria Machado Borges">Diulia Vitoria Machado Borges</option>
-                        <option value="Elton da Silva Rodrigo Gonçalves">Elton da Silva Rodrigo Gonçalves</option>
+                        <option value="">Carregando lista...</option>
                     </select>
                     
                     <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-[#004c99] text-xs pointer-events-none z-20"></i>
@@ -88,7 +81,7 @@
                     Entrar Agora <i class="fas fa-arrow-right text-sm"></i>
                 </button>
             </div>
-            <p class="text-center mt-8 text-xs text-blue-200/40 font-medium tracking-widest uppercase">v7.4 - Chat IA Ready</p>
+            <p class="text-center mt-8 text-xs text-blue-200/40 font-medium tracking-widest uppercase">v8.0 - Gemini AI</p>
         </div>
     </div>
 
@@ -122,7 +115,9 @@
                         <span class="text-lg font-medium text-blue-200">registros</span>
                     </div>
                     <button onclick="gerarCoachIA()" class="bg-white/10 hover:bg-white/20 active:scale-95 px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-3 transition-all w-full backdrop-blur-md border border-white/10 shadow-lg">
-                        <div class="bg-blue-300 w-2 h-2 rounded-full animate-pulse"></div> Feedback IA
+                        <div class="bg-blue-300 w-2 h-2 rounded-full animate-pulse"></div> 
+                        <span class="flex-1">Feedback do Coach IA</span>
+                        <i class="fas fa-chevron-right opacity-50"></i>
                     </button>
                 </div>
 
@@ -185,9 +180,14 @@
                     <div class="input-container mb-0">
                         <div class="flex justify-between items-center mb-2">
                             <label class="form-label mb-0">Observações</label>
-                            <button onclick="gerarAbordagemIA()" class="text-[10px] bg-blue-50 hover:bg-blue-100 text-[#004c99] px-3 py-1.5 rounded-lg font-bold transition-colors">
-                                <i class="fas fa-magic mr-1"></i> Gerar Pitch
-                            </button>
+                            <div class="flex gap-2">
+                                <button onclick="gerarAbordagemIA()" class="text-[10px] bg-blue-50 hover:bg-blue-100 text-[#004c99] px-3 py-1.5 rounded-lg font-bold transition-colors border border-blue-100 flex items-center gap-1">
+                                    <i class="fas fa-magic"></i> Gerar Pitch
+                                </button>
+                                <button onclick="refinarObservacaoIA()" class="text-[10px] bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold transition-colors border border-purple-100 flex items-center gap-1">
+                                    <i class="fas fa-pen-fancy"></i> Refinar
+                                </button>
+                            </div>
                         </div>
                         <textarea id="leadObs" rows="3" class="modern-input pt-4 pl-5 h-auto resize-none" placeholder="Detalhes do cliente..."></textarea>
                     </div>
@@ -204,8 +204,8 @@
                 <div class="sticky top-0 bg-[#eff6ff]/95 backdrop-blur-md pt-2 pb-6 z-10 px-1">
                     <div class="flex justify-between items-center mb-5">
                         <h2 class="text-2xl font-bold text-[#003870] tracking-tight">Histórico</h2>
-                        <button onclick="analisarCarteiraIA()" class="bg-white border border-blue-200 text-[#004c99] px-4 py-2 rounded-full text-xs font-bold shadow-sm active:scale-95 transition">
-                            ✨ Analisar
+                        <button onclick="analisarCarteiraIA()" class="bg-white border border-blue-200 text-[#004c99] px-4 py-2 rounded-full text-xs font-bold shadow-sm active:scale-95 transition flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-blue-400"></i> Analisar
                         </button>
                     </div>
                     <div class="relative shadow-sm">
@@ -245,12 +245,12 @@
             </div>
         </main>
 
-        <!-- CHAT FLUTUANTE (NOVIDADE) -->
+        <!-- CHAT FLUTUANTE IA -->
         <button onclick="toggleChat()" class="fixed bottom-28 right-6 w-14 h-14 bg-[#004c99] rounded-full shadow-lg shadow-blue-900/30 text-white flex items-center justify-center text-2xl z-40 active:scale-90 transition-transform hover:scale-105 border-2 border-white">
             <i class="fas fa-comment-dots"></i>
         </button>
 
-        <!-- MODAL CHAT -->
+        <!-- CHAT MODAL -->
         <div id="chatModal" class="fixed inset-0 z-50 hidden">
             <div class="absolute inset-0 bg-blue-900/60 backdrop-blur-sm transition-opacity" onclick="toggleChat()"></div>
             <div class="absolute bottom-0 w-full h-[85%] bg-[#f0f4f8] rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden transition-transform transform translate-y-0">
