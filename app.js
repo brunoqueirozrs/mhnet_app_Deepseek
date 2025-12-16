@@ -1,48 +1,43 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND (v10.2 - Documentado)
- * * GUIA RÁPIDO PARA MANUTENÇÃO:
- * 1. Configurações: Mude IDs e Chaves no topo do arquivo.
- * 2. Login: Funções 'initApp' e 'setLoggedUser'.
- * 3. Telas: Função 'navegarPara' controla qual tela aparece.
- * 4. IA: Funções 'chamarGemini' e derivadas controlam o cérebro do app.
- * 5. Dados: 'enviarLead' e 'carregarLeads' falam com a Planilha.
- * 6. GPS: 'startRoute' controla a geolocalização.
+ * MHNET VENDAS - LÓGICA FRONTEND (v10.3 - Modo Debug Blindado)
  * ============================================================
  */
 
-// --- CONFIGURAÇÕES GERAIS ---
-// Aqui ficam as chaves de acesso. Se mudar a planilha ou o script, atualize o DEPLOY_ID.
-const DEPLOY_ID = 'AKfycbwM64LebBEQ41LzEO3TB7RXHDreR4uvN2a1kzFbOgc'; 
+// ⚠️ IMPORTANTE: Se der erro de CORS, gere uma NOVA IMPLANTAÇÃO como "QUALQUER PESSOA"
+// e cole o novo ID aqui:
+const DEPLOY_ID = 'AKfycbxMuP7gF6WM3syD4dpraqkMPRpInQ2xkc5_09o3fuNBIHTCn8UVQFRdPpH4wiVpccvz'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-const TOKEN = "MHNET2025#SEG"; // Senha simples para proteger o backend
-const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; // Chave da Inteligência Artificial
+const TOKEN = "MHNET2025#SEG";
+const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
 // LISTA FIXA DE SEGURANÇA
-// Usada para carregar os nomes no login instantaneamente, mesmo sem internet.
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
     "Elton da Silva Rodrigo Gonçalves"
 ];
 
-// --- ESTADO GLOBAL (Memória do App) ---
-// Variáveis que guardam informações enquanto o app está aberto.
-let loggedUser = localStorage.getItem('loggedUser'); // Nome do vendedor logado
-let leadsCache = []; // Lista dos últimos leads carregados
-let routeCoords = []; // Lista de pontos do GPS
-let watchId = null;   // ID do rastreador GPS
-let timerInterval = null; // Relógio da rota
+// --- ESTADO GLOBAL ---
+let loggedUser = localStorage.getItem('loggedUser');
+let leadsCache = [];
+let routeCoords = [];
+let watchId = null;
+let timerInterval = null;
 let seconds = 0;
 let routeStartTime = null;
 
 // ============================================================
-// 1. INICIALIZAÇÃO (O que acontece ao abrir o App)
+// 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log("🏁 [INIT] Aplicação iniciada.");
 
-  // Preenche a lista de nomes na tela de login assim que o app abre.
+  // Força o Chat a ficar oculto no início (Correção visual)
+  const chatModal = document.getElementById('chatModal');
+  if (chatModal) chatModal.style.display = 'none';
+
+  // 1.1 Injeta lista de vendedores imediatamente
   const select = document.getElementById('userSelect');
   if(select) {
       select.innerHTML = '<option value="">Toque para selecionar...</option>';
@@ -52,69 +47,80 @@ document.addEventListener('DOMContentLoaded', () => {
           opt.innerText = nome;
           select.appendChild(opt);
       });
-      console.log("✅ [INIT] Lista de vendedores carregada.");
+      console.log("✅ [INIT] Lista de vendedores injetada.");
   }
 
-  // Se já tiver um usuário salvo no celular, entra direto. Senão, mostra login.
+  // 1.2 MODO DE TESTE: Sempre mostra o login primeiro (Ignora auto-login)
+  // Para voltar ao normal depois, descomente o bloco if abaixo e remova as linhas seguintes
+  
+  /*
   if (loggedUser) {
     console.log(`👤 [AUTH] Usuário recuperado: ${loggedUser}`);
     initApp();
   } else {
-    console.log("👤 [AUTH] Nenhum usuário logado. Mostrando tela de login.");
-    document.getElementById('userMenu').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'none';
+    mostrarLogin();
   }
+  */
+  
+  // Força tela de login para validação
+  console.log("🛠️ [DEBUG] Forçando tela de login para testes.");
+  mostrarLogin();
 });
 
-/**
- * Função: initApp
- * Objetivo: Preparar a tela principal após o login.
- * O que faz: Esconde o login, mostra o app, coloca o nome do vendedor no topo
- * e carrega o histórico de leads.
- */
+function mostrarLogin() {
+    console.log("👤 [AUTH] Mostrando tela de login.");
+    const menu = document.getElementById('userMenu');
+    const main = document.getElementById('mainContent');
+    if(menu) menu.style.display = 'flex';
+    if(main) main.style.display = 'none';
+}
+
 function initApp() {
-  document.getElementById('userMenu').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'block';
-  document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
+  const menu = document.getElementById('userMenu');
+  const main = document.getElementById('mainContent');
+  
+  if(menu) menu.style.display = 'none';
+  if(main) main.style.display = 'block';
+  
+  const uiInfo = document.getElementById('userInfo');
+  if(uiInfo) uiInfo.textContent = `Vendedor: ${loggedUser}`;
+  
   navegarPara('dashboard');
-  carregarLeads(); 
+  
+  // Tenta carregar leads, mas não trava se der erro
+  setTimeout(() => carregarLeads(), 500);
 }
 
 // ============================================================
-// 2. NAVEGAÇÃO (Troca de Telas)
+// 2. NAVEGAÇÃO
 // ============================================================
-
-/**
- * Função: navegarPara
- * Objetivo: Trocar de página sem recarregar o site.
- * Como usar: Chame navegarPara('id-da-tela') ex: 'cadastroLead'
- */
 function navegarPara(pageId) {
   console.log(`🔄 [NAV] Navegando para: ${pageId}`);
   
-  // 1. Esconde todas as páginas (divs com classe .page)
+  // Esconde todas as páginas
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
   
-  // 2. Mostra apenas a página escolhida e aplica animação de entrada
+  // Mostra a página alvo
   const target = document.getElementById(pageId);
   if(target) {
       target.style.display = 'block';
       target.classList.remove('fade-in');
-      void target.offsetWidth; // Truque para reiniciar a animação
+      void target.offsetWidth; // Reinicia animação
       target.classList.add('fade-in');
   } else {
       console.error(`❌ [NAV] Página ID '${pageId}' não encontrada!`);
+      return;
   }
   
-  window.scrollTo(0, 0); // Rola para o topo
+  window.scrollTo(0, 0);
 
-  // 3. Atualiza os ícones da barra inferior (deixa azul o ativo)
+  // Atualiza botões do rodapé
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.remove('active', 'text-blue-700');
     el.classList.add('text-slate-400');
   });
 
-  // Lógica para saber qual botão pintar de azul baseado na tela atual
+  // Mapeamento Página -> Botão
   let btnId = '';
   if(pageId === 'dashboard') btnId = 'nav-home';
   if(pageId === 'cadastroLead') btnId = 'nav-novo';
@@ -122,60 +128,43 @@ function navegarPara(pageId) {
   if(pageId === 'rota') btnId = 'nav-rota';
 
   const btn = document.getElementById(btnId);
-  // O botão central (+) não muda de cor, por isso checamos se não é ele
   if(btn && !btn.querySelector('div')) { 
       btn.classList.add('active', 'text-blue-700');
       btn.classList.remove('text-slate-400');
   }
 
-  // Se for o painel principal, atualiza os números
   if (pageId === 'dashboard') atualizarDashboard();
 }
 
-/**
- * Função: setLoggedUser
- * Objetivo: Salvar quem é o vendedor quando clica em "Entrar".
- */
 function setLoggedUser() {
   const select = document.getElementById('userSelect');
   if (select && select.value) {
     loggedUser = select.value;
-    localStorage.setItem('loggedUser', loggedUser); // Salva na memória do celular
-    console.log(`✅ [AUTH] Login efetuado: ${loggedUser}`);
+    localStorage.setItem('loggedUser', loggedUser);
+    console.log(`✅ [AUTH] Login efetuado com sucesso: ${loggedUser}`);
     initApp();
   } else {
     alert('Por favor, selecione seu nome na lista!');
   }
 }
 
-/**
- * Função: logout
- * Objetivo: Sair da conta e limpar a memória.
- */
 function logout() {
   if(confirm("Tem certeza que deseja sair?")) {
     console.log("👋 [AUTH] Logout realizado.");
     localStorage.removeItem('loggedUser');
-    location.reload(); // Recarrega a página para voltar ao início
+    location.reload();
   }
 }
 
 // ============================================================
-// 3. INTEGRAÇÃO IA (Cérebro do App)
+// 3. INTEGRAÇÃO IA (GEMINI)
 // ============================================================
 
-/**
- * Função: chamarGemini
- * Objetivo: Conectar com a API do Google Gemini.
- * Recebe: Um texto (prompt) com a pergunta.
- * Retorna: A resposta da Inteligência Artificial.
- */
 async function chamarGemini(prompt) {
   if (!GEMINI_KEY) {
       console.warn("⚠️ [IA] Sem chave API Gemini configurada.");
       return null;
   }
-  console.log("🤖 [IA] Perguntando ao Gemini...");
   
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
@@ -185,43 +174,36 @@ async function chamarGemini(prompt) {
     });
     
     if (res.status === 403) {
-        console.error("❌ [IA] Erro: Chave inválida.");
+        console.error("❌ [IA] Erro 403: Chave inválida.");
         return null;
     }
     
     const data = await res.json();
-    // Extrai o texto da resposta complexa do Google
-    const resposta = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    return resposta;
+    return data.candidates?.[0]?.content?.parts?.[0]?.text;
   } catch (e) { 
     console.error("❌ [IA] Erro na requisição:", e);
     return null; 
   }
 }
 
-// --- 3.1 Chat Assistente (Botão Flutuante) ---
-
-/**
- * Função: toggleChat
- * Objetivo: Abrir e fechar a janelinha de chat.
- */
+// --- 3.1 Chat Assistente (FIXED) ---
 function toggleChat() {
     const el = document.getElementById('chatModal');
     const history = document.getElementById('chatHistory');
     
-    if(el.classList.contains('hidden')) {
-        el.classList.remove('hidden'); // Mostra
+    if (!el) return console.error("❌ Elemento chatModal não encontrado!");
+
+    // Usa style.display para garantir funcionamento sem CSS externo
+    if (el.style.display === 'none' || el.classList.contains('hidden')) {
+        el.style.display = 'block'; // Força mostrar
+        el.classList.remove('hidden');
         
-        // Animação de subida
-        const content = el.querySelector('div.absolute');
-        content.classList.remove('slide-up');
-        void content.offsetWidth;
-        content.classList.add('slide-up');
+        // Foca no input
+        const input = document.getElementById('chatInput');
+        if(input) setTimeout(() => input.focus(), 300);
         
-        setTimeout(() => document.getElementById('chatInput').focus(), 300);
-        
-        // Mensagem de boas-vindas na primeira vez
-        if(!history.hasChildNodes() || history.innerHTML.trim() === "") {
+        // Mensagem inicial
+        if(history && (!history.hasChildNodes() || history.innerHTML.trim() === "")) {
              history.innerHTML = `
                 <div class="flex gap-3 fade-in">
                     <div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div>
@@ -231,21 +213,20 @@ function toggleChat() {
                 </div>`;
         }
     } else {
-        el.classList.add('hidden'); // Esconde
+        el.style.display = 'none'; // Força esconder
+        el.classList.add('hidden');
     }
 }
 
-/**
- * Função: enviarMensagemChat
- * Objetivo: Enviar o que o usuário digitou para a IA e mostrar a resposta no chat.
- */
 async function enviarMensagemChat() {
     const input = document.getElementById('chatInput');
     const history = document.getElementById('chatHistory');
+    if(!input || !history) return;
+
     const msg = input.value.trim();
     if(!msg) return;
 
-    // 1. Mostra a mensagem do usuário na tela (lado direito, azul)
+    // Mensagem Usuario
     history.innerHTML += `
         <div class="flex gap-3 justify-end fade-in">
             <div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">
@@ -253,9 +234,9 @@ async function enviarMensagemChat() {
             </div>
         </div>`;
     input.value = '';
-    history.scrollTop = history.scrollHeight; // Rola para baixo
+    history.scrollTop = history.scrollHeight;
 
-    // 2. Mostra animação de "digitando..."
+    // Loading
     const loadingId = 'loading-' + Date.now();
     history.innerHTML += `
         <div id="${loadingId}" class="flex gap-3 fade-in">
@@ -268,15 +249,13 @@ async function enviarMensagemChat() {
         </div>`;
     history.scrollTop = history.scrollHeight;
 
-    // 3. Pede resposta à IA
     const prompt = `Aja como um especialista comercial da MHNET Telecom. Responda de forma curta e útil: "${msg}"`;
     const response = await chamarGemini(prompt);
     
-    // 4. Remove animação e mostra resposta
-    document.getElementById(loadingId)?.remove();
+    const loadEl = document.getElementById(loadingId);
+    if(loadEl) loadEl.remove();
 
     if(response) {
-         // Formata texto (negrito, quebras de linha) para HTML
          const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
          history.innerHTML += `
             <div class="flex gap-3 fade-in">
@@ -291,9 +270,7 @@ async function enviarMensagemChat() {
     history.scrollTop = history.scrollHeight;
 }
 
-// --- 3.2 Outras Funções de IA ---
-
-// Gera texto de venda para o WhatsApp baseado no nome do cliente
+// --- 3.2 Pitch ---
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   if (!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
@@ -306,7 +283,7 @@ async function gerarAbordagemIA() {
   if (txt) document.getElementById('leadObs').value = txt.replace(/["*]/g, '');
 }
 
-// Analisa os bairros visitados e sugere rota
+// --- 3.3 Análise ---
 async function analisarCarteiraIA() {
   if (!leadsCache.length) return alert("Sem leads para analisar.");
   
@@ -319,7 +296,7 @@ async function analisarCarteiraIA() {
   if (txt) alert(`💡 DICA:\n\n${txt}`);
 }
 
-// Dá uma frase motivacional baseada no número de vendas hoje
+// --- 3.4 Coach ---
 async function gerarCoachIA() {
   showLoading(true, "COACH...");
   const hoje = new Date().toLocaleDateString('pt-BR');
@@ -333,13 +310,10 @@ async function gerarCoachIA() {
 }
 
 // ============================================================
-// 4. OPERAÇÕES DE DADOS (Salvar e Ler da Planilha)
+// 4. OPERAÇÕES DE DADOS (CRUD)
 // ============================================================
 
-/**
- * Função: enviarLead
- * Objetivo: Pegar os dados do formulário e mandar para o Google Sheets.
- */
+// --- Salvar Lead ---
 async function enviarLead() {
   console.group("💾 [DATA] Iniciando Envio de Lead");
   const nome = document.getElementById('leadNome').value.trim();
@@ -353,13 +327,12 @@ async function enviarLead() {
   
   showLoading(true, "SALVANDO...");
   
-  // Cria o pacote de dados (JSON) para enviar
   const payload = {
     vendedor: loggedUser,
     nomeLead: nome,  
-    lead: nome, // Envia duplicado para garantir que o backend entenda
+    lead: nome, // Backup
     telefone: tel,
-    whatsapp: tel,
+    whatsapp: tel, // Backup
     endereco: document.getElementById('leadEndereco').value,
     cidade: document.getElementById('leadCidade').value,
     bairro: document.getElementById('leadBairro').value,
@@ -378,26 +351,22 @@ async function enviarLead() {
     console.log("✅ Sucesso ao salvar lead.");
     alert('✅ Lead salvo com sucesso!');
     
-    // Limpa os campos para o próximo cadastro
+    // Limpar campos
     document.getElementById('leadNome').value = ''; 
     document.getElementById('leadTelefone').value = '';
     document.getElementById('leadEndereco').value = ''; 
     document.getElementById('leadObs').value = '';
     
-    // Atualiza a lista e volta para a tela de gestão
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
-    console.error("❌ Falha ao salvar lead:", res);
-    alert('❌ Erro ao salvar: ' + (res ? res.message : 'Verifique conexão'));
+    // Alerta detalhado no console, alerta simples pro usuário se apiCall não deu
+    if(res) alert('❌ Erro ao salvar: ' + res.message);
   }
   console.groupEnd();
 }
 
-/**
- * Função: carregarLeads
- * Objetivo: Baixar a lista de clientes da planilha para mostrar no app.
- */
+// --- Carregar Leads ---
 async function carregarLeads() {
   console.group("📥 [DATA] Carregando Leads");
   const lista = document.getElementById('listaLeadsGestao');
@@ -408,33 +377,28 @@ async function carregarLeads() {
   if (res && res.status === 'success') {
     console.log(`Recebidos ${res.data.length} leads brutos.`);
     
-    // Filtra para mostrar apenas os leads DESTE vendedor
+    // Filtra leads do usuário
     leadsCache = (res.data || []).filter(l => {
       const v = (l.vendedor || l.Vendedor || '').toLowerCase();
       return v.includes(loggedUser.toLowerCase());
     });
     
     console.log(`Filtrados ${leadsCache.length} leads para ${loggedUser}.`);
-    renderLeads(); // Desenha os cards na tela
-    atualizarDashboard(); // Atualiza o contador de hoje
+    renderLeads();
+    atualizarDashboard();
   } else {
     console.error("Erro ao carregar leads:", res);
-    if(lista) lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Erro ao carregar histórico.</div>';
+    if(lista) lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Não foi possível carregar o histórico.</div>';
   }
   console.groupEnd();
 }
 
-/**
- * Função: renderLeads
- * Objetivo: Transformar a lista de dados (leadsCache) em HTML bonito (Cards).
- */
 function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   if (!div) return;
   
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
   
-  // Filtra pelo que o usuário digitou na busca
   const filtrados = leadsCache.filter(l => 
     (l.nomeLead || l.lead || '').toLowerCase().includes(term) || 
     (l.bairro || '').toLowerCase().includes(term) ||
@@ -446,13 +410,17 @@ function renderLeads() {
     return;
   }
 
-  // Gera o HTML para cada lead
   div.innerHTML = filtrados.map(l => {
     const nome = l.nomeLead || l.lead || 'Cliente';
     const bairro = l.bairro || 'Geral';
     const interesse = (l.interesse || 'Novo').toUpperCase();
     const tel = l.telefone || l.whatsapp || '';
-    const dataShow = l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje';
+    
+    // Tenta formatar data de string DD/MM/YYYY HH:mm:ss
+    let dataShow = 'Hoje';
+    if(l.timestamp) {
+        dataShow = l.timestamp.split(' ')[0];
+    }
     
     let badgeClass = "bg-gray-100 text-gray-500";
     if(interesse.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
@@ -481,7 +449,6 @@ function renderLeads() {
   }).join('');
 }
 
-// Atualiza o número grande no topo do Dashboard
 function atualizarDashboard() {
   const hoje = new Date().toLocaleDateString('pt-BR');
   const count = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
@@ -489,7 +456,7 @@ function atualizarDashboard() {
 }
 
 // ============================================================
-// 5. ROTA E GPS (Geolocalização)
+// 5. ROTA E GPS
 // ============================================================
 
 function startRoute() {
@@ -502,7 +469,6 @@ function startRoute() {
   
   updateRouteUI(true);
   
-  // Inicia cronômetro
   timerInterval = setInterval(() => {
     seconds++;
     const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
@@ -511,12 +477,10 @@ function startRoute() {
     document.getElementById('timer').innerText = `${h}:${m}:${s}`;
   }, 1000);
 
-  // Inicia rastreamento
   watchId = navigator.geolocation.watchPosition(p => {
     routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
     document.getElementById('points').innerText = routeCoords.length;
     document.getElementById('gpsStatus').innerText = "Rastreando";
-    if(routeCoords.length === 1) console.log("📍 [GPS] Primeira coordenada capturada.");
   }, e => console.error("Erro GPS:", e), {enableHighAccuracy:true});
 }
 
@@ -528,7 +492,6 @@ async function stopRoute() {
   navigator.geolocation.clearWatch(watchId);
   
   showLoading(true, "ENVIANDO ROTA...");
-  
   const res = await apiCall('saveRoute', {
       vendedor: loggedUser, 
       inicioISO: routeStartTime, 
@@ -559,14 +522,8 @@ function resetRouteUI() {
 }
 
 // ============================================================
-// 6. CONEXÃO API (Motor de Comunicação)
+// 6. CONEXÃO API (ROBUSTA)
 // ============================================================
-
-/**
- * Função: apiCall
- * Objetivo: Enviar e receber dados do Google Apps Script.
- * Usa um truque (text/plain) para evitar bloqueios de segurança do navegador.
- */
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
   console.log(`📡 [API] Chamando: ${route}`, payload);
@@ -574,10 +531,15 @@ async function apiCall(route, payload, show=true, suppress=false) {
   try {
     const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Importante para CORS
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({route, payload, token: TOKEN})
     });
     
+    // Verifica se a resposta HTTP é OK
+    if (!res.ok) {
+        throw new Error(`HTTP Error ${res.status}`);
+    }
+
     const text = await res.text();
     let json;
     
@@ -586,7 +548,8 @@ async function apiCall(route, payload, show=true, suppress=false) {
         console.log(`✅ [API] Resposta JSON (${route}):`, json);
     } catch (e) { 
         console.error(`❌ [API] Resposta inválida (${route}):`, text);
-        throw new Error("Servidor não retornou JSON."); 
+        // Não lançamos erro se for só HTML de redirecionamento, tratamos como erro de rede
+        throw new Error("Servidor não retornou JSON. Verifique CORS/Deploy."); 
     }
 
     if(show) showLoading(false);
@@ -598,13 +561,21 @@ async function apiCall(route, payload, show=true, suppress=false) {
     if(show) showLoading(false);
     console.error(`❌ [API] Erro na requisição (${route}):`, e);
     
-    if(!suppress) alert("Erro conexão: " + e.message);
+    // Detecção específica de erro de permissão (CORS)
+    if (e.name === 'TypeError' && e.message.includes('fetch')) {
+        if(!suppress) {
+            alert("⚠️ ERRO DE CONEXÃO (CORS)\n\nO servidor Google recusou a conexão.\n\nSOLUÇÃO:\nNo Google Apps Script: Implantar > Nova Implantação > 'Qualquer Pessoa'.\n\nCole o novo ID no topo do app.js.");
+        }
+    } else {
+        if(!suppress) alert("Erro conexão: " + e.message);
+    }
     return null;
   }
 }
 
-// Controle da tela de carregamento (Spinner)
 function showLoading(show, txt) {
-  document.getElementById('loader').style.display = show ? 'flex' : 'none';
-  if(txt) document.getElementById('loaderText').innerText = txt;
+  const loader = document.getElementById('loader');
+  const loaderTxt = document.getElementById('loaderText');
+  if(loader) loader.style.display = show ? 'flex' : 'none';
+  if(loaderTxt && txt) loaderTxt.innerText = txt;
 }
