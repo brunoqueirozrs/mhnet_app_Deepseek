@@ -1,522 +1,303 @@
-/**
- * ============================================================
- * MHNET VENDAS - v7.8 (CORS Corrigido + ID Atualizado)
- * ============================================================
- */
-
-// ✅ NOVO ID DE IMPLANTAÇÃO ATUALIZADO
-const DEPLOY_ID = 'AKfycbwM64LebBEQ41LzEO3TB7RXHDreR4uvN2a1kzFbOgc'; 
-const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-const TOKEN = "MHNET2025#SEG";
-const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
-
-// LISTA FIXA DE SEGURANÇA
-const VENDEDORES_OFFLINE = [
-    "Ana Paula Rodrigues",
-    "Vitoria Caroline Baldez Rosales",
-    "João Vithor Sader",
-    "João Paulo da Silva Santos",
-    "Claudia Maria Semmler",
-    "Diulia Vitoria Machado Borges",
-    "Elton da Silva Rodrigo Gonçalves"
-];
-
-let loggedUser = localStorage.getItem('loggedUser');
-let leadsCache = [];
-let routeCoords = [];
-let watchId = null;
-let timerInterval = null;
-let seconds = 0;
-let routeStartTime = null;
-
-// ============================================================
-// INICIALIZAÇÃO
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-  // Injeta lista de vendedores
-  const select = document.getElementById('userSelect');
-  if(select) {
-      select.innerHTML = '<option value="">Toque para selecionar...</option>';
-      VENDEDORES_OFFLINE.forEach(nome => {
-          const opt = document.createElement('option');
-          opt.value = nome;
-          opt.innerText = nome;
-          select.appendChild(opt);
-      });
-  }
-
-  if (loggedUser) {
-    initApp();
-  } else {
-    document.getElementById('userMenu').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'none';
-  }
-});
-
-function initApp() {
-  document.getElementById('userMenu').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'block';
-  document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
-  navegarPara('dashboard');
-  carregarLeads();
-}
-
-// ============================================================
-// NAVEGAÇÃO
-// ============================================================
-function navegarPara(pageId) {
-  document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-  const target = document.getElementById(pageId);
-  if(target) target.style.display = 'block';
-  window.scrollTo(0, 0);
-
-  // Atualiza botões de navegação
-  document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.remove('active', 'text-blue-700');
-    el.classList.add('text-slate-400');
-  });
-
-  let btnId = '';
-  if(pageId === 'dashboard') btnId = 'nav-home';
-  if(pageId === 'cadastroLead') btnId = 'nav-novo';
-  if(pageId === 'gestaoLeads') btnId = 'nav-lista';
-  if(pageId === 'rota') btnId = 'nav-rota';
-
-  const btn = document.getElementById(btnId);
-  if(btn && !btn.querySelector('div')) {
-      btn.classList.add('active', 'text-blue-700');
-      btn.classList.remove('text-slate-400');
-  }
-
-  if (pageId === 'dashboard') atualizarDashboard();
-}
-
-// ============================================================
-// AUTENTICAÇÃO
-// ============================================================
-function setLoggedUser() {
-  const select = document.getElementById('userSelect');
-  if (select && select.value) {
-    loggedUser = select.value;
-    localStorage.setItem('loggedUser', loggedUser);
-    initApp();
-  } else {
-    alert('Por favor, selecione seu nome na lista!');
-  }
-}
-
-function logout() {
-  if(confirm("Sair do sistema?")) {
-    localStorage.removeItem('loggedUser');
-    location.reload();
-  }
-}
-
-// ============================================================
-// IA GEMINI - CHAT
-// ============================================================
-async function chamarGemini(prompt) {
-  if (!GEMINI_KEY) return null;
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MHNET Vendas</title>
     
-    if (res.status === 403) {
-        console.warn("⚠️ Chave Gemini inválida ou expirada.");
-        return null;
-    }
-    
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
-  } catch (e) { 
-    console.error("Erro Gemini:", e);
-    return null; 
-  }
-}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-function toggleChat() {
-    const el = document.getElementById('chatModal');
-    const history = document.getElementById('chatHistory');
-    if(el.classList.contains('hidden')) {
-        el.classList.remove('hidden');
-        el.querySelector('div.absolute.bottom-0').classList.add('slide-up');
-        setTimeout(() => document.getElementById('chatInput').focus(), 300);
-        if(!history.hasChildNodes() || history.innerHTML.trim() === "") {
-             history.innerHTML = `<div class="flex gap-3"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[80%]">Olá! Sou o assistente MHNET. Como posso ajudar nas vendas hoje?</div></div>`;
+    <style>
+        /* FIX TOTAL TELA E TARJAS */
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #004c99; /* Azul MHNET */
+            overflow: hidden;
         }
-    } else {
-        el.classList.add('hidden');
-    }
-}
 
-async function enviarMensagemChat() {
-    const input = document.getElementById('chatInput');
-    const history = document.getElementById('chatHistory');
-    const msg = input.value.trim();
-    if(!msg) return;
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
 
-    history.innerHTML += `<div class="flex gap-3 justify-end"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[80%]">${msg}</div></div>`;
-    input.value = '';
-    history.scrollTop = history.scrollHeight;
+        /* Utilitários */
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-    const loadingId = 'loading-' + Date.now();
-    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
-    history.scrollTop = history.scrollHeight;
+        /* Botão MHNET */
+        .btn-mhnet { 
+            @apply bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg active:scale-[0.98] transition-all w-full flex justify-center items-center gap-3 text-lg border-t border-white/20; 
+            background: linear-gradient(180deg, #0066cc 0%, #004c99 100%);
+        }
 
-    const prompt = `Aja como um assistente de vendas da MHNET Telecom. Responda de forma breve e prática: "${msg}"`;
-    const response = await chamarGemini(prompt);
-    
-    document.getElementById(loadingId)?.remove();
-    if(response) {
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[85%] leading-relaxed">${response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div></div>`;
-    } else {
-        history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-red-100 rounded-full flex-shrink-0 flex items-center justify-center text-red-600 text-xs"><i class="fas fa-exclamation"></i></div><div class="bg-red-50 p-3 rounded-2xl rounded-tl-none border border-red-100 text-sm text-red-600 shadow-sm max-w-[85%]">Desculpe, não consegui processar sua mensagem no momento.</div></div>`;
-    }
-    history.scrollTop = history.scrollHeight;
-}
+        /* Inputs */
+        .modern-input { 
+            @apply w-full pl-14 pr-5 py-4 bg-white border border-blue-100 rounded-2xl text-slate-800 font-medium placeholder-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm;
+            font-size: 16px !important; 
+        }
+        .input-icon { @apply absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 text-lg pointer-events-none; }
+        .form-label { @apply text-xs font-bold text-blue-900 uppercase tracking-wide ml-1 mb-2 block opacity-80; }
+        .input-container { @apply relative mb-5 transition-all; }
+        .modern-input:focus ~ .input-icon { @apply text-blue-600; }
+        
+        /* Navegação */
+        .nav-item { @apply flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1.5 py-3 w-full transition-all font-semibold; }
+        .nav-item.active { @apply text-blue-700; }
+        .nav-item.active i { @apply transform -translate-y-1 scale-110; }
+    </style>
+</head>
+<body class="flex flex-col">
 
-// ============================================================
-// FUNÇÕES IA - ABORDAGEM/ANÁLISE/COACH
-// ============================================================
-async function gerarAbordagemIA() {
-  const nome = document.getElementById('leadNome').value.trim();
-  if (!nome) return alert("⚠️ Preencha o nome do lead primeiro!");
-  
-  showLoading(true, "🤖 CRIANDO PITCH...");
-  const txt = await chamarGemini(`Crie uma mensagem curta de WhatsApp (máx 3 linhas) para ${nome}, oferecendo internet fibra óptica da MHNET. Tom amigável, persuasivo, com emojis.`);
-  showLoading(false);
-  
-  if (txt) {
-    document.getElementById('leadObs').value = txt.replace(/\*\*/g, '');
-  } else {
-    alert("❌ Não foi possível gerar a abordagem. Tente novamente.");
-  }
-}
-
-async function analisarCarteiraIA() {
-  if (!leadsCache.length) return alert("📂 Nenhum lead cadastrado para analisar.");
-  
-  showLoading(true, "🔍 ANALISANDO CARTEIRA...");
-  const bairros = [...new Set(leadsCache.slice(0,30).map(l=>l.bairro || 'Indefinido'))].join(', ');
-  const txt = await chamarGemini(`Analise esta lista de bairros e sugira uma rota otimizada para visitação: ${bairros}. Seja breve e objetivo.`);
-  showLoading(false);
-  
-  if (txt) {
-    alert(`💡 ANÁLISE DA CARTEIRA:\n\n${txt}`);
-  } else {
-    alert("❌ Erro ao analisar. Tente novamente.");
-  }
-}
-
-async function gerarCoachIA() {
-  showLoading(true, "🚀 GERANDO COACH...");
-  const hoje = leadsCache.filter(l => {
-    const data = new Date(l.timestamp || l.Data);
-    return data.toLocaleDateString() === new Date().toLocaleDateString();
-  }).length;
-  
-  const txt = await chamarGemini(`O vendedor cadastrou ${hoje} leads hoje. Dê uma frase motivacional curta (máx 2 linhas) para incentivá-lo.`);
-  showLoading(false);
-  
-  if(txt) {
-    alert(`🎯 COACH DO DIA:\n\n${txt}`);
-  } else {
-    alert("❌ Erro ao gerar coaching.");
-  }
-}
-
-// ============================================================
-// CADASTRO DE LEADS
-// ============================================================
-async function enviarLead() {
-  const nome = document.getElementById('leadNome').value.trim();
-  const tel = document.getElementById('leadTelefone').value.trim();
-  
-  if (!nome || !tel) {
-    return alert("⚠️ Preencha pelo menos Nome e Telefone!");
-  }
-  
-  showLoading(true, "💾 SALVANDO LEAD...");
-  
-  const payload = {
-    vendedor: loggedUser,
-    nomeLead: nome,
-    lead: nome,
-    telefone: tel,
-    whatsapp: tel,
-    endereco: document.getElementById('leadEndereco').value.trim(),
-    cidade: document.getElementById('leadCidade').value.trim(),
-    bairro: document.getElementById('leadBairro').value.trim(),
-    interesse: document.getElementById('leadInteresse').value,
-    observacao: document.getElementById('leadObs').value.trim(),
-    provedor: "",
-    timestamp: new Date().toISOString()
-  };
-  
-  console.log("📤 Enviando Lead:", payload);
-
-  const res = await apiCall('addLead', payload);
-  showLoading(false);
-  
-  if (res && res.status === 'success') {
-    alert('✅ Lead salvo com sucesso!');
-    
-    // Limpa formulário
-    document.getElementById('leadNome').value = ''; 
-    document.getElementById('leadTelefone').value = '';
-    document.getElementById('leadEndereco').value = ''; 
-    document.getElementById('leadCidade').value = ''; 
-    document.getElementById('leadBairro').value = '';
-    document.getElementById('leadObs').value = '';
-    document.getElementById('leadInteresse').value = 'Médio';
-    
-    carregarLeads();
-    navegarPara('gestaoLeads');
-  }
-}
-
-// ============================================================
-// LISTAGEM DE LEADS
-// ============================================================
-async function carregarLeads() {
-  const lista = document.getElementById('listaLeadsGestao');
-  if(lista) {
-    lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8"><i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i><br>Buscando histórico...</div>';
-  }
-
-  const res = await apiCall('getLeads', {}, false, true);
-  
-  if (res && res.status === 'success') {
-    leadsCache = (res.data || []).filter(l => {
-      const v = (l.vendedor || l.Vendedor || '').toLowerCase();
-      return v.includes(loggedUser.toLowerCase());
-    });
-    renderLeads();
-    atualizarDashboard();
-  } else {
-    if(lista) {
-      lista.innerHTML = '<div style="text-align:center; color:#ef4444; padding:40px"><i class="fas fa-exclamation-triangle text-4xl mb-3"></i><br>Não foi possível carregar o histórico.<br><small>Verifique sua conexão.</small></div>';
-    }
-  }
-}
-
-function renderLeads() {
-  const div = document.getElementById('listaLeadsGestao');
-  if (!div) return;
-  
-  const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
-  
-  const filtrados = leadsCache.filter(l => 
-    (l.nomeLead || l.lead || '').toLowerCase().includes(term) || 
-    (l.bairro || '').toLowerCase().includes(term) ||
-    (l.telefone || '').includes(term)
-  );
-  
-  if (!filtrados.length) {
-    div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1"><i class="far fa-folder-open text-5xl mb-4"></i><br>Nenhum registro encontrado.</div>';
-    return;
-  }
-
-  // Ordena por data (mais recente primeiro)
-  filtrados.sort((a,b) => {
-    const getDate = (d) => {
-      if(!d) return 0;
-      if(d.includes('/')) {
-        const parts = d.split(' '); 
-        const dateParts = parts[0].split('/');
-        return new Date(dateParts[2], dateParts[1]-1, dateParts[0]);
-      }
-      return new Date(d);
-    };
-    return getDate(b.timestamp) - getDate(a.timestamp);
-  });
-
-  div.innerHTML = filtrados.map(l => {
-    const nome = l.nomeLead || l.lead || 'Cliente';
-    const bairro = l.bairro || 'Não informado';
-    const interesse = (l.interesse || 'Médio').toUpperCase();
-    const tel = l.telefone || l.whatsapp || '';
-    
-    let badgeClass = "bg-gray-100 text-gray-500";
-    if(interesse.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
-    if(interesse.includes('MÉDIO')) badgeClass = "bg-yellow-100 text-yellow-700";
-    if(interesse.includes('BAIXO')) badgeClass = "bg-red-50 text-red-500";
-
-    const dataFormatada = l.timestamp ? l.timestamp.split('T')[0].split('-').reverse().join('/') : 'Hoje';
-
-    return `
-    <div class="bg-white p-5 rounded-[1.5rem] border border-blue-50 shadow-sm mb-4 hover:shadow-md transition">
-      <div class="flex justify-between items-start mb-3">
-        <div>
-          <div class="font-bold text-[#003870] text-lg leading-tight">${nome}</div>
-          <div class="text-xs text-gray-400 mt-1"><i class="fas fa-calendar-alt mr-1"></i> ${dataFormatada}</div>
+    <!-- TELA DE LOGIN (FUNDO AZUL INTEGRAL) -->
+    <div id="userMenu" class="fixed inset-0 w-full h-full bg-[#004c99] z-50 flex flex-col items-center justify-center p-6 text-white" style="display: flex;">
+        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-blue-600 to-[#003870] z-0"></div>
+        <div class="w-full max-w-sm fade-in relative z-10">
+            <div class="text-center mb-10">
+                <div class="bg-white p-5 rounded-[2rem] w-28 h-28 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-900/50">
+                    <i class="fas fa-wifi text-5xl text-[#004c99]"></i>
+                </div>
+                <h1 class="text-4xl font-extrabold tracking-tight mb-1">MHNET</h1>
+                <p class="text-blue-100 font-medium text-lg tracking-wide opacity-80">Vendas Externas</p>
+            </div>
+            
+            <div class="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-[2.5rem] shadow-2xl text-white">
+                <label class="text-xs font-bold text-blue-100 uppercase tracking-wider mb-3 block ml-1">Selecione seu Nome</label>
+                <div class="relative mb-8">
+                    <i class="fas fa-user-circle absolute left-5 top-1/2 -translate-y-1/2 text-[#004c99] text-2xl pointer-events-none z-20"></i>
+                    
+                    <!-- ID userSelect crucial para o JS puxar os nomes -->
+                    <select id="userSelect" class="w-full pl-14 pr-10 py-5 bg-white border-0 rounded-2xl text-gray-900 font-bold focus:ring-4 focus:ring-blue-400/30 appearance-none shadow-lg text-lg relative z-10">
+                        <option value="">Carregando lista...</option>
+                    </select>
+                    
+                    <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-[#004c99] text-xs pointer-events-none z-20"></i>
+                </div>
+                <button onclick="setLoggedUser()" class="w-full bg-white text-[#004c99] font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform flex justify-center items-center gap-2 text-lg hover:bg-blue-50">
+                    Entrar Agora <i class="fas fa-arrow-right text-sm"></i>
+                </button>
+            </div>
+            <p class="text-center mt-8 text-xs text-blue-200/40 font-medium tracking-widest uppercase">v8.0 - Gemini AI</p>
         </div>
-        <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold tracking-wide shadow-sm">${interesse}</span>
-      </div>
-      <div class="text-sm text-gray-600 mb-4 flex items-center gap-2 bg-blue-50/50 p-2 rounded-lg">
-        <i class="fas fa-map-marker-alt text-red-400 ml-1"></i> ${bairro}
-      </div>
-      <div class="flex justify-between items-center border-t border-gray-100 pt-4">
-         <span class="text-xs text-gray-400 font-medium">Ação rápida</span>
-         <a href="https://wa.me/55${tel.replace(/\D/g, '')}" target="_blank" class="bg-[#25D366] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:brightness-105 transition shadow-green-200 shadow-lg">
-           <i class="fab fa-whatsapp text-lg"></i> WhatsApp
-         </a>
-      </div>
-    </div>`;
-  }).join('');
-}
+    </div>
 
-// ============================================================
-// DASHBOARD
-// ============================================================
-function atualizarDashboard() {
-  const hoje = new Date().toLocaleDateString('pt-BR');
-  const count = leadsCache.filter(l => {
-    const dataLead = l.timestamp ? new Date(l.timestamp).toLocaleDateString('pt-BR') : '';
-    return dataLead === hoje;
-  }).length;
-  
-  const statEl = document.getElementById('statLeads');
-  if(statEl) statEl.innerText = count;
-}
+    <!-- APP CONTENT -->
+    <div id="mainContent" class="flex-1 flex flex-col overflow-hidden relative bg-[#eff6ff] h-full w-full" style="display: none;">
+        
+        <!-- HEADER -->
+        <header class="bg-white/90 backdrop-blur-xl border-b border-blue-100 px-6 py-4 flex justify-between items-center z-10 sticky top-0 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-[#004c99] rounded-xl flex items-center justify-center text-white font-bold shadow-md">MH</div>
+                <div>
+                    <h2 class="text-sm font-bold text-[#003870] leading-tight">Painel de Controle</h2>
+                    <p id="userInfo" class="text-[10px] text-blue-400 font-bold uppercase tracking-wider mt-0.5">...</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="w-10 h-10 rounded-full bg-white border border-blue-100 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                <i class="fas fa-power-off"></i>
+            </button>
+        </header>
 
-// ============================================================
-// ROTA (GPS)
-// ============================================================
-function startRoute() {
-  if (!navigator.geolocation) {
-    return alert('⚠️ GPS não disponível neste dispositivo.');
-  }
-  
-  routeCoords = [];
-  seconds = 0;
-  routeStartTime = new Date().toISOString();
-  updateRouteUI(true);
-  
-  timerInterval = setInterval(() => {
-    seconds++;
-    const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2,'0');
-    const s = (seconds % 60).toString().padStart(2,'0');
-    document.getElementById('timer').innerText = `${h}:${m}:${s}`;
-  }, 1000);
-  
-  watchId = navigator.geolocation.watchPosition(
-    p => {
-      routeCoords.push({
-        lat: p.coords.latitude, 
-        lon: p.coords.longitude
-      });
-      document.getElementById('points').innerText = routeCoords.length;
-      const st = document.getElementById('gpsStatus');
-      st.innerText = "Rastreando";
-      st.className = "bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold";
-    },
-    e => console.error("Erro GPS:", e),
-    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
-  );
-}
+        <!-- SCROLL AREA -->
+        <main class="flex-1 overflow-y-auto p-6 pb-36 scroll-smooth">
+            
+            <!-- DASHBOARD -->
+            <div id="dashboard" class="page fade-in">
+                <div class="bg-gradient-to-br from-[#004c99] to-[#003870] rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-900/20 mb-8 relative overflow-hidden group">
+                    <div class="absolute -right-10 -top-10 bg-blue-500 w-40 h-40 rounded-full blur-3xl opacity-20"></div>
+                    <p class="text-blue-200 text-xs font-bold uppercase tracking-widest mb-2">Leads Hoje</p>
+                    <div class="flex items-baseline gap-2 mb-6">
+                        <span id="statLeads" class="text-7xl font-black tracking-tighter">0</span>
+                        <span class="text-lg font-medium text-blue-200">registros</span>
+                    </div>
+                    <button onclick="gerarCoachIA()" class="bg-white/10 hover:bg-white/20 active:scale-95 px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-3 transition-all w-full backdrop-blur-md border border-white/10 shadow-lg">
+                        <div class="bg-blue-300 w-2 h-2 rounded-full animate-pulse"></div> 
+                        <span class="flex-1">Feedback do Coach IA</span>
+                        <i class="fas fa-chevron-right opacity-50"></i>
+                    </button>
+                </div>
 
-async function stopRoute() {
-  if(!confirm("❓ Finalizar e salvar rota?")) return;
-  
-  clearInterval(timerInterval);
-  navigator.geolocation.clearWatch(watchId);
-  
-  showLoading(true, "📍 ENVIANDO ROTA...");
-  
-  await apiCall('saveRoute', {
-    vendedor: loggedUser,
-    inicioISO: routeStartTime,
-    fimISO: new Date().toISOString(),
-    coordenadas: routeCoords
-  });
-  
-  showLoading(false);
-  alert("✅ Rota salva com sucesso!");
-  resetRouteUI();
-  navegarPara('dashboard');
-}
+                <div class="grid grid-cols-2 gap-5 mb-8">
+                    <button onclick="navegarPara('cadastroLead')" class="bg-white p-6 rounded-[2rem] shadow-sm border border-blue-50 flex flex-col items-center gap-4 active:scale-95 transition-all hover:shadow-md hover:border-blue-200 group">
+                        <div class="w-14 h-14 rounded-2xl bg-blue-50 text-[#004c99] flex items-center justify-center text-2xl shadow-inner">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <span class="text-sm font-bold text-slate-600">Novo Lead</span>
+                    </button>
+                    <button onclick="navegarPara('rota')" class="bg-white p-6 rounded-[2rem] shadow-sm border border-blue-50 flex flex-col items-center gap-4 active:scale-95 transition-all hover:shadow-md hover:border-orange-200 group">
+                        <div class="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-2xl shadow-inner">
+                            <i class="fas fa-route"></i>
+                        </div>
+                        <span class="text-sm font-bold text-slate-600">Iniciar Rota</span>
+                    </button>
+                </div>
+            </div>
 
-function updateRouteUI(isRunning) {
-  document.getElementById('btnStart').style.display = isRunning ? 'none' : 'flex';
-  document.getElementById('btnStop').style.display = isRunning ? 'flex' : 'none';
-}
+            <!-- CADASTRO (Ficha Digital) -->
+            <div id="cadastroLead" class="page hidden fade-in">
+                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-blue-50 mb-8">
+                    <div class="input-container">
+                        <label class="form-label">Nome Completo</label>
+                        <input type="text" id="leadNome" class="modern-input" placeholder="Ex: Maria da Silva">
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+                    <div class="input-container">
+                        <label class="form-label">WhatsApp / Telefone</label>
+                        <input type="tel" id="leadTelefone" class="modern-input" placeholder="(00) 90000-0000">
+                        <i class="fab fa-whatsapp input-icon text-green-600"></i>
+                    </div>
+                    <div class="input-container">
+                        <label class="form-label">Endereço (Rua e Nº)</label>
+                        <input type="text" id="leadEndereco" class="modern-input" placeholder="Rua das Flores, 123">
+                        <i class="fas fa-home input-icon text-blue-400"></i>
+                    </div>
+                    <div class="input-container">
+                        <label class="form-label">Bairro</label>
+                        <input type="text" id="leadBairro" class="modern-input" placeholder="Ex: Centro">
+                        <i class="fas fa-map-pin input-icon text-red-400"></i>
+                    </div>
+                    <div class="input-container">
+                        <label class="form-label">Cidade</label>
+                        <input type="text" id="leadCidade" class="modern-input" value="Lajeado">
+                        <i class="fas fa-city input-icon text-slate-400"></i>
+                    </div>
+                    <div class="input-container">
+                        <label class="form-label">Interesse</label>
+                        <div class="relative">
+                            <select id="leadInteresse" class="modern-input appearance-none bg-slate-50 cursor-pointer text-[#003870] font-bold">
+                                <option value="Alto">🔥 Alto (Instalar)</option>
+                                <option value="Médio">🤔 Médio (Pesquisa)</option>
+                                <option value="Baixo">❄️ Baixo (Curioso)</option>
+                            </select>
+                            <i class="fas fa-fire input-icon text-orange-500"></i>
+                            <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div class="input-container mb-0">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="form-label mb-0">Observações</label>
+                            <div class="flex gap-2">
+                                <button onclick="gerarAbordagemIA()" class="text-[10px] bg-blue-50 hover:bg-blue-100 text-[#004c99] px-3 py-1.5 rounded-lg font-bold transition-colors border border-blue-100 flex items-center gap-1">
+                                    <i class="fas fa-magic"></i> Gerar Pitch
+                                </button>
+                                <button onclick="refinarObservacaoIA()" class="text-[10px] bg-purple-50 hover:bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg font-bold transition-colors border border-purple-100 flex items-center gap-1">
+                                    <i class="fas fa-pen-fancy"></i> Refinar
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="leadObs" rows="3" class="modern-input pt-4 pl-5 h-auto resize-none" placeholder="Detalhes do cliente..."></textarea>
+                    </div>
+                </div>
+                <div class="mb-10">
+                    <button onclick="enviarLead()" class="btn-mhnet">
+                        Salvar Cadastro <i class="fas fa-check-circle opacity-60"></i>
+                    </button>
+                </div>
+            </div>
 
-function resetRouteUI() {
-  updateRouteUI(false);
-  document.getElementById('timer').innerText = "00:00:00";
-  document.getElementById('points').innerText = "0";
-  const st = document.getElementById('gpsStatus');
-  st.innerText = "Parado";
-  st.className = "bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-[10px] font-bold";
-}
+            <!-- GESTÃO LEADS -->
+            <div id="gestaoLeads" class="page hidden fade-in">
+                <div class="sticky top-0 bg-[#eff6ff]/95 backdrop-blur-md pt-2 pb-6 z-10 px-1">
+                    <div class="flex justify-between items-center mb-5">
+                        <h2 class="text-2xl font-bold text-[#003870] tracking-tight">Histórico</h2>
+                        <button onclick="analisarCarteiraIA()" class="bg-white border border-blue-200 text-[#004c99] px-4 py-2 rounded-full text-xs font-bold shadow-sm active:scale-95 transition flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-blue-400"></i> Analisar
+                        </button>
+                    </div>
+                    <div class="relative shadow-sm">
+                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-blue-300"></i>
+                        <input type="text" id="searchLead" onkeyup="renderLeads()" placeholder="Buscar cliente..." class="w-full pl-12 p-4 bg-white border-none rounded-2xl text-[#003870] font-medium focus:ring-4 focus:ring-blue-100 placeholder-blue-200">
+                    </div>
+                </div>
+                <div id="listaLeadsGestao" class="pb-6 space-y-4 px-1"></div>
+            </div>
 
-// ============================================================
-// API CHAMADAS (CORS OTIMIZADO)
-// ============================================================
-async function apiCall(route, payload = {}, showLoader = true, suppressAlert = false) {
-  if(showLoader) showLoading(true);
-  
-  try {
-    const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'text/plain;charset=utf-8'
-        },
-        body: JSON.stringify({
-          route: route,
-          payload: payload,
-          token: TOKEN
-        })
-    });
+            <!-- ROTA -->
+            <div id="rota" class="page hidden fade-in text-center px-4 pt-6">
+                <h2 class="text-2xl font-bold text-[#003870] mb-8">Rota GPS</h2>
+                <div class="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-blue-900/5 border border-white mb-10 mx-auto max-w-xs relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-[#004c99]"></div>
+                    <div class="text-slate-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-4">Cronômetro</div>
+                    <div id="timer" class="text-5xl font-mono font-bold text-[#003870] tracking-tighter mb-10">00:00:00</div>
+                    <div class="flex justify-between border-t border-slate-50 pt-8">
+                        <div class="text-left">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-1">Pontos</div>
+                            <div id="points" class="text-2xl font-bold text-blue-600">0</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-1">GPS</div>
+                            <div id="gpsStatus" class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-bold">Parado</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-4 max-w-xs mx-auto">
+                    <button id="btnStart" onclick="startRoute()" class="btn-mhnet bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-500/30 border-t-0">
+                        <i class="fas fa-play"></i> Iniciar
+                    </button>
+                    <button id="btnStop" onclick="stopRoute()" class="btn-mhnet bg-gradient-to-r from-red-500 to-rose-600 shadow-red-500/30 border-t-0 hidden">
+                        <i class="fas fa-stop"></i> Finalizar
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- CHAT FLUTUANTE IA -->
+        <button onclick="toggleChat()" class="fixed bottom-28 right-6 w-14 h-14 bg-[#004c99] rounded-full shadow-lg shadow-blue-900/30 text-white flex items-center justify-center text-2xl z-40 active:scale-90 transition-transform hover:scale-105 border-2 border-white">
+            <i class="fas fa-comment-dots"></i>
+        </button>
+
+        <!-- CHAT MODAL -->
+        <div id="chatModal" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-blue-900/60 backdrop-blur-sm transition-opacity" onclick="toggleChat()"></div>
+            <div class="absolute bottom-0 w-full h-[85%] bg-[#f0f4f8] rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden transition-transform transform translate-y-0">
+                <div class="bg-white p-5 border-b border-gray-100 flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-[#004c99] shadow-sm"><i class="fas fa-robot text-xl"></i></div>
+                        <div>
+                            <h3 class="font-bold text-[#003870] text-lg">Assistente MHNET</h3>
+                            <p class="text-[10px] text-green-500 font-bold flex items-center gap-1.5 uppercase tracking-wide"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleChat()" class="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><i class="fas fa-times"></i></button>
+                </div>
+                <div id="chatHistory" class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f0f4f8]"></div>
+                <div class="p-4 bg-white border-t border-gray-100 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+                    <div class="relative">
+                        <input type="text" id="chatInput" placeholder="Pergunte ao assistente..." class="w-full pl-5 pr-14 py-4 bg-slate-50 rounded-2xl text-slate-700 focus:ring-2 focus:ring-blue-200 focus:bg-white transition-all border-none font-medium">
+                        <button onclick="enviarMensagemChat()" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#004c99] rounded-xl text-white flex items-center justify-center active:scale-95 transition-transform shadow-lg shadow-blue-600/20"><i class="fas fa-paper-plane text-sm"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAVEGAÇÃO -->
+        <nav class="bg-white/95 backdrop-blur-lg border-t border-blue-50 flex justify-around px-6 pb-safe pt-2 absolute bottom-0 w-full z-20 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.03)]">
+            <button id="nav-home" onclick="navegarPara('dashboard')" class="nav-item active">
+                <i class="fas fa-home text-2xl"></i> <span>Início</span>
+            </button>
+            <button id="nav-novo" onclick="navegarPara('cadastroLead')" class="nav-item">
+                <div class="bg-[#004c99] text-white w-14 h-14 rounded-2xl flex items-center justify-center -mt-10 shadow-lg shadow-blue-900/30 border-4 border-[#eff6ff] transition-transform active:scale-95">
+                    <i class="fas fa-plus text-xl"></i>
+                </div>
+            </button>
+            <button id="nav-lista" onclick="navegarPara('gestaoLeads')" class="nav-item">
+                <i class="fas fa-stream text-2xl"></i> <span>Leads</span>
+            </button>
+            <button id="nav-rota" onclick="navegarPara('rota')" class="nav-item">
+                <i class="fas fa-location-arrow text-2xl"></i> <span>Rota</span>
+            </button>
+        </nav>
+        
+        <div id="loader" class="fixed inset-0 bg-blue-900/80 z-[70] hidden flex-col items-center justify-center backdrop-blur-sm">
+            <div class="w-16 h-16 border-4 border-blue-200 border-t-white rounded-full animate-spin mb-4"></div>
+            <p id="loaderText" class="text-white font-bold animate-pulse text-xs tracking-[0.2em] uppercase">Carregando</p>
+        </div>
+    </div>
     
-    const text = await response.text();
-    let json;
-    
-    try { 
-      json = JSON.parse(text); 
-    } catch (parseError) { 
-      throw new Error("Resposta inválida do servidor (não é JSON)");
-    }
-
-    if(showLoader) showLoading(false);
-    
-    if (json.status === 'error') {
-      throw new Error(json.message || "Erro desconhecido no servidor");
-    }
-    
-    return json;
-
-  } catch(error) {
-    if(showLoader) showLoading(false);
-    console.error("❌ API Call Error:", error);
-    
-    // Tratamento específico de erros
-    if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        if(!suppressAlert) {
-          alert("⚠️ ERRO DE CONEXÃO\n\nNão foi possível conectar ao servidor.\n\nVerifique:\n1. Sua conexão com a internet\n2. Se o Google Apps Script está ativo\n3. Se o DEPLOY_ID está correto");
-        }
-    } else {
-        if(!suppressAlert) {
-          alert(`❌ Erro: ${error.message}`);
-        }
-    }
-    
-    return null;
-  }
-}
-
-// ============================================================
-// LOADING SCREEN
-// ============================================================
-function showLoading(show, text = "CARREGANDO...") {
-  const loader = document.getElementById('loader');
-  const loaderText = document.getElementById('loaderText');
-  
-  if(loader) loader.style.display = show ? 'flex' : 'none';
-  if(loaderText) loaderText.innerText = text;
-}
+    <script src="app.js"></script>
+</body>
+</html>
