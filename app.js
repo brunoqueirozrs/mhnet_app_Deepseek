@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * MHNET VENDAS - v7.1 (Lógica Simplificada)
+ * MHNET VENDAS - v7.6 (Fix Conexão Robusta)
  * ============================================================
  */
 
@@ -8,6 +8,17 @@ const DEPLOY_ID = 'AKfycbyWYgd3r5pA1dYB5LD_PY6m4V2FjWG-Oi6vYjlvNBre9r_eGiPlhia-H
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
+
+// LISTA FIXA DE SEGURANÇA
+const VENDEDORES_OFFLINE = [
+    "Ana Paula Rodrigues",
+    "Vitoria Caroline Baldez Rosales",
+    "João Vithor Sader",
+    "João Paulo da Silva Santos",
+    "Claudia Maria Semmler",
+    "Diulia Vitoria Machado Borges",
+    "Elton da Silva Rodrigo Gonçalves"
+];
 
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
@@ -17,10 +28,20 @@ let timerInterval = null;
 let seconds = 0;
 let routeStartTime = null;
 
+// INIT
 document.addEventListener('DOMContentLoaded', () => {
-  // AQUI É A MUDANÇA CRUCIAL:
-  // NÃO CHAMAMOS FUNÇÃO PARA PREENCHER LISTA. ELA JÁ EXISTE NO HTML.
-  
+  // 1. Injeta lista IMEDIATAMENTE
+  const select = document.getElementById('userSelect');
+  if(select) {
+      select.innerHTML = '<option value="">Toque para selecionar...</option>';
+      VENDEDORES_OFFLINE.forEach(nome => {
+          const opt = document.createElement('option');
+          opt.value = nome;
+          opt.innerText = nome;
+          select.appendChild(opt);
+      });
+  }
+
   if (loggedUser) {
     initApp();
   } else {
@@ -82,7 +103,7 @@ function logout() {
   }
 }
 
-// *** IA GEMINI ***
+// *** IA GEMINI (Chat + Funções) ***
 async function chamarGemini(prompt) {
   if (!GEMINI_KEY) return null;
   try {
@@ -95,6 +116,46 @@ async function chamarGemini(prompt) {
   } catch (e) { return null; }
 }
 
+function toggleChat() {
+    const el = document.getElementById('chatModal');
+    const history = document.getElementById('chatHistory');
+    if(el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        el.querySelector('div.absolute.bottom-0').classList.add('slide-up');
+        setTimeout(() => document.getElementById('chatInput').focus(), 300);
+        if(!history.hasChildNodes() || history.innerHTML.trim() === "") {
+             history.innerHTML = `<div class="flex gap-3"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[80%]">Olá! Sou o assistente MHNET. Como posso ajudar nas vendas hoje?</div></div>`;
+        }
+    } else {
+        el.classList.add('hidden');
+    }
+}
+
+async function enviarMensagemChat() {
+    const input = document.getElementById('chatInput');
+    const history = document.getElementById('chatHistory');
+    const msg = input.value;
+    if(!msg) return;
+
+    history.innerHTML += `<div class="flex gap-3 justify-end"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[80%]">${msg}</div></div>`;
+    input.value = '';
+    history.scrollTop = history.scrollHeight;
+
+    const loadingId = 'loading-' + Date.now();
+    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
+    history.scrollTop = history.scrollHeight;
+
+    const prompt = `Aja como um assistente de vendas da MHNET Telecom. Responda: "${msg}"`;
+    const response = await chamarGemini(prompt);
+    
+    document.getElementById(loadingId)?.remove();
+    if(response) {
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[85%] leading-relaxed">${response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div></div>`;
+    }
+    history.scrollTop = history.scrollHeight;
+}
+
+// OUTRAS FUNÇÕES IA
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   if (!nome) return alert("Preencha o nome!");
@@ -139,6 +200,8 @@ async function enviarLead() {
     provedor: "", timestamp: new Date().toISOString()
   };
   
+  console.log("Enviando Lead:", payload); // Debug
+
   const res = await apiCall('addLead', payload);
   showLoading(false);
   
@@ -152,7 +215,9 @@ async function enviarLead() {
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
-    alert('❌ Erro ao salvar.');
+    // Alerta de erro já foi dado no apiCall se for erro de rede
+    // Aqui tratamos erro de lógica (status: error do backend)
+    if(res) alert('❌ Erro no servidor: ' + res.message);
   }
 }
 
@@ -281,17 +346,38 @@ function resetRouteUI() {
   document.getElementById('gpsStatus').innerText = "Parado";
 }
 
-// API
+// *** API ROBUSTA (FIX CORREÇÃO) ***
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
   try {
-    const res = await fetch(API_URL, {method:'POST', body: JSON.stringify({route, payload, token: TOKEN})});
-    const json = await res.json();
+    // FIX: Content-Type text/plain evita Preflight CORS complexo no Google Apps Script
+    const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({route, payload, token: TOKEN})
+    });
+    
+    // Tenta ler o texto primeiro
+    const text = await res.text();
+    let json;
+    
+    try {
+        json = JSON.parse(text);
+    } catch (e) {
+        throw new Error("Resposta do servidor não é JSON: " + text.substring(0, 100));
+    }
+
     if(show) showLoading(false);
+    
+    // Se o backend retornou status: error
+    if (json.status === 'error') throw new Error(json.message);
+    
     return json;
+
   } catch(e) {
     if(show) showLoading(false);
-    if(!suppress) alert("Erro conexão API.");
+    console.error("API Call Error:", e);
+    if(!suppress) alert("Erro conexão API: " + e.message);
     return null;
   }
 }
