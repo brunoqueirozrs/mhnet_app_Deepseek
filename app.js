@@ -1,12 +1,12 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V13.0 (FIX LEITURA)
- * Correção: CORS, Cache Busting e Tratamento de Erro Visual
+ * MHNET VENDAS - LÓGICA V14.0 (MODO VALIDAÇÃO)
+ * Foco: Logs detalhados para teste passo-a-passo
  * ============================================================
  */
 
 // ⚠️ COLE AQUI O ID DA NOVA IMPLANTAÇÃO "QUALQUER PESSOA"
-const DEPLOY_ID = 'AKfycbx-5n0lK3DDJQG8lBdeLUuoRb7-YX2t1JRjq3nzdSfP6QVAMcN4MD6G-P9vqZVk6wR-'; 
+const DEPLOY_ID = 'AKfycbxMuP7gF6WM3syD4dpraqkMPRpInQ2xkc5_09o3fuNBIHTCn8UVQFRdPpH4wiVpccvz'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
@@ -30,7 +30,7 @@ let routeStartTime = null;
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🏁 [APP] Iniciando v13.0...");
+  console.log("🏁 [INIT] Aplicação iniciada.");
 
   // Injeta lista imediatamente
   const select = document.getElementById('userSelect');
@@ -42,12 +42,15 @@ document.addEventListener('DOMContentLoaded', () => {
           opt.innerText = nome;
           select.appendChild(opt);
       });
+      console.log("✅ [INIT] Lista de vendedores carregada.");
   }
 
   // Verifica Sessão
   if (loggedUser) {
+    console.log(`👤 [AUTH] Usuário recuperado: ${loggedUser}`);
     initApp();
   } else {
+    console.log("👤 [AUTH] Sem sessão ativa. Mostrando login.");
     document.getElementById('userMenu').style.display = 'flex';
     document.getElementById('mainContent').style.display = 'none';
   }
@@ -66,6 +69,7 @@ function setLoggedUser() {
   if (select && select.value) {
     loggedUser = select.value;
     localStorage.setItem('loggedUser', loggedUser);
+    console.log(`✅ [AUTH] Login efetuado: ${loggedUser}`);
     initApp();
   } else {
     alert('Por favor, selecione seu nome na lista!');
@@ -74,6 +78,7 @@ function setLoggedUser() {
 
 function logout() {
   if(confirm("Sair do sistema?")) {
+    console.log("👋 [AUTH] Logout realizado.");
     localStorage.removeItem('loggedUser');
     location.reload();
   }
@@ -83,6 +88,8 @@ function logout() {
 // 2. NAVEGAÇÃO
 // ============================================================
 function navegarPara(pageId) {
+  console.log(`🔄 [NAV] Navegando para: ${pageId}`);
+
   // Esconde todas
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
   
@@ -93,6 +100,8 @@ function navegarPara(pageId) {
       target.classList.remove('fade-in');
       void target.offsetWidth; 
       target.classList.add('fade-in');
+  } else {
+      console.error(`❌ [NAV] Página não encontrada: ${pageId}`);
   }
 
   // Scroll topo
@@ -148,10 +157,13 @@ async function enviarLead() {
     timestamp: new Date().toISOString()
   };
   
+  console.log("📤 [DATA] Enviando Lead:", payload);
+
   const res = await apiCall('addLead', payload);
   showLoading(false);
   
   if ((res && res.status === 'success') || res === 'CORS_ERROR_BUT_SENT') {
+    console.log("✅ [DATA] Lead salvo com sucesso.");
     alert('✅ Lead salvo com sucesso!');
     
     // Limpeza
@@ -164,6 +176,7 @@ async function enviarLead() {
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
+    console.error("❌ [DATA] Erro ao salvar:", res);
     alert('❌ Erro ao salvar. Tente novamente.');
   }
 }
@@ -172,12 +185,12 @@ async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
   if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8"><i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i><br>Buscando histórico...</div>';
 
-  console.log("📥 Buscando leads...");
+  console.log("📥 [DATA] Buscando leads...");
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
     const todosLeads = res.data || [];
-    console.log(`📥 Total recebido: ${todosLeads.length}`);
+    console.log(`📥 [DATA] Total recebido: ${todosLeads.length}`);
 
     // Filtro mais permissivo
     leadsCache = todosLeads.filter(l => {
@@ -186,11 +199,11 @@ async function carregarLeads() {
       return vPlanilha.includes(vApp) || vApp.includes(vPlanilha);
     });
 
-    console.log(`✅ Filtrados para ${loggedUser}: ${leadsCache.length}`);
+    console.log(`✅ [DATA] Filtrados para ${loggedUser}: ${leadsCache.length}`);
     renderLeads();
     atualizarDashboard();
   } else {
-    console.error("❌ Falha ao carregar leads:", res);
+    console.error("❌ [DATA] Falha ao carregar leads:", res);
     if(lista) lista.innerHTML = `
         <div style="text-align:center; color:#cbd5e1; padding:20px">
             <i class="fas fa-wifi-slash text-4xl mb-2"></i><br>
@@ -262,7 +275,9 @@ function atualizarDashboard() {
 // 4. ROTA GPS
 // ============================================================
 function startRoute() {
+  console.log("📍 [GPS] Iniciando...");
   if (!navigator.geolocation) return alert('Ative o GPS.');
+  
   routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
   
   document.getElementById('btnStart').style.display = 'none';
@@ -278,11 +293,13 @@ function startRoute() {
     routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
     document.getElementById('points').innerText = routeCoords.length;
     document.getElementById('gpsStatus').innerText = "Rastreando";
-  }, e => console.error(e), {enableHighAccuracy:true});
+    if (routeCoords.length === 1) console.log("📍 [GPS] Primeira coordenada obtida.");
+  }, e => console.error("❌ [GPS] Erro:", e), {enableHighAccuracy:true});
 }
 
 async function stopRoute() {
   if(!confirm("Finalizar rota?")) return;
+  console.log("🛑 [GPS] Finalizando rota.");
   clearInterval(timerInterval); 
   navigator.geolocation.clearWatch(watchId);
   showLoading(true, "ENVIANDO ROTA...");
@@ -295,11 +312,13 @@ async function stopRoute() {
   });
   
   showLoading(false);
+  
   if ((res && res.status === 'success') || res === 'CORS_ERROR_BUT_SENT') {
       alert("✅ Rota salva!");
       resetRouteUI();
       navegarPara('dashboard');
   } else {
+      console.error("❌ [GPS] Erro ao salvar:", res);
       alert("Erro ao salvar rota.");
   }
 }
@@ -313,21 +332,41 @@ function resetRouteUI() {
 }
 
 // ============================================================
-// 5. IA (GEMINI) - CHAT
+// 5. IA (GEMINI) - MODO VALIDAÇÃO
 // ============================================================
+
+// Função Central de Chamada
 async function chamarGemini(prompt) {
-  if (!GEMINI_KEY) return null;
+  if (!GEMINI_KEY) {
+      console.error("❌ [IA] Chave Gemini ausente.");
+      return null;
+  }
+  
+  console.log("🤖 [IA] Enviando prompt:", prompt);
+  
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
-    if(res.status !== 200) return null;
+    
+    if (res.status !== 200) {
+        console.error("❌ [IA] Erro API Status:", res.status);
+        return null;
+    }
+    
     const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
-  } catch (e) { return null; }
+    const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log("🤖 [IA] Resposta recebida com sucesso.");
+    return result;
+  } catch (e) { 
+      console.error("❌ [IA] Erro de rede:", e);
+      return null; 
+  }
 }
 
+// --- Chat ---
 function toggleChat() {
     const el = document.getElementById('chatModal');
     const history = document.getElementById('chatHistory');
@@ -365,13 +404,24 @@ async function enviarMensagemChat() {
     history.scrollTop = history.scrollHeight;
 }
 
+// --- Outras Funções IA ---
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
-  if(!nome) return alert("Preencha o nome!");
+  if(!nome) return alert("⚠️ Preencha o nome!");
   showLoading(true, "CRIANDO PITCH...");
   const txt = await chamarGemini(`Crie mensagem WhatsApp curta venda fibra MHNET para ${nome}.`);
   showLoading(false);
   if(txt) document.getElementById('leadObs').value = txt.replace(/["*]/g, '');
+  else alert("Erro ao gerar IA.");
+}
+
+async function analisarCarteiraIA() {
+  if (!leadsCache.length) return alert("Sem leads.");
+  showLoading(true, "ANALISANDO...");
+  const bairros = [...new Set(leadsCache.slice(0, 30).map(l => l.bairro || 'Geral'))].join(', ');
+  const txt = await chamarGemini(`Sugira rota para estes bairros: ${bairros}.`);
+  showLoading(false);
+  if (txt) alert(`💡 DICA:\n\n${txt}`);
 }
 
 async function gerarCoachIA() {
@@ -386,11 +436,10 @@ async function gerarCoachIA() {
 // ============================================================
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
+  console.log(`📡 [API] Chamando: ${route}`);
+
   try {
-    // CACHE BUSTING: Adiciona ?t=123123 para evitar cache do browser no GET
-    const url = `${API_URL}?t=${new Date().getTime()}`;
-    
-    const res = await fetch(url, {
+    const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({route, payload, token: TOKEN})
@@ -400,7 +449,7 @@ async function apiCall(route, payload, show=true, suppress=false) {
     let json;
     try { json = JSON.parse(text); } 
     catch (e) { 
-        // Sucesso opaco para escrita
+        console.warn("⚠️ [API] Erro JSON ou CORS:", e);
         if (route === 'addLead' || route === 'saveRoute') {
             if(show) showLoading(false);
             return 'CORS_ERROR_BUT_SENT';
@@ -416,19 +465,19 @@ async function apiCall(route, payload, show=true, suppress=false) {
     if(show) showLoading(false);
     
     if (e.name === 'TypeError' && (route === 'addLead' || route === 'saveRoute')) {
+         console.warn("⚠️ [API] Assumindo sucesso (CORS)");
          return 'CORS_ERROR_BUT_SENT';
     }
     
-    console.error("Erro API:", e);
-    if(!suppress && route !== 'getLeads') alert("Erro conexão: Verifique se fez o deploy 'Qualquer Pessoa'.");
+    console.error("❌ [API] Erro Fatal:", e);
+    if(!suppress && route !== 'getLeads') alert("Erro conexão: Verifique sua internet.");
     return null;
   }
 }
 
 function showLoading(show, txt) {
   const loader = document.getElementById('loader');
-  if(loader) {
-      loader.style.display = show ? 'flex' : 'none';
-      if(txt) document.getElementById('loaderText').innerText = txt;
-  }
+  const loaderTxt = document.getElementById('loaderText');
+  if(loader) loader.style.display = show ? 'flex' : 'none';
+  if(loaderTxt && txt) loaderTxt.innerText = txt;
 }
