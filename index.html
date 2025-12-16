@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET Vendas</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -10,30 +10,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #eff6ff; -webkit-tap-highlight-color: transparent; }
+        /* CORREÇÃO TARJA BRANCA: Fundo azul padrão para evitar glitch visual */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #004c99; 
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none; /* Evita 'bounce' no iOS */
+        }
         
-        /* Cores MHNET (Azul Corporativo) */
+        /* Cores MHNET */
         :root {
             --mh-blue: #0054a6;
             --mh-dark: #003870;
-            --mh-light: #e6f0fa;
         }
 
-        /* Animações */
         .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         
         .slide-up { animation: slideUp 0.3s ease-out forwards; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* Botão Padrão MHNET */
+        /* Botões */
         .btn-mhnet { 
             @apply bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-blue-700/30 active:scale-[0.98] transition-all w-full flex justify-center items-center gap-3 text-lg border-t border-white/20; 
             background: linear-gradient(180deg, #0066cc 0%, #004c99 100%);
         }
-        .btn-mhnet:active { background: #004c99; }
-
-        /* Inputs Corporativos */
+        
+        /* Inputs */
         .form-label { @apply text-xs font-bold text-blue-900 uppercase tracking-wide ml-1 mb-2 block opacity-80; }
         .input-container { @apply relative mb-5 transition-all; }
         .input-icon { @apply absolute left-5 top-1/2 -translate-y-1/2 text-blue-300 text-lg pointer-events-none transition-colors duration-300; }
@@ -44,17 +47,19 @@
         }
         .modern-input:focus ~ .input-icon { @apply text-blue-600; }
 
-        /* Bottom Nav */
+        /* Nav */
         .nav-item { @apply flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1.5 py-3 w-full transition-all font-semibold; }
         .nav-item.active { @apply text-blue-700; }
         .nav-item i { @apply text-xl mb-0.5 transition-transform duration-300; }
         .nav-item.active i { @apply transform -translate-y-1 scale-110; }
     </style>
 </head>
-<body class="text-slate-800 h-screen flex flex-col overflow-hidden selection:bg-blue-200">
+<body class="text-slate-800 h-[100dvh] flex flex-col overflow-hidden">
 
-    <!-- TELA DE LOGIN (AZUL MHNET) -->
-    <div id="userMenu" class="fixed inset-0 bg-[#004c99] z-50 flex flex-col items-center justify-center p-8 text-white relative overflow-hidden" style="display: flex;">
+    <!-- TELA DE LOGIN (FIX TARJA BRANCA) -->
+    <!-- h-[100dvh] garante altura total real no mobile -->
+    <div id="userMenu" class="fixed inset-0 w-full h-[100dvh] bg-[#004c99] z-50 flex flex-col items-center justify-center p-8 text-white relative overflow-hidden" style="display: flex;">
+        
         <!-- Fundo Decorativo -->
         <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-blue-600 to-[#003870] opacity-100 z-0"></div>
         <div class="absolute -top-20 -right-20 w-64 h-64 bg-blue-400 rounded-full mix-blend-overlay filter blur-3xl opacity-20 animate-pulse z-0"></div>
@@ -62,7 +67,6 @@
         <div class="w-full max-w-sm fade-in relative z-10">
             <div class="text-center mb-10">
                 <div class="bg-white p-6 rounded-[2rem] w-32 h-32 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-900/50">
-                    <!-- Logo Simulado MHNET -->
                     <div class="text-center">
                         <i class="fas fa-wifi text-5xl text-[#004c99] mb-1"></i>
                     </div>
@@ -74,22 +78,23 @@
             <div class="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-[2.5rem] shadow-2xl text-white">
                 <label class="text-xs font-bold text-blue-100 uppercase tracking-wider mb-3 block ml-1">Quem é você?</label>
                 <div class="relative mb-8">
-                    <select id="userSelect" class="w-full pl-12 pr-10 py-5 bg-white/90 border-0 rounded-2xl text-[#003870] font-bold focus:outline-none focus:ring-4 focus:ring-blue-400/30 appearance-none transition-all cursor-pointer shadow-lg">
+                    <!-- ID userSelect crucial para o JS puxar os nomes -->
+                    <select id="userSelect" class="w-full pl-12 pr-10 py-5 bg-white/95 border-0 rounded-2xl text-[#003870] font-bold focus:outline-none focus:ring-4 focus:ring-blue-400/30 appearance-none transition-all cursor-pointer shadow-lg text-lg">
                         <option value="">Carregando equipe...</option>
                     </select>
-                    <i class="fas fa-user-circle absolute left-5 top-1/2 -translate-y-1/2 text-[#004c99] text-xl pointer-events-none"></i>
+                    <i class="fas fa-user-circle absolute left-5 top-1/2 -translate-y-1/2 text-[#004c99] text-2xl pointer-events-none"></i>
                     <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-[#004c99] text-xs pointer-events-none"></i>
                 </div>
-                <button onclick="setLoggedUser()" class="w-full bg-white text-[#004c99] font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform flex justify-center items-center gap-2 text-lg">
+                <button onclick="setLoggedUser()" class="w-full bg-white text-[#004c99] font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform flex justify-center items-center gap-2 text-lg hover:bg-blue-50">
                     Entrar <i class="fas fa-arrow-right text-sm"></i>
                 </button>
             </div>
-            <p class="text-center mt-10 text-xs text-blue-200/50 font-medium tracking-widest uppercase">Sistema Vendas v6.2</p>
+            <p id="versionText" class="text-center mt-10 text-xs text-blue-200/50 font-medium tracking-widest uppercase">Sistema Vendas v6.3</p>
         </div>
     </div>
 
-    <!-- APP CONTENT -->
-    <div id="mainContent" class="flex-1 flex flex-col overflow-hidden relative bg-[#eff6ff]" style="display: none;">
+    <!-- APP CONTENT (Fundo claro apenas aqui dentro) -->
+    <div id="mainContent" class="flex-1 flex flex-col overflow-hidden relative bg-[#eff6ff] h-full" style="display: none;">
         
         <!-- HEADER -->
         <header class="bg-white/90 backdrop-blur-xl border-b border-blue-100 px-6 py-4 flex justify-between items-center z-10 sticky top-0 shadow-sm">
@@ -110,7 +115,6 @@
             
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
-                <!-- Card Principal (Azul MHNET) -->
                 <div class="bg-gradient-to-br from-[#004c99] to-[#003870] rounded-[2.5rem] p-8 text-white shadow-xl shadow-blue-900/20 mb-8 relative overflow-hidden group">
                     <div class="absolute -right-10 -top-10 bg-blue-500 w-40 h-40 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-all duration-700"></div>
                     
@@ -142,7 +146,7 @@
                 </div>
             </div>
 
-            <!-- CADASTRO LEAD (ORDEM CORRIGIDA & AZUL) -->
+            <!-- CADASTRO LEAD -->
             <div id="cadastroLead" class="page hidden fade-in">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold text-[#003870] tracking-tight">Novo Cliente</h2>
@@ -150,48 +154,33 @@
                 </div>
                 
                 <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-blue-50 mb-8">
-                    
-                        <!-- 1. Nome -->
                         <div class="input-container">
                             <label class="form-label">Nome Completo</label>
                             <input type="text" id="leadNome" class="modern-input" placeholder="Ex: Maria da Silva">
                             <i class="fas fa-user input-icon"></i>
                         </div>
-
-                        <!-- 2. WhatsApp (Ordem Solicitada) -->
                         <div class="input-container">
                             <label class="form-label">WhatsApp / Telefone</label>
                             <input type="tel" id="leadTelefone" class="modern-input" placeholder="(00) 90000-0000">
                             <i class="fab fa-whatsapp input-icon text-green-600"></i>
                         </div>
-
-                        <!-- Separador Visual -->
                         <div class="h-px bg-gradient-to-r from-transparent via-blue-100 to-transparent my-6"></div>
-
-                        <!-- 3. Endereço (Rua e Num) -->
                         <div class="input-container">
                             <label class="form-label">Endereço (Rua e Nº)</label>
                             <input type="text" id="leadEndereco" class="modern-input" placeholder="Rua das Flores, 123">
                             <i class="fas fa-home input-icon text-blue-400"></i>
                         </div>
-
-                        <!-- 4. Bairro -->
                         <div class="input-container">
                             <label class="form-label">Bairro</label>
                             <input type="text" id="leadBairro" class="modern-input" placeholder="Ex: Centro">
                             <i class="fas fa-map-pin input-icon text-red-400"></i>
                         </div>
-
-                        <!-- 5. Cidade -->
                         <div class="input-container">
                             <label class="form-label">Cidade</label>
                             <input type="text" id="leadCidade" class="modern-input" value="Lajeado">
                             <i class="fas fa-city input-icon text-slate-400"></i>
                         </div>
-
                         <div class="h-px bg-gradient-to-r from-transparent via-blue-100 to-transparent my-6"></div>
-
-                        <!-- Detalhes Extras -->
                         <div class="input-container">
                             <label class="form-label">Interesse</label>
                             <div class="relative">
@@ -204,7 +193,6 @@
                                 <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                             </div>
                         </div>
-
                         <div class="input-container mb-0">
                             <div class="flex justify-between items-center mb-2">
                                 <label class="form-label mb-0">Observações</label>
@@ -215,7 +203,6 @@
                             <textarea id="leadObs" rows="3" class="modern-input pt-4 pl-5 h-auto resize-none" placeholder="Detalhes do cliente..."></textarea>
                         </div>
                 </div>
-
                 <div class="mb-10">
                     <button onclick="enviarLead()" class="btn-mhnet">
                         Salvar Cadastro <i class="fas fa-check-circle opacity-60"></i>
@@ -243,13 +230,10 @@
             <!-- ROTA -->
             <div id="rota" class="page hidden fade-in text-center px-4 pt-6">
                 <h2 class="text-2xl font-bold text-[#003870] mb-8">Rota GPS</h2>
-                
                 <div class="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-blue-900/5 border border-white mb-10 mx-auto max-w-xs relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-[#004c99]"></div>
-                    
                     <div class="text-slate-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-4">Cronômetro</div>
                     <div id="timer" class="text-5xl font-mono font-bold text-[#003870] tracking-tighter mb-10">00:00:00</div>
-                    
                     <div class="flex justify-between border-t border-slate-50 pt-8">
                         <div class="text-left">
                             <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wide mb-1">Pontos</div>
@@ -261,7 +245,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="space-y-4 max-w-xs mx-auto">
                     <button id="btnStart" onclick="startRoute()" class="btn-mhnet bg-gradient-to-r from-green-500 to-emerald-600 shadow-green-500/30 border-t-0">
                         <i class="fas fa-play"></i> Iniciar
@@ -271,15 +254,12 @@
                     </button>
                 </div>
             </div>
-
         </main>
 
-        <!-- CHAT BUTTON (BLUE) -->
+        <!-- CHAT -->
         <button onclick="toggleChat()" class="fixed bottom-28 right-6 w-14 h-14 bg-[#004c99] rounded-full shadow-lg shadow-blue-900/30 text-white flex items-center justify-center text-2xl z-40 active:scale-90 transition-transform hover:scale-105 border-2 border-white">
             <i class="fas fa-comment-dots"></i>
         </button>
-
-        <!-- CHAT MODAL -->
         <div id="chatModal" class="fixed inset-0 z-50 hidden">
             <div class="absolute inset-0 bg-blue-900/60 backdrop-blur-sm transition-opacity" onclick="toggleChat()"></div>
             <div class="absolute bottom-0 w-full h-[85%] bg-[#f0f4f8] rounded-t-[2.5rem] shadow-2xl flex flex-col overflow-hidden transition-transform transform translate-y-0">
@@ -300,4 +280,5 @@
                 <div id="chatHistory" class="flex-1 overflow-y-auto p-6 space-y-4 bg-[#f0f4f8]"></div>
                 <div class="p-4 bg-white border-t border-gray-100 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
                     <div class="relative">
-                        <input type="text" id="chatInput" placeholder="Digite sua dú
+                        <input type="text" id="chatInput" placeholder="Digite sua dúvida..." class="w-full pl-5 pr-14 py-4 bg-slate-50 rounded-2xl text-slate-700 focus:ring-2 focus:ring-blue-200 focus:bg-white transition-all border-none font-medium">
+                        <button onclick="enviarMensagemChat()" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#004c99] rounded-
