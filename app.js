@@ -1,16 +1,14 @@
 /**
  * ============================================================
- * MHNET VENDAS - v7.0 BLINDADA
+ * MHNET VENDAS - v7.1 (Lógica Simplificada)
  * ============================================================
  */
 
-// CONFIGURAÇÃO
 const DEPLOY_ID = 'AKfycbyWYgd3r5pA1dYB5LD_PY6m4V2FjWG-Oi6vYjlvNBre9r_eGiPlhia-HtJjD2Mnfc9F'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
-// ESTADO GLOBAL
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let routeCoords = [];
@@ -19,14 +17,13 @@ let timerInterval = null;
 let seconds = 0;
 let routeStartTime = null;
 
-// INIT
 document.addEventListener('DOMContentLoaded', () => {
-  // A lista já está no HTML, não precisamos esperar nada para mostrá-la
+  // AQUI É A MUDANÇA CRUCIAL:
+  // NÃO CHAMAMOS FUNÇÃO PARA PREENCHER LISTA. ELA JÁ EXISTE NO HTML.
   
   if (loggedUser) {
     initApp();
   } else {
-    // Apenas mostra o menu que já está pronto
     document.getElementById('userMenu').style.display = 'flex';
     document.getElementById('mainContent').style.display = 'none';
   }
@@ -37,26 +34,21 @@ function initApp() {
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
   navegarPara('dashboard');
-  carregarLeads(); // Tenta buscar o histórico
+  carregarLeads(); // Puxa histórico em background
 }
 
-// NAVEGAÇÃO SIMPLIFICADA
 function navegarPara(pageId) {
-  // Esconde todas as páginas
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-  
-  // Mostra a alvo
   const target = document.getElementById(pageId);
   if(target) target.style.display = 'block';
   window.scrollTo(0, 0);
 
-  // Atualiza botões do rodapé
+  // Atualiza botões
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.remove('active', 'text-blue-700');
     el.classList.add('text-slate-400');
   });
 
-  // Mapeamento ID botão -> ID página
   let btnId = '';
   if(pageId === 'dashboard') btnId = 'nav-home';
   if(pageId === 'cadastroLead') btnId = 'nav-novo';
@@ -64,12 +56,9 @@ function navegarPara(pageId) {
   if(pageId === 'rota') btnId = 'nav-rota';
 
   const btn = document.getElementById(btnId);
-  if(btn) {
-    // Se não for o botão central (que tem estilo especial), pinta de azul
-    if(!btn.querySelector('div')) {
-        btn.classList.add('active', 'text-blue-700');
-        btn.classList.remove('text-slate-400');
-    }
+  if(btn && !btn.querySelector('div')) {
+      btn.classList.add('active', 'text-blue-700');
+      btn.classList.remove('text-slate-400');
   }
 
   if (pageId === 'dashboard') atualizarDashboard();
@@ -137,7 +126,6 @@ async function enviarLead() {
   const tel = document.getElementById('leadTelefone').value;
   
   if (!nome || !tel) return alert("Preencha Nome e Telefone");
-  
   showLoading(true, "SALVANDO...");
   
   const payload = {
@@ -161,7 +149,6 @@ async function enviarLead() {
     document.getElementById('leadEndereco').value = ''; 
     document.getElementById('leadObs').value = '';
     document.getElementById('leadBairro').value = '';
-    
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
@@ -177,7 +164,6 @@ async function carregarLeads() {
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
-    // Filtro mais robusto
     leadsCache = (res.data || []).filter(l => {
       const v = (l.vendedor || l.Vendedor || '').toLowerCase();
       return v.includes(loggedUser.toLowerCase());
@@ -256,13 +242,11 @@ function atualizarDashboard() {
   if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
-// ROTA (GPS)
+// ROTA
 function startRoute() {
   if (!navigator.geolocation) return alert('Ative o GPS.');
   routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
-  document.getElementById('btnStart').style.display = 'none';
-  document.getElementById('btnStop').style.display = 'flex';
-  
+  updateRouteUI(true);
   timerInterval = setInterval(() => {
     seconds++;
     const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
@@ -270,7 +254,6 @@ function startRoute() {
     const s = (seconds % 60).toString().padStart(2,'0');
     document.getElementById('timer').innerText = `${h}:${m}:${s}`;
   }, 1000);
-
   watchId = navigator.geolocation.watchPosition(p => {
     routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
     document.getElementById('points').innerText = routeCoords.length;
@@ -282,18 +265,20 @@ function startRoute() {
 
 async function stopRoute() {
   if(!confirm("Finalizar rota?")) return;
-  clearInterval(timerInterval);
-  navigator.geolocation.clearWatch(watchId);
+  clearInterval(timerInterval); navigator.geolocation.clearWatch(watchId);
   showLoading(true, "ENVIANDO ROTA...");
   await apiCall('saveRoute', {vendedor: loggedUser, inicioISO: routeStartTime, fimISO: new Date().toISOString(), coordenadas: routeCoords});
-  showLoading(false);
-  alert("Rota salva!");
-  document.getElementById('btnStart').style.display = 'flex';
-  document.getElementById('btnStop').style.display = 'none';
-  document.getElementById('timer').innerText = "00:00:00";
-  document.getElementById('points').innerText = "0";
+  showLoading(false); alert("Rota salva!"); resetRouteUI(); navegarPara('dashboard');
+}
+
+function updateRouteUI(on) {
+  document.getElementById('btnStart').style.display = on ? 'none' : 'flex';
+  document.getElementById('btnStop').style.display = on ? 'flex' : 'none';
+}
+function resetRouteUI() {
+  updateRouteUI(false);
+  document.getElementById('timer').innerText = "00:00:00"; document.getElementById('points').innerText = "0";
   document.getElementById('gpsStatus').innerText = "Parado";
-  navegarPara('dashboard');
 }
 
 // API
