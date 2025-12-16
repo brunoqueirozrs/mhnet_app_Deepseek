@@ -5,17 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET Vendas</title>
     
+    <!-- Scripts e Fontes -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- PWA -->
+    <!-- Conexão PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
+    
+    <!-- Configurações Mobile (Correção do Aviso) -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
-        /* BASE */
+        /* BASE DO DESIGN */
         html, body {
             height: 100%;
             background-color: #004c99;
@@ -23,12 +28,12 @@
             overflow: hidden;
         }
 
-        /* SCROLL AREA */
+        /* SCROLL AREA - Aumentado para garantir visibilidade */
         #main-scroll {
             height: 100%;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-bottom: 200px; /* Garante que nada fica escondido */
+            padding-bottom: 200px; 
         }
 
         /* ANIMAÇÕES */
@@ -80,7 +85,7 @@
                     Entrar Agora
                 </button>
             </div>
-            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v11.0 • Final</p>
+            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v11.3 • Fix Mobile</p>
         </div>
     </div>
 
@@ -114,19 +119,19 @@
                     </button>
                 </div>
 
-                <!-- Botões de Ação (ATUALIZADO) -->
+                <!-- Botões de Ação -->
                 <div class="grid grid-cols-2 gap-4 mb-8">
                     <!-- Novo Lead -->
                     <button onclick="navegarPara('cadastroLead')" class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:shadow-md">
                         <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#004c99] flex items-center justify-center text-xl mb-1"><i class="fas fa-user-plus"></i></div>
                         <span class="text-xs font-bold text-gray-700 uppercase">Novo Lead</span>
                     </button>
-                    <!-- Gestão Leads (NOVO) -->
+                    <!-- Gestão Leads -->
                     <button onclick="navegarPara('gestaoLeads')" class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:shadow-md">
                         <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center text-xl mb-1"><i class="fas fa-clipboard-list"></i></div>
                         <span class="text-xs font-bold text-gray-700 uppercase">Meus Leads</span>
                     </button>
-                    <!-- Consultor Planos IA (NOVO) -->
+                    <!-- Consultor Planos IA -->
                     <button onclick="consultarPlanosIA()" class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:shadow-md">
                         <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-1"><i class="fas fa-brain"></i></div>
                         <span class="text-xs font-bold text-gray-700 uppercase">Planos IA</span>
@@ -139,7 +144,7 @@
                 </div>
             </div>
 
-            <!-- CADASTRO (Botão Elegante e Ordem Correta) -->
+            <!-- CADASTRO -->
             <div id="cadastroLead" class="page hidden fade-in">
                 <div class="flex items-center gap-3 mb-6">
                     <button onclick="navegarPara('dashboard')" class="bg-white p-2 rounded-full shadow-sm text-gray-400 hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
@@ -186,6 +191,9 @@
                 <button onclick="enviarLead()" class="btn-save-elegant mb-4">
                     <i class="fas fa-check-circle"></i> SALVAR CADASTRO
                 </button>
+                
+                <!-- Espaço Extra para Rolagem no Mobile -->
+                <div style="height: 100px;"></div>
             </div>
 
             <!-- GESTÃO LEADS -->
@@ -199,6 +207,7 @@
                     <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
                 </div>
                 <div id="listaLeadsGestao" class="space-y-4"></div>
+                <div style="height: 150px;"></div>
             </div>
 
             <!-- ROTA -->
@@ -215,7 +224,9 @@
                 </div>
                 <button id="btnStart" onclick="startRoute()" class="btn-save-elegant" style="background:linear-gradient(to right, #10b981, #059669); border:none;"><i class="fas fa-play"></i> INICIAR ROTA</button>
                 <button id="btnStop" onclick="stopRoute()" class="btn-save-elegant" style="background:linear-gradient(to right, #ef4444, #dc2626); border:none; display:none;"><i class="fas fa-stop"></i> FINALIZAR</button>
+                <div style="height: 150px;"></div>
             </div>
+
         </main>
 
         <!-- Botão Chat IA -->
@@ -252,7 +263,9 @@
             <div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
             <div id="loaderText" class="font-bold tracking-[0.3em] text-xs">PROCESSANDO</div>
         </div>
+
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>
