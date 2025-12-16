@@ -1,16 +1,25 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND (v6.4 - Fix Login Critical)
+ * MHNET VENDAS - LÓGICA FRONTEND (v6.5 - Always On)
  * ============================================================
  */
 
-// CONFIGURAÇÃO
 const DEPLOY_ID = 'AKfycbyWYgd3r5pA1dYB5LD_PY6m4V2FjWG-Oi6vYjlvNBre9r_eGiPlhia-HtJjD2Mnfc9F'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
-// ESTADO GLOBAL
+// LISTA DE SEGURANÇA GLOBAL (Disponível instantaneamente)
+const SAFETY_VENDORES = [
+    { nome: "Ana Paula Rodrigues" },
+    { nome: "Vitoria Caroline Baldez Rosales" },
+    { nome: "João Vithor Sader" },
+    { nome: "João Paulo da Silva Santos" },
+    { nome: "Claudia Maria Semmler" },
+    { nome: "Diulia Vitoria Machado Borges" },
+    { nome: "Elton da Silva Rodrigo Gonçalves" }
+];
+
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let routeCoords = [];
@@ -21,13 +30,16 @@ let routeStartTime = null;
 
 // INIT
 document.addEventListener('DOMContentLoaded', () => {
-  // Se já tem usuário, entra direto
+  // APLICAÇÃO IMEDIATA DA LISTA (Sem esperar API)
+  const select = document.getElementById('userSelect');
+  if(select) renderizarOpcoesVendedores(select, SAFETY_VENDORES);
+
   if (loggedUser) {
     initApp();
   } else {
-    // Se não, mostra menu e carrega vendedores IMEDIATAMENTE
     showUserMenu();
-    carregarVendedores();
+    // Tenta atualizar a lista via API em background
+    atualizarVendedoresBackground();
   }
 });
 
@@ -36,11 +48,8 @@ function initApp() {
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
   showPage('dashboard');
-  
-  // Atualiza navegação visual
   const navHome = document.getElementById('nav-home');
   if(navHome) setActiveNav(navHome);
-  
   carregarLeads(); 
 }
 
@@ -61,10 +70,7 @@ function showUserMenu() {
 
 function setLoggedUser() {
   const select = document.getElementById('userSelect');
-  // Debug para ver o que está selecionado
-  console.log("Tentativa de login com:", select.value);
-  
-  if (select && select.value && select.value !== "Carregando equipe...") {
+  if (select && select.value) {
     loggedUser = select.value;
     localStorage.setItem('loggedUser', loggedUser);
     initApp();
@@ -80,45 +86,23 @@ function logout() {
   }
 }
 
-// *** VENDEDORES (Lógica Fail-Safe) ***
-async function carregarVendedores() {
-  const select = document.getElementById('userSelect');
-  if (!select) return;
-
-  // Lista de segurança COMPLETA
-  const listaSeguranca = [
-      { nome: "Ana Paula Rodrigues" },
-      { nome: "Vitoria Caroline Baldez Rosales" },
-      { nome: "João Vithor Sader" },
-      { nome: "João Paulo da Silva Santos" },
-      { nome: "Claudia Maria Semmler" },
-      { nome: "Diulia Vitoria Machado Borges" },
-      { nome: "Elton da Silva Rodrigo Gonçalves" }
-  ];
-  
-  // 1. Carrega a lista local IMEDIATAMENTE (Não espera pela API)
-  // Isso garante que o login funcione 100% das vezes
-  console.log("Carregando lista local imediata...");
-  renderizarOpcoesVendedores(select, listaSeguranca);
-
-  // 2. Tenta atualizar com dados da API em background
+// VENDEDORES - LÓGICA ALWAYS ON
+async function atualizarVendedoresBackground() {
   try {
-    const res = await apiCall('getVendedores', {}, false, true); // Sem loader na tela
+    const res = await apiCall('getVendedores', {}, false, true); // Silent
     if (res && res.status === 'success' && res.data && res.data.length > 0) {
         console.log("Lista atualizada via API");
-        renderizarOpcoesVendedores(select, res.data);
+        const select = document.getElementById('userSelect');
+        if(select) renderizarOpcoesVendedores(select, res.data);
     }
   } catch (e) {
-    console.warn("API falhou ou demorou, mantendo lista local.", e);
+    console.warn("API offline, mantendo lista local.");
   }
 }
 
 function renderizarOpcoesVendedores(selectElement, lista) {
-  // Limpa tudo e adiciona a opção padrão
   selectElement.innerHTML = '<option value="">Selecione seu nome...</option>';
-  
   lista.forEach(v => {
-    // Normaliza nome (API pode retornar .nome ou .Nome ou vetor)
     const nome = v.nome || v.Nome || v[0]; 
     if (nome) {
       const opt = document.createElement('option');
@@ -171,20 +155,12 @@ async function gerarCoachIA() {
 function toggleChat() {
     const el = document.getElementById('chatModal');
     const history = document.getElementById('chatHistory');
-    
     if(el.classList.contains('hidden')) {
         el.classList.remove('hidden');
         el.querySelector('div.absolute.bottom-0').classList.add('slide-up');
         setTimeout(() => document.getElementById('chatInput').focus(), 300);
-        
         if(!history.hasChildNodes() || history.innerHTML.trim() === "") {
-             history.innerHTML = `
-                <div class="flex gap-3">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div>
-                    <div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[80%]">
-                        Olá! Sou o assistente MHNET. Posso ajudar com técnicas de venda ou detalhes dos planos.
-                    </div>
-                </div>`;
+             history.innerHTML = `<div class="flex gap-3"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[80%]">Olá! Sou o assistente MHNET. Como posso ajudar nas vendas hoje?</div></div>`;
         }
     } else {
         el.classList.add('hidden');
@@ -197,40 +173,20 @@ async function enviarMensagemChat() {
     const msg = input.value;
     if(!msg) return;
 
-    history.innerHTML += `
-        <div class="flex gap-3 justify-end">
-            <div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[80%]">
-                ${msg}
-            </div>
-        </div>`;
+    history.innerHTML += `<div class="flex gap-3 justify-end"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[80%]">${msg}</div></div>`;
     input.value = '';
     history.scrollTop = history.scrollHeight;
 
     const loadingId = 'loading-' + Date.now();
-    history.innerHTML += `
-        <div id="${loadingId}" class="flex gap-3 fade-in">
-            <div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div>
-            <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1">
-                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span>
-                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
-            </div>
-        </div>`;
+    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
     history.scrollTop = history.scrollHeight;
 
     const prompt = `Aja como um assistente de vendas da MHNET Telecom. Responda: "${msg}"`;
     const response = await chamarGemini(prompt);
     
     document.getElementById(loadingId)?.remove();
-
     if(response) {
-         history.innerHTML += `
-            <div class="flex gap-3 fade-in">
-                <div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div>
-                <div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[85%] leading-relaxed">
-                    ${response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}
-                </div>
-            </div>`;
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[85%] leading-relaxed">${response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div></div>`;
     }
     history.scrollTop = history.scrollHeight;
 }
@@ -240,58 +196,39 @@ async function enviarLead() {
   const nome = document.getElementById('leadNome').value;
   const tel = document.getElementById('leadTelefone').value;
   const bairro = document.getElementById('leadBairro').value;
-  
   if (!nome || !tel) return alert("Preencha Nome e Telefone");
-  
   showLoading(true, "SALVANDO...");
-  
   const payload = {
-    vendedor: loggedUser,
-    nomeLead: nome,  
-    lead: nome,
-    telefone: tel,
-    whatsapp: tel,
+    vendedor: loggedUser, nomeLead: nome, lead: nome, telefone: tel, whatsapp: tel,
     endereco: document.getElementById('leadEndereco').value,
     cidade: document.getElementById('leadCidade').value,
     bairro: bairro,
     interesse: document.getElementById('leadInteresse').value,
     observacao: document.getElementById('leadObs').value,
-    provedor: "",
-    timestamp: new Date().toISOString()
+    provedor: "", timestamp: new Date().toISOString()
   };
-  
   const res = await apiCall('addLead', payload);
   showLoading(false);
-  
   if (res && res.status === 'success') {
     alert('✅ Lead salvo com sucesso!');
-    document.getElementById('leadNome').value = '';
-    document.getElementById('leadTelefone').value = '';
-    document.getElementById('leadEndereco').value = '';
-    document.getElementById('leadObs').value = '';
+    document.getElementById('leadNome').value = ''; document.getElementById('leadTelefone').value = '';
+    document.getElementById('leadEndereco').value = ''; document.getElementById('leadObs').value = '';
     document.getElementById('leadBairro').value = '';
-    
-    carregarLeads(); 
-    showPage('gestaoLeads');
-  } else {
-    alert('❌ Erro ao salvar. Tente novamente.');
-  }
+    carregarLeads(); showPage('gestaoLeads');
+  } else { alert('❌ Erro ao salvar.'); }
 }
 
 // LEADS
 async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
   if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8"><i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i><br>Buscando histórico...</div>';
-
   const res = await apiCall('getLeads', {}, false, true);
-  
   if (res && res.status === 'success') {
     leadsCache = (res.data || []).filter(l => {
       const v = (l.vendedor || l.Vendedor || '').toLowerCase();
       return v.includes(loggedUser.toLowerCase());
     });
-    renderLeads();
-    atualizarDashboard();
+    renderLeads(); atualizarDashboard();
   } else {
     if(lista) lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Não foi possível carregar o histórico.</div>';
   }
@@ -301,60 +238,16 @@ function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   if (!div) return;
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
-  
-  const filtrados = leadsCache.filter(l => 
-    (l.nomeLead || l.lead || '').toLowerCase().includes(term) || 
-    (l.bairro || '').toLowerCase().includes(term)
-  );
-  
-  if (!filtrados.length) {
-    div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1"><i class="far fa-folder-open text-5xl mb-4"></i><br>Nenhum registro encontrado.</div>';
-    return;
-  }
-
+  const filtrados = leadsCache.filter(l => (l.nomeLead || l.lead || '').toLowerCase().includes(term) || (l.bairro || '').toLowerCase().includes(term));
+  if (!filtrados.length) { div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1"><i class="far fa-folder-open text-5xl mb-4"></i><br>Nenhum registro encontrado.</div>'; return; }
   filtrados.sort((a,b) => {
-    const getDate = (d) => {
-      if(!d) return 0;
-      if(d.includes('/')) {
-        const parts = d.split(' '); 
-        const dateParts = parts[0].split('/');
-        return new Date(dateParts[2], dateParts[1]-1, dateParts[0]);
-      }
-      return new Date(d);
-    };
+    const getDate = (d) => { if(!d) return 0; if(d.includes('/')) { const p = d.split(' '); const dp = p[0].split('/'); return new Date(dp[2], dp[1]-1, dp[0]); } return new Date(d); };
     return getDate(b.timestamp) - getDate(a.timestamp);
   });
-
   div.innerHTML = filtrados.map(l => {
-    const nome = l.nomeLead || l.lead || 'Cliente';
-    const bairro = l.bairro || 'Geral';
-    const interesse = (l.interesse || 'Novo').toUpperCase();
-    const tel = l.telefone || l.whatsapp || '';
-    
-    let badgeClass = "bg-gray-100 text-gray-500";
-    if(interesse.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
-    if(interesse.includes('MÉDIO')) badgeClass = "bg-yellow-100 text-yellow-700";
-    if(interesse.includes('BAIXO')) badgeClass = "bg-red-50 text-red-500";
-
-    return `
-    <div class="bg-white p-5 rounded-[1.5rem] border border-blue-50 shadow-sm mb-4">
-      <div class="flex justify-between items-start mb-3">
-        <div>
-          <div class="font-bold text-[#003870] text-lg leading-tight">${nome}</div>
-          <div class="text-xs text-gray-400 mt-1"><i class="fas fa-calendar-alt mr-1"></i> ${l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje'}</div>
-        </div>
-        <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold tracking-wide shadow-sm">${interesse}</span>
-      </div>
-      <div class="text-sm text-gray-600 mb-5 flex items-center gap-2 bg-blue-50/50 p-2 rounded-lg">
-        <i class="fas fa-map-marker-alt text-red-400 ml-1"></i> ${bairro}
-      </div>
-      <div class="flex justify-between items-center border-t border-gray-100 pt-4">
-         <span class="text-xs text-gray-400 font-medium">Ação rápida</span>
-         <a href="https://wa.me/55${tel.replace(/\D/g, '')}" target="_blank" class="bg-[#25D366] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:brightness-105 transition shadow-green-200 shadow-lg">
-           <i class="fab fa-whatsapp text-lg"></i> WhatsApp
-         </a>
-      </div>
-    </div>`;
+    const nome = l.nomeLead || l.lead || 'Cliente'; const bairro = l.bairro || 'Geral'; const interesse = (l.interesse || 'Novo').toUpperCase(); const tel = l.telefone || l.whatsapp || '';
+    let badgeClass = "bg-gray-100 text-gray-500"; if(interesse.includes('ALTO')) badgeClass = "bg-green-100 text-green-700"; if(interesse.includes('MÉDIO')) badgeClass = "bg-yellow-100 text-yellow-700"; if(interesse.includes('BAIXO')) badgeClass = "bg-red-50 text-red-500";
+    return `<div class="bg-white p-5 rounded-[1.5rem] border border-blue-50 shadow-sm mb-4"><div class="flex justify-between items-start mb-3"><div><div class="font-bold text-[#003870] text-lg leading-tight">${nome}</div><div class="text-xs text-gray-400 mt-1"><i class="fas fa-calendar-alt mr-1"></i> ${l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje'}</div></div><span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold tracking-wide shadow-sm">${interesse}</span></div><div class="text-sm text-gray-600 mb-5 flex items-center gap-2 bg-blue-50/50 p-2 rounded-lg"><i class="fas fa-map-marker-alt text-red-400 ml-1"></i> ${bairro}</div><div class="flex justify-between items-center border-t border-gray-100 pt-4"><span class="text-xs text-gray-400 font-medium">Ação rápida</span><a href="https://wa.me/55${tel.replace(/\D/g, '')}" target="_blank" class="bg-[#25D366] text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:brightness-105 transition shadow-green-200 shadow-lg"><i class="fab fa-whatsapp text-lg"></i> WhatsApp</a></div></div>`;
   }).join('');
 }
 
@@ -364,12 +257,11 @@ function atualizarDashboard() {
   if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
-// ROTA (GPS)
+// ROTA
 function startRoute() {
   if (!navigator.geolocation) return alert('Ative o GPS.');
   routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
   updateRouteUI(true);
-  
   timerInterval = setInterval(() => {
     seconds++;
     const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
@@ -377,26 +269,20 @@ function startRoute() {
     const s = (seconds % 60).toString().padStart(2,'0');
     document.getElementById('timer').innerText = `${h}:${m}:${s}`;
   }, 1000);
-
   watchId = navigator.geolocation.watchPosition(p => {
     routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
     document.getElementById('points').innerText = routeCoords.length;
-    const st = document.getElementById('gpsStatus');
-    st.innerText = "Rastreando";
-    st.className = "bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold";
+    document.getElementById('gpsStatus').innerText = "Rastreando";
+    document.getElementById('gpsStatus').className = "bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-bold";
   }, e => console.error(e), {enableHighAccuracy:true});
 }
 
 async function stopRoute() {
   if(!confirm("Finalizar rota?")) return;
-  clearInterval(timerInterval);
-  navigator.geolocation.clearWatch(watchId);
+  clearInterval(timerInterval); navigator.geolocation.clearWatch(watchId);
   showLoading(true, "ENVIANDO ROTA...");
   await apiCall('saveRoute', {vendedor: loggedUser, inicioISO: routeStartTime, fimISO: new Date().toISOString(), coordenadas: routeCoords});
-  showLoading(false);
-  alert("Rota salva!");
-  resetRouteUI();
-  showPage('dashboard');
+  showLoading(false); alert("Rota salva!"); resetRouteUI(); showPage('dashboard');
 }
 
 function updateRouteUI(on) {
@@ -405,8 +291,7 @@ function updateRouteUI(on) {
 }
 function resetRouteUI() {
   updateRouteUI(false);
-  document.getElementById('timer').innerText = "00:00:00";
-  document.getElementById('points').innerText = "0";
+  document.getElementById('timer').innerText = "00:00:00"; document.getElementById('points').innerText = "0";
   document.getElementById('gpsStatus').innerText = "Parado";
 }
 
