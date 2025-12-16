@@ -6,7 +6,7 @@
 
 // ⚠️ ATENÇÃO: Se der erro de CORS, gere uma NOVA IMPLANTAÇÃO como "QUALQUER PESSOA"
 // e cole o novo ID aqui:
-const DEPLOY_ID = 'AKfycbymgWQBpEW967OtnmdcDcZFsB3gCmCFFosDOg2hNlR9dFwqTXbuOvaE_FXyP3GjyMoN'; 
+const DEPLOY_ID = 'AKfycbwM64LebBEQ41LzEO3TB7RXHDreR4uvN2a1kzFbOgc'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
