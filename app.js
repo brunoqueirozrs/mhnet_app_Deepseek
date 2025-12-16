@@ -1,10 +1,12 @@
 /**
  * ============================================================
- * MHNET VENDAS - v7.6 (Fix Conexão Robusta)
+ * MHNET VENDAS - v7.7 (Diagnóstico CORS e Fix)
  * ============================================================
  */
 
-const DEPLOY_ID = 'AKfycbw4zQgSu8o_5Zda-G5nOzZ2EXAx3syju6fUbqE48oNxs9Uyi33WvMgYZHpD7DCaTPoQ'; 
+// ⚠️ ATENÇÃO: Se der erro de CORS, gere uma NOVA IMPLANTAÇÃO como "QUALQUER PESSOA"
+// e cole o novo ID aqui:
+const DEPLOY_ID = 'AKfycbymgWQBpEW967OtnmdcDcZFsB3gCmCFFosDOg2hNlR9dFwqTXbuOvaE_FXyP3GjyMoN'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
@@ -30,7 +32,7 @@ let routeStartTime = null;
 
 // INIT
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Injeta lista IMEDIATAMENTE
+  // 1. Injeta lista IMEDIATAMENTE (Sem depender de API)
   const select = document.getElementById('userSelect');
   if(select) {
       select.innerHTML = '<option value="">Toque para selecionar...</option>';
@@ -111,6 +113,12 @@ async function chamarGemini(prompt) {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
+    
+    if (res.status === 403) {
+        console.warn("Chave Gemini inválida ou expirada.");
+        return null;
+    }
+    
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text;
   } catch (e) { return null; }
@@ -215,9 +223,7 @@ async function enviarLead() {
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
-    // Alerta de erro já foi dado no apiCall se for erro de rede
-    // Aqui tratamos erro de lógica (status: error do backend)
-    if(res) alert('❌ Erro no servidor: ' + res.message);
+    // Se chegou aqui, já foi mostrado alerta no apiCall, mas reforça se necessário
   }
 }
 
@@ -226,7 +232,7 @@ async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
   if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8"><i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i><br>Buscando histórico...</div>';
 
-  const res = await apiCall('getLeads', {}, false, true);
+  const res = await apiCall('getLeads', {}, false, true); // Suppress alert for background load
   
   if (res && res.status === 'success') {
     leadsCache = (res.data || []).filter(l => {
@@ -357,27 +363,26 @@ async function apiCall(route, payload, show=true, suppress=false) {
         body: JSON.stringify({route, payload, token: TOKEN})
     });
     
-    // Tenta ler o texto primeiro
     const text = await res.text();
     let json;
-    
-    try {
-        json = JSON.parse(text);
-    } catch (e) {
-        throw new Error("Resposta do servidor não é JSON: " + text.substring(0, 100));
-    }
+    try { json = JSON.parse(text); } 
+    catch (e) { throw new Error("Resposta do servidor não é JSON."); }
 
     if(show) showLoading(false);
     
-    // Se o backend retornou status: error
     if (json.status === 'error') throw new Error(json.message);
-    
     return json;
 
   } catch(e) {
     if(show) showLoading(false);
     console.error("API Call Error:", e);
-    if(!suppress) alert("Erro conexão API: " + e.message);
+    
+    // Alerta específico para o problema de CORS
+    if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
+        alert("⚠️ ERRO CRÍTICO DE PERMISSÃO (CORS)\n\nO Google Apps Script bloqueou a conexão.\n\nSOLUÇÃO OBRIGATÓRIA:\n1. Vá ao seu script no Google.\n2. Clique em Implantar > NOVA IMPLANTAÇÃO.\n3. Em 'Quem tem acesso', mude para 'QUALQUER PESSOA' (Anyone).\n4. Copie o NOVO ID da URL gerada e atualize no app.js.");
+    } else {
+        if(!suppress) alert("Erro conexão API: " + e.message);
+    }
     return null;
   }
 }
