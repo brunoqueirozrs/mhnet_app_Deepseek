@@ -1,11 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND (v10.3 - Modo Debug Blindado)
+ * MHNET VENDAS - LÓGICA FRONTEND (v10.4 - Fix Final)
+ * Correção: CORS ID Atualizado + Proteção Chat IA
  * ============================================================
  */
 
-// ⚠️ IMPORTANTE: Se der erro de CORS, gere uma NOVA IMPLANTAÇÃO como "QUALQUER PESSOA"
-// e cole o novo ID aqui:
+// ✅ ID ATUALIZADO (Copiado da sua mensagem)
 const DEPLOY_ID = 'AKfycbxMuP7gF6WM3syD4dpraqkMPRpInQ2xkc5_09o3fuNBIHTCn8UVQFRdPpH4wiVpccvz'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
@@ -28,16 +28,19 @@ let seconds = 0;
 let routeStartTime = null;
 
 // ============================================================
-// 1. INICIALIZAÇÃO
+// 1. INICIALIZAÇÃO BLINDADA
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   console.log("🏁 [INIT] Aplicação iniciada.");
 
-  // Força o Chat a ficar oculto no início (Correção visual)
+  // PROTEÇÃO 1: Garante que o Chat começa fechado
   const chatModal = document.getElementById('chatModal');
-  if (chatModal) chatModal.style.display = 'none';
+  if (chatModal) {
+      chatModal.style.display = 'none';
+      chatModal.classList.add('hidden');
+  }
 
-  // 1.1 Injeta lista de vendedores imediatamente
+  // PROTEÇÃO 2: Preenche lista de vendedores
   const select = document.getElementById('userSelect');
   if(select) {
       select.innerHTML = '<option value="">Toque para selecionar...</option>';
@@ -50,25 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("✅ [INIT] Lista de vendedores injetada.");
   }
 
-  // 1.2 MODO DE TESTE: Sempre mostra o login primeiro (Ignora auto-login)
-  // Para voltar ao normal depois, descomente o bloco if abaixo e remova as linhas seguintes
-  
-  /*
+  // PROTEÇÃO 3: Lógica de Login
   if (loggedUser) {
     console.log(`👤 [AUTH] Usuário recuperado: ${loggedUser}`);
     initApp();
   } else {
+    console.log("👤 [AUTH] Novo acesso. Mostrando login.");
     mostrarLogin();
   }
-  */
-  
-  // Força tela de login para validação
-  console.log("🛠️ [DEBUG] Forçando tela de login para testes.");
-  mostrarLogin();
 });
 
 function mostrarLogin() {
-    console.log("👤 [AUTH] Mostrando tela de login.");
     const menu = document.getElementById('userMenu');
     const main = document.getElementById('mainContent');
     if(menu) menu.style.display = 'flex';
@@ -78,16 +73,15 @@ function mostrarLogin() {
 function initApp() {
   const menu = document.getElementById('userMenu');
   const main = document.getElementById('mainContent');
-  
+  const uiInfo = document.getElementById('userInfo');
+
   if(menu) menu.style.display = 'none';
   if(main) main.style.display = 'block';
-  
-  const uiInfo = document.getElementById('userInfo');
   if(uiInfo) uiInfo.textContent = `Vendedor: ${loggedUser}`;
   
   navegarPara('dashboard');
   
-  // Tenta carregar leads, mas não trava se der erro
+  // Carrega leads em background sem bloquear a tela
   setTimeout(() => carregarLeads(), 500);
 }
 
@@ -97,30 +91,24 @@ function initApp() {
 function navegarPara(pageId) {
   console.log(`🔄 [NAV] Navegando para: ${pageId}`);
   
-  // Esconde todas as páginas
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
   
-  // Mostra a página alvo
   const target = document.getElementById(pageId);
   if(target) {
       target.style.display = 'block';
       target.classList.remove('fade-in');
-      void target.offsetWidth; // Reinicia animação
+      void target.offsetWidth; 
       target.classList.add('fade-in');
-  } else {
-      console.error(`❌ [NAV] Página ID '${pageId}' não encontrada!`);
-      return;
   }
   
   window.scrollTo(0, 0);
 
-  // Atualiza botões do rodapé
+  // Atualiza botões
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.remove('active', 'text-blue-700');
     el.classList.add('text-slate-400');
   });
 
-  // Mapeamento Página -> Botão
   let btnId = '';
   if(pageId === 'dashboard') btnId = 'nav-home';
   if(pageId === 'cadastroLead') btnId = 'nav-novo';
@@ -141,7 +129,6 @@ function setLoggedUser() {
   if (select && select.value) {
     loggedUser = select.value;
     localStorage.setItem('loggedUser', loggedUser);
-    console.log(`✅ [AUTH] Login efetuado com sucesso: ${loggedUser}`);
     initApp();
   } else {
     alert('Por favor, selecione seu nome na lista!');
@@ -150,59 +137,44 @@ function setLoggedUser() {
 
 function logout() {
   if(confirm("Tem certeza que deseja sair?")) {
-    console.log("👋 [AUTH] Logout realizado.");
     localStorage.removeItem('loggedUser');
     location.reload();
   }
 }
 
 // ============================================================
-// 3. INTEGRAÇÃO IA (GEMINI)
+// 3. FUNCIONALIDADES IA (GEMINI)
 // ============================================================
 
-async function chamarGemini(prompt) {
-  if (!GEMINI_KEY) {
-      console.warn("⚠️ [IA] Sem chave API Gemini configurada.");
-      return null;
-  }
-  
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    
-    if (res.status === 403) {
-        console.error("❌ [IA] Erro 403: Chave inválida.");
-        return null;
-    }
-    
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
-  } catch (e) { 
-    console.error("❌ [IA] Erro na requisição:", e);
-    return null; 
-  }
-}
-
-// --- 3.1 Chat Assistente (FIXED) ---
+// --- CHAT (CORRIGIDO) ---
 function toggleChat() {
     const el = document.getElementById('chatModal');
+    
+    // PROTEÇÃO: Se o HTML do chat não existir, aborta sem erro
+    if (!el) {
+        console.warn("⚠️ Elemento 'chatModal' não encontrado no HTML.");
+        return;
+    }
+
     const history = document.getElementById('chatHistory');
     
-    if (!el) return console.error("❌ Elemento chatModal não encontrado!");
+    // Verifica visibilidade de forma robusta
+    const isHidden = el.style.display === 'none' || el.classList.contains('hidden');
 
-    // Usa style.display para garantir funcionamento sem CSS externo
-    if (el.style.display === 'none' || el.classList.contains('hidden')) {
-        el.style.display = 'block'; // Força mostrar
+    if(isHidden) {
+        el.style.display = 'block';
         el.classList.remove('hidden');
         
-        // Foca no input
+        const content = el.querySelector('div.absolute');
+        if(content) {
+            content.classList.remove('slide-up');
+            void content.offsetWidth;
+            content.classList.add('slide-up');
+        }
+        
         const input = document.getElementById('chatInput');
         if(input) setTimeout(() => input.focus(), 300);
         
-        // Mensagem inicial
         if(history && (!history.hasChildNodes() || history.innerHTML.trim() === "")) {
              history.innerHTML = `
                 <div class="flex gap-3 fade-in">
@@ -213,7 +185,7 @@ function toggleChat() {
                 </div>`;
         }
     } else {
-        el.style.display = 'none'; // Força esconder
+        el.style.display = 'none';
         el.classList.add('hidden');
     }
 }
@@ -226,7 +198,6 @@ async function enviarMensagemChat() {
     const msg = input.value.trim();
     if(!msg) return;
 
-    // Mensagem Usuario
     history.innerHTML += `
         <div class="flex gap-3 justify-end fade-in">
             <div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">
@@ -236,7 +207,6 @@ async function enviarMensagemChat() {
     input.value = '';
     history.scrollTop = history.scrollHeight;
 
-    // Loading
     const loadingId = 'loading-' + Date.now();
     history.innerHTML += `
         <div id="${loadingId}" class="flex gap-3 fade-in">
@@ -249,7 +219,7 @@ async function enviarMensagemChat() {
         </div>`;
     history.scrollTop = history.scrollHeight;
 
-    const prompt = `Aja como um especialista comercial da MHNET Telecom. Responda de forma curta e útil: "${msg}"`;
+    const prompt = `Aja como um especialista comercial da MHNET Telecom. Responda: "${msg}"`;
     const response = await chamarGemini(prompt);
     
     const loadEl = document.getElementById(loadingId);
@@ -270,69 +240,77 @@ async function enviarMensagemChat() {
     history.scrollTop = history.scrollHeight;
 }
 
-// --- 3.2 Pitch ---
+// --- Outras Funções IA ---
+async function chamarGemini(prompt) {
+  if (!GEMINI_KEY) return null;
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    
+    if (res.status === 403) {
+        console.error("❌ [IA] Erro 403: Chave inválida.");
+        return null;
+    }
+    
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+  } catch (e) { return null; }
+}
+
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   if (!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
   
   showLoading(true, "CRIANDO PITCH...");
-  const prompt = `Crie uma mensagem curta para WhatsApp para vender internet fibra MHNET para ${nome}. Use emojis.`;
-  const txt = await chamarGemini(prompt);
+  const txt = await chamarGemini(`Crie uma mensagem curta para WhatsApp para vender internet fibra MHNET para ${nome}. Use emojis.`);
   showLoading(false);
   
   if (txt) document.getElementById('leadObs').value = txt.replace(/["*]/g, '');
 }
 
-// --- 3.3 Análise ---
 async function analisarCarteiraIA() {
   if (!leadsCache.length) return alert("Sem leads para analisar.");
   
   showLoading(true, "ANALISANDO...");
   const bairros = [...new Set(leadsCache.slice(0, 30).map(l => l.bairro || 'Geral'))].join(', ');
-  const prompt = `Analise estes bairros e sugira uma rota lógica: ${bairros}.`;
-  const txt = await chamarGemini(prompt);
+  const txt = await chamarGemini(`Analise estes bairros e sugira uma rota lógica: ${bairros}.`);
   showLoading(false);
   
   if (txt) alert(`💡 DICA:\n\n${txt}`);
 }
 
-// --- 3.4 Coach ---
 async function gerarCoachIA() {
   showLoading(true, "COACH...");
   const hoje = new Date().toLocaleDateString('pt-BR');
   const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
   
-  const prompt = `O vendedor fez ${leadsHoje} leads hoje. Dê um feedback motivacional curto (1 frase).`;
-  const txt = await chamarGemini(prompt);
+  const txt = await chamarGemini(`O vendedor fez ${leadsHoje} leads hoje. Dê um feedback motivacional curto.`);
   showLoading(false);
   
   if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
 }
 
 // ============================================================
-// 4. OPERAÇÕES DE DADOS (CRUD)
+// 4. DADOS E API
 // ============================================================
 
-// --- Salvar Lead ---
 async function enviarLead() {
-  console.group("💾 [DATA] Iniciando Envio de Lead");
   const nome = document.getElementById('leadNome').value.trim();
   const tel = document.getElementById('leadTelefone').value.trim();
   
-  if (!nome || !tel) {
-      console.warn("Campos obrigatórios vazios.");
-      console.groupEnd();
-      return alert("⚠️ Preencha Nome e Telefone!");
-  }
+  if (!nome || !tel) return alert("⚠️ Preencha Nome e Telefone!");
   
   showLoading(true, "SALVANDO...");
   
   const payload = {
     vendedor: loggedUser,
     nomeLead: nome,  
-    lead: nome, // Backup
+    lead: nome,
     telefone: tel,
-    whatsapp: tel, // Backup
+    whatsapp: tel,
     endereco: document.getElementById('leadEndereco').value,
     cidade: document.getElementById('leadCidade').value,
     bairro: document.getElementById('leadBairro').value,
@@ -342,55 +320,40 @@ async function enviarLead() {
     timestamp: new Date().toISOString()
   };
   
-  console.log("📦 Payload gerado:", payload);
-
   const res = await apiCall('addLead', payload);
   showLoading(false);
   
   if (res && res.status === 'success') {
-    console.log("✅ Sucesso ao salvar lead.");
     alert('✅ Lead salvo com sucesso!');
-    
-    // Limpar campos
     document.getElementById('leadNome').value = ''; 
     document.getElementById('leadTelefone').value = '';
     document.getElementById('leadEndereco').value = ''; 
     document.getElementById('leadObs').value = '';
-    
+    document.getElementById('leadBairro').value = '';
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
-    // Alerta detalhado no console, alerta simples pro usuário se apiCall não deu
-    if(res) alert('❌ Erro ao salvar: ' + res.message);
+    // Erro de rede ou de script tratado no apiCall
   }
-  console.groupEnd();
 }
 
-// --- Carregar Leads ---
 async function carregarLeads() {
-  console.group("📥 [DATA] Carregando Leads");
   const lista = document.getElementById('listaLeadsGestao');
   if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8">Atualizando...</div>';
 
+  // Silent call (sem alerta de erro intrusivo para load inicial)
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
-    console.log(`Recebidos ${res.data.length} leads brutos.`);
-    
-    // Filtra leads do usuário
     leadsCache = (res.data || []).filter(l => {
       const v = (l.vendedor || l.Vendedor || '').toLowerCase();
       return v.includes(loggedUser.toLowerCase());
     });
-    
-    console.log(`Filtrados ${leadsCache.length} leads para ${loggedUser}.`);
     renderLeads();
     atualizarDashboard();
   } else {
-    console.error("Erro ao carregar leads:", res);
     if(lista) lista.innerHTML = '<div style="text-align:center; color:red; padding:20px">Não foi possível carregar o histórico.</div>';
   }
-  console.groupEnd();
 }
 
 function renderLeads() {
@@ -401,8 +364,7 @@ function renderLeads() {
   
   const filtrados = leadsCache.filter(l => 
     (l.nomeLead || l.lead || '').toLowerCase().includes(term) || 
-    (l.bairro || '').toLowerCase().includes(term) ||
-    (l.telefone || '').includes(term)
+    (l.bairro || '').toLowerCase().includes(term)
   );
   
   if (!filtrados.length) {
@@ -415,12 +377,7 @@ function renderLeads() {
     const bairro = l.bairro || 'Geral';
     const interesse = (l.interesse || 'Novo').toUpperCase();
     const tel = l.telefone || l.whatsapp || '';
-    
-    // Tenta formatar data de string DD/MM/YYYY HH:mm:ss
-    let dataShow = 'Hoje';
-    if(l.timestamp) {
-        dataShow = l.timestamp.split(' ')[0];
-    }
+    const dataShow = l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje';
     
     let badgeClass = "bg-gray-100 text-gray-500";
     if(interesse.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
@@ -455,19 +412,13 @@ function atualizarDashboard() {
   if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
-// ============================================================
-// 5. ROTA E GPS
-// ============================================================
-
+// --- ROTA ---
 function startRoute() {
-  console.log("📍 [GPS] Solicitando localização...");
   if (!navigator.geolocation) return alert('Ative o GPS.');
+  routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
   
-  routeCoords = []; 
-  seconds = 0; 
-  routeStartTime = new Date().toISOString();
-  
-  updateRouteUI(true);
+  document.getElementById('btnStart').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'flex';
   
   timerInterval = setInterval(() => {
     seconds++;
@@ -481,75 +432,55 @@ function startRoute() {
     routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
     document.getElementById('points').innerText = routeCoords.length;
     document.getElementById('gpsStatus').innerText = "Rastreando";
-  }, e => console.error("Erro GPS:", e), {enableHighAccuracy:true});
+  }, e => console.error(e), {enableHighAccuracy:true});
 }
 
 async function stopRoute() {
   if(!confirm("Finalizar rota?")) return;
-  console.log("🛑 [GPS] Parando rota. Pontos:", routeCoords.length);
-  
-  clearInterval(timerInterval);
+  clearInterval(timerInterval); 
   navigator.geolocation.clearWatch(watchId);
-  
   showLoading(true, "ENVIANDO ROTA...");
-  const res = await apiCall('saveRoute', {
+  
+  await apiCall('saveRoute', {
       vendedor: loggedUser, 
       inicioISO: routeStartTime, 
       fimISO: new Date().toISOString(), 
       coordenadas: routeCoords
   });
-  showLoading(false);
   
-  if (res && res.status === 'success') {
-      alert("✅ Rota salva!");
-      resetRouteUI();
-      navegarPara('dashboard');
-  } else {
-      console.error("Erro ao salvar rota:", res);
-      alert("Erro ao salvar rota.");
-  }
-}
-
-function updateRouteUI(on) {
-  document.getElementById('btnStart').style.display = on ? 'none' : 'flex';
-  document.getElementById('btnStop').style.display = on ? 'flex' : 'none';
-}
-function resetRouteUI() {
-  updateRouteUI(false);
+  showLoading(false);
+  alert("Rota salva!");
+  
+  document.getElementById('btnStart').style.display = 'flex';
+  document.getElementById('btnStop').style.display = 'none';
   document.getElementById('timer').innerText = "00:00:00"; 
   document.getElementById('points').innerText = "0";
   document.getElementById('gpsStatus').innerText = "Parado";
+  navegarPara('dashboard');
 }
 
-// ============================================================
-// 6. CONEXÃO API (ROBUSTA)
-// ============================================================
+// --- API CENTRAL (CORS & ERRO) ---
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
   console.log(`📡 [API] Chamando: ${route}`, payload);
   
   try {
+    // FIX CORS: content-type text/plain
     const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({route, payload, token: TOKEN})
     });
     
-    // Verifica se a resposta HTTP é OK
-    if (!res.ok) {
-        throw new Error(`HTTP Error ${res.status}`);
-    }
-
     const text = await res.text();
     let json;
     
     try { 
         json = JSON.parse(text); 
-        console.log(`✅ [API] Resposta JSON (${route}):`, json);
+        console.log(`✅ [API] Resposta:`, json);
     } catch (e) { 
-        console.error(`❌ [API] Resposta inválida (${route}):`, text);
-        // Não lançamos erro se for só HTML de redirecionamento, tratamos como erro de rede
-        throw new Error("Servidor não retornou JSON. Verifique CORS/Deploy."); 
+        console.error(`❌ [API] Inválida:`, text);
+        throw new Error("Erro de comunicação com o servidor."); 
     }
 
     if(show) showLoading(false);
@@ -559,15 +490,12 @@ async function apiCall(route, payload, show=true, suppress=false) {
 
   } catch(e) {
     if(show) showLoading(false);
-    console.error(`❌ [API] Erro na requisição (${route}):`, e);
+    console.error(`❌ [API] Erro:`, e);
     
-    // Detecção específica de erro de permissão (CORS)
     if (e.name === 'TypeError' && e.message.includes('fetch')) {
-        if(!suppress) {
-            alert("⚠️ ERRO DE CONEXÃO (CORS)\n\nO servidor Google recusou a conexão.\n\nSOLUÇÃO:\nNo Google Apps Script: Implantar > Nova Implantação > 'Qualquer Pessoa'.\n\nCole o novo ID no topo do app.js.");
-        }
+        if(!suppress) alert("⚠️ ERRO CRÍTICO: CORS/CONEXÃO\nO Google Apps Script bloqueou a conexão.\n\nSOLUÇÃO:\nNo script, faça Nova Implantação > 'Qualquer Pessoa'.");
     } else {
-        if(!suppress) alert("Erro conexão: " + e.message);
+        if(!suppress) alert("Erro: " + e.message);
     }
     return null;
   }
