@@ -1,9 +1,10 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA v11.0 (Full Features)
+ * MHNET VENDAS - LÓGICA v11.1 (Fix Leads & Busca Inteligente)
  * ============================================================
  */
 
+// CONFIGURAÇÃO
 const DEPLOY_ID = 'AKfycbxMuP7gF6WM3syD4dpraqkMPRpInQ2xkc5_09o3fuNBIHTCn8UVQFRdPpH4wiVpccvz'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
@@ -112,7 +113,6 @@ function logout() {
 // === API IA (GEMINI) ===
 async function chamarGemini(prompt) {
   if (!GEMINI_KEY) return null;
-  // Adiciona o contexto dos planos automaticamente
   const fullPrompt = `${PLANOS_CONTEXTO}\n\nPERGUNTA: ${prompt}`;
   
   try {
@@ -152,11 +152,9 @@ async function refinarObservacaoIA() {
 // Função para o botão "Consultor Planos IA"
 async function consultarPlanosIA() {
     toggleChat();
-    // Simula uma pergunta automática no chat
     const history = document.getElementById('chatHistory');
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">Quais são os planos atuais?</div></div>`;
     
-    // Mostra loading
     const loadingId = 'loading-' + Date.now();
     history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
 
@@ -241,7 +239,6 @@ async function enviarLead() {
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
-    // Falso negativo CORS (assume sucesso se não for erro explícito)
     if(res === 'CORS_ERROR') {
         alert('✅ Lead salvo com sucesso!');
         carregarLeads();
@@ -252,22 +249,30 @@ async function enviarLead() {
   }
 }
 
+// *** FUNÇÃO DE BUSCA INTELIGENTE (CORRIGIDA) ***
 async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
-  if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8">Buscando...</div>';
+  if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8">Buscando histórico...</div>';
 
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
-    leadsCache = (res.data || []).filter(l => {
-      // Normalização de chaves para evitar erro de leitura
-      const v = (l.vendedor || l.Vendedor || '').toLowerCase();
-      return v.includes(loggedUser.toLowerCase());
+    const todos = res.data || [];
+    console.log("Total leads encontrados:", todos.length);
+
+    // FILTRO INTELIGENTE: Verifica se o nome contém o outro (vice-versa) e ignora espaços extras
+    leadsCache = todos.filter(l => {
+      const v = (l.vendedor || l.Vendedor || '').toLowerCase().trim();
+      const u = loggedUser.toLowerCase().trim();
+      return v && u && (v.includes(u) || u.includes(v));
     });
+    
+    console.log("Leads filtrados para o usuário:", leadsCache.length);
+
     renderLeads();
     atualizarDashboard();
   } else {
-    if(lista) lista.innerHTML = '<div style="text-align:center; color:#cbd5e1; padding:20px">Sem histórico recente.</div>';
+    if(lista) lista.innerHTML = '<div style="text-align:center; color:#cbd5e1; padding:20px">Histórico indisponível offline.</div>';
   }
 }
 
@@ -281,11 +286,11 @@ function renderLeads() {
   );
   
   if (!filtrados.length) {
-    div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1">Nenhum registro.</div>';
+    div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1">Nenhum registro encontrado.</div>';
     return;
   }
   
-  // Ordena por data (mais recente primeiro)
+  // Ordena por data (recente primeiro)
   filtrados.sort((a,b) => {
       const getDate = (d) => {
         if(!d) return 0;
