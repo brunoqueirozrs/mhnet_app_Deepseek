@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND (v12.5 - Gestão Completa)
+ * MHNET VENDAS - LÓGICA FRONTEND (v13.0 - Planos IA)
  * ============================================================
  */
 
@@ -9,6 +9,25 @@ const DEPLOY_ID = 'AKfycbxMuP7gF6WM3syD4dpraqkMPRpInQ2xkc5_09o3fuNBIHTCn8UVQFRdP
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
+
+// === BASE DE CONHECIMENTO DE PLANOS (IA) ===
+// Edite aqui os preços e combos para a IA saber o que responder.
+const PLANOS_DB = `
+TABELA DE PREÇOS MHNET (Vigência 2025):
+- INTERNET FIBRA:
+  * 400 Mega: R$ 89,90/mês
+  * 600 Mega: R$ 99,90/mês (Instalação Grátis)
+  * 1 Giga (1000 Mega): R$ 149,90/mês
+
+- COMBOS (INTERNET + MÓVEL):
+  * Combo Light: 400 Mega + Chip 10GB = R$ 109,90
+  * Combo Plus: 600 Mega + Chip 20GB = R$ 129,90
+  * Combo Ultra: 1 Giga + Chip 50GB = R$ 189,90
+
+- EMPRESARIAL:
+  * Link Dedicado: Sob consulta
+  * 600 Mega PJ: R$ 119,90
+`;
 
 // LISTA FIXA (GARANTIA DE LOGIN)
 const VENDEDORES_OFFLINE = [
@@ -109,7 +128,37 @@ function logout() {
   }
 }
 
-// === GESTÃO DE LEADS (FUNCIONALIDADE PRINCIPAL) ===
+// === NOVA FUNÇÃO: CONSULTOR DE PLANOS IA ===
+async function perguntarPlanoIA() {
+    const input = document.getElementById('inputPlanos');
+    const display = document.getElementById('respostaPlanos');
+    const query = input.value.trim();
+    
+    if(!query) return alert("Digite uma dúvida sobre os planos.");
+    
+    display.classList.remove('hidden');
+    display.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Consultando base...';
+    
+    // Prompt com Contexto dos Planos
+    const prompt = `
+    Aja como um especialista em planos da MHNET.
+    Use APENAS estas informações:
+    ${PLANOS_DB}
+    
+    Pergunta do vendedor: "${query}"
+    Responda de forma curta e direta. Se não souber, diga que não consta na tabela.
+    `;
+    
+    const resposta = await chamarGemini(prompt);
+    
+    if(resposta) {
+        display.innerHTML = resposta.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    } else {
+        display.innerHTML = 'Erro ao consultar IA.';
+    }
+}
+
+// === GESTÃO DE LEADS ===
 
 async function enviarLead() {
   const nome = document.getElementById('leadNome').value;
@@ -135,7 +184,6 @@ async function enviarLead() {
   
   if ((res && res.status === 'success') || res === 'CORS_ERROR_BUT_SENT') {
     alert('✅ Lead salvo!');
-    // Limpa campos
     document.getElementById('leadNome').value = ''; 
     document.getElementById('leadTelefone').value = '';
     document.getElementById('leadEndereco').value = ''; 
@@ -156,12 +204,10 @@ async function carregarLeads() {
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
-    // Filtra pelo vendedor logado
     leadsCache = (res.data || []).filter(l => {
       const v = (l.vendedor || l.Vendedor || '').toLowerCase();
       return v.includes(loggedUser.toLowerCase());
     });
-    
     renderLeads(); 
     atualizarDashboard();
   } else {
@@ -169,7 +215,6 @@ async function carregarLeads() {
   }
 }
 
-// *** RENDERIZAÇÃO DA LISTA (COM BOTÃO ZAP QUADRADO) ***
 function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   const badgeTotal = document.getElementById('totalLeadsBadge');
@@ -177,14 +222,12 @@ function renderLeads() {
   if (!div) return;
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
   
-  // Filtro
   const filtrados = leadsCache.filter(l => 
     (l.nomeLead || '').toLowerCase().includes(term) || 
     (l.bairro || '').toLowerCase().includes(term) ||
     (l.telefone || '').includes(term)
   );
   
-  // Atualiza contador de total
   if(badgeTotal) badgeTotal.innerText = `Total: ${filtrados.length}`;
   
   if (!filtrados.length) {
@@ -192,7 +235,6 @@ function renderLeads() {
     return;
   }
 
-  // Ordena por data (recente primeiro)
   filtrados.sort((a,b) => {
       const ta = a.timestamp || '';
       const tb = b.timestamp || '';
@@ -205,13 +247,10 @@ function renderLeads() {
     if(inter.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
     if(inter.includes('BAIXO')) badgeClass = "bg-red-50 text-red-500";
 
-    // Limpa o telefone para o link do whats (apenas números)
     const telLimpo = (l.telefone||'').replace(/\D/g, '');
 
     return `
     <div class="bg-white p-5 rounded-[1.5rem] border border-blue-50 shadow-sm mb-4">
-      
-      <!-- Cabeçalho: Nome e Data -->
       <div class="flex justify-between items-start mb-3">
         <div>
           <div class="font-bold text-[#003870] text-lg leading-tight">${l.nomeLead || 'Sem Nome'}</div>
@@ -219,24 +258,17 @@ function renderLeads() {
         </div>
         <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold">${inter}</span>
       </div>
-
-      <!-- Linha: Telefone com Botão Zap ao Lado -->
       <div class="flex items-center gap-3 mb-3 bg-slate-50 p-2 rounded-lg">
           <div class="flex-1 text-sm font-bold text-gray-700">
              <i class="fas fa-phone-alt text-gray-400 mr-2"></i> ${l.telefone || 'Sem Tel'}
           </div>
-          
-          <!-- BOTÃO VERDE QUADRADO (Link Direto) -->
           <a href="https://wa.me/55${telLimpo}" target="_blank" class="btn-zap-square">
              <i class="fab fa-whatsapp"></i>
           </a>
       </div>
-
-      <!-- Endereço/Bairro -->
       <div class="text-sm text-gray-500 ml-1">
          <i class="fas fa-map-marker-alt text-red-400 mr-1"></i> ${l.bairro || 'Geral'}
       </div>
-
     </div>`;
   }).join('');
 }
@@ -247,7 +279,7 @@ function atualizarDashboard() {
   if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
-// === INTEGRAÇÃO IA (GEMINI) ===
+// *** IA GEMINI ***
 async function chamarGemini(prompt) {
   if (!GEMINI_KEY) return null;
   try {
@@ -260,7 +292,6 @@ async function chamarGemini(prompt) {
   } catch (e) { return null; }
 }
 
-// Chat
 function toggleChat() {
     const el = document.getElementById('chatModal');
     if(!el) return;
