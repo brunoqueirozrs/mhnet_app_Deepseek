@@ -1,29 +1,23 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA ORGANIZADA (v12.0 - Correções Finais)
- * Foco: Fix Histórico, IA Gemini 1.5 e Rota
+ * MHNET VENDAS - LÓGICA V13.0 (FIX LEITURA)
+ * Correção: CORS, Cache Busting e Tratamento de Erro Visual
  * ============================================================
  */
 
-// ------------------------------------------------------------
-// 1. CONFIGURAÇÕES & SEGURANÇA
-// ------------------------------------------------------------
+// ⚠️ COLE AQUI O ID DA NOVA IMPLANTAÇÃO "QUALQUER PESSOA"
 const DEPLOY_ID = 'AKfycbxMuP7gF6WM3syD4dpraqkMPRpInQ2xkc5_09o3fuNBIHTCn8UVQFRdPpH4wiVpccvz'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
-
-// MUDANÇA IA: Usando modelo estável 1.5 Flash
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
-const GEMINI_MODEL = "gemini-1.5-flash";
 
-// Lista Fixa para garantir Login Offline
+// LISTA FIXA (GARANTIA DE LOGIN OFFLINE)
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
     "Elton da Silva Rodrigo Gonçalves"
 ];
 
-// Estado Global
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let routeCoords = [];
@@ -32,17 +26,13 @@ let timerInterval = null;
 let seconds = 0;
 let routeStartTime = null;
 
-// ------------------------------------------------------------
-// 2. INICIALIZAÇÃO & LOGIN
-// ------------------------------------------------------------
+// ============================================================
+// 1. INICIALIZAÇÃO
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🏁 [APP] Iniciando v12.0...");
+  console.log("🏁 [APP] Iniciando v13.0...");
 
-  // Esconde Chat inicialmente
-  const chatModal = document.getElementById('chatModal');
-  if (chatModal) { chatModal.style.display = 'none'; chatModal.classList.add('hidden'); }
-
-  // Preenche Select de Vendedores
+  // Injeta lista imediatamente
   const select = document.getElementById('userSelect');
   if(select) {
       select.innerHTML = '<option value="">Toque para selecionar...</option>';
@@ -56,16 +46,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Verifica Sessão
   if (loggedUser) {
-    console.log(`👤 [AUTH] Usuário: ${loggedUser}`);
     initApp();
   } else {
-    mostrarLogin();
+    document.getElementById('userMenu').style.display = 'flex';
+    document.getElementById('mainContent').style.display = 'none';
   }
 });
 
-function mostrarLogin() {
-    document.getElementById('userMenu').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'none';
+function initApp() {
+  document.getElementById('userMenu').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
+  navegarPara('dashboard');
+  carregarLeads(); // Tenta buscar dados reais
 }
 
 function setLoggedUser() {
@@ -79,30 +72,21 @@ function setLoggedUser() {
   }
 }
 
-function initApp() {
-  document.getElementById('userMenu').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'block';
-  document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
-  
-  navegarPara('dashboard');
-  setTimeout(() => carregarLeads(), 500);
-}
-
 function logout() {
-  if(confirm("Tem certeza que deseja sair?")) {
+  if(confirm("Sair do sistema?")) {
     localStorage.removeItem('loggedUser');
     location.reload();
   }
 }
 
-// ------------------------------------------------------------
-// 3. NAVEGAÇÃO CENTRAL
-// ------------------------------------------------------------
+// ============================================================
+// 2. NAVEGAÇÃO
+// ============================================================
 function navegarPara(pageId) {
-  console.log(`🔄 [NAV] Indo para: ${pageId}`);
-  
+  // Esconde todas
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
   
+  // Mostra alvo
   const target = document.getElementById(pageId);
   if(target) {
       target.style.display = 'block';
@@ -111,10 +95,12 @@ function navegarPara(pageId) {
       target.classList.add('fade-in');
   }
 
-  const main = document.querySelector('main');
+  // Scroll topo
+  const main = document.getElementById('main-scroll');
   if(main) main.scrollTo(0,0);
-  window.scrollTo(0, 0);
+  else window.scrollTo(0, 0);
 
+  // Botões
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.remove('active', 'text-blue-700');
     el.classList.add('text-slate-400');
@@ -135,9 +121,10 @@ function navegarPara(pageId) {
   if (pageId === 'dashboard') atualizarDashboard();
 }
 
-// ------------------------------------------------------------
-// 4. CADASTRO LEAD (Salvar)
-// ------------------------------------------------------------
+// ============================================================
+// 3. DADOS (LEADS)
+// ============================================================
+
 async function enviarLead() {
   const nome = document.getElementById('leadNome').value.trim();
   const tel = document.getElementById('leadTelefone').value.trim();
@@ -181,33 +168,35 @@ async function enviarLead() {
   }
 }
 
-// ------------------------------------------------------------
-// 5. GESTÃO LEADS (Lista e Histórico) - CORRIGIDO
-// ------------------------------------------------------------
 async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
-  if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8">Buscando histórico...</div>';
+  if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8"><i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i><br>Buscando histórico...</div>';
 
+  console.log("📥 Buscando leads...");
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
     const todosLeads = res.data || [];
-    console.log(`📥 Total baixado: ${todosLeads.length}`);
+    console.log(`📥 Total recebido: ${todosLeads.length}`);
 
-    // FILTRO MAIS FLEXÍVEL (Corrige problema de não aparecer)
+    // Filtro mais permissivo
     leadsCache = todosLeads.filter(l => {
       const vPlanilha = (l.vendedor || l.Vendedor || '').toLowerCase().trim();
       const vApp = loggedUser.toLowerCase().trim();
-      
-      // Verifica se um nome contém o outro (ex: "João" bate com "João Silva")
       return vPlanilha.includes(vApp) || vApp.includes(vPlanilha);
     });
 
-    console.log(`✅ Leads filtrados: ${leadsCache.length}`);
+    console.log(`✅ Filtrados para ${loggedUser}: ${leadsCache.length}`);
     renderLeads();
     atualizarDashboard();
   } else {
-    if(lista) lista.innerHTML = '<div style="text-align:center; color:#cbd5e1; padding:20px">Sem histórico offline.</div>';
+    console.error("❌ Falha ao carregar leads:", res);
+    if(lista) lista.innerHTML = `
+        <div style="text-align:center; color:#cbd5e1; padding:20px">
+            <i class="fas fa-wifi-slash text-4xl mb-2"></i><br>
+            Não foi possível sincronizar.<br>
+            <button onclick="carregarLeads()" style="margin-top:10px; background:#004c99; color:white; padding:5px 15px; border-radius:10px; font-size:0.8rem;">Tentar Novamente</button>
+        </div>`;
   }
 }
 
@@ -226,26 +215,16 @@ function renderLeads() {
     return;
   }
 
-  // Ordena por data (tenta converter formato DD/MM/YYYY)
-  filtrados.sort((a,b) => {
-      const parse = (d) => {
-          if(!d) return 0;
-          if(d.includes('/')) {
-              const [dia, mes, ano] = d.split(' ')[0].split('/');
-              return new Date(`${ano}-${mes}-${dia}`);
-          }
-          return new Date(d);
-      };
-      return parse(b.timestamp) - parse(a.timestamp);
-  });
-
   div.innerHTML = filtrados.map(l => {
     const nome = l.nomeLead || l.lead || 'Cliente';
     const bairro = l.bairro || 'Geral';
     const interesse = (l.interesse || 'Novo').toUpperCase();
     const tel = l.telefone || l.whatsapp || '';
-    const dataShow = l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje';
     
+    // Tratamento de Data
+    let dataShow = 'Hoje';
+    if(l.timestamp) dataShow = l.timestamp.split(' ')[0];
+
     let badgeClass = "bg-gray-100 text-gray-500";
     if(interesse.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
     if(interesse.includes('MÉDIO')) badgeClass = "bg-yellow-100 text-yellow-700";
@@ -275,116 +254,13 @@ function renderLeads() {
 
 function atualizarDashboard() {
   const hoje = new Date().toLocaleDateString('pt-BR');
-  // Ajuste para datas DD/MM/YYYY
   const count = leadsCache.filter(l => (l.timestamp || '').startsWith(hoje)).length;
   if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
-// ------------------------------------------------------------
-// 6. INTEGRAÇÃO IA (GEMINI 1.5 - CORRIGIDA)
-// ------------------------------------------------------------
-async function chamarGemini(prompt) {
-  if (!GEMINI_KEY) return null;
-  console.log("🤖 [IA] Chamando modelo:", GEMINI_MODEL);
-  
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`;
-    const res = await fetch(url, {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    
-    if (res.status !== 200) {
-        console.error("Erro IA Status:", res.status);
-        return null;
-    }
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
-  } catch (e) { 
-      console.error("Erro IA Fetch:", e);
-      return null; 
-  }
-}
-
-// Chat Flutuante
-function toggleChat() {
-    const el = document.getElementById('chatModal');
-    const history = document.getElementById('chatHistory');
-    
-    if(el.classList.contains('hidden')) {
-        el.classList.remove('hidden');
-        el.querySelector('div.absolute').classList.add('slide-up');
-        setTimeout(() => document.getElementById('chatInput').focus(), 300);
-        
-        if(!history.hasChildNodes()) {
-             history.innerHTML = `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[80%]">Olá ${loggedUser.split(' ')[0]}! Sou o assistente de vendas. Como posso ajudar?</div></div>`;
-        }
-    } else {
-        el.classList.add('hidden');
-    }
-}
-
-async function enviarMensagemChat() {
-    const input = document.getElementById('chatInput');
-    const history = document.getElementById('chatHistory');
-    const msg = input.value.trim();
-    if(!msg) return;
-
-    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
-    input.value = '';
-    history.scrollTop = history.scrollHeight;
-
-    // Loading
-    const loadingId = 'load' + Date.now();
-    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm"><span class="animate-pulse">...</span></div></div>`;
-    history.scrollTop = history.scrollHeight;
-
-    const prompt = `Aja como um gerente de vendas da MHNET Telecom. Responda curto e prático: "${msg}"`;
-    const response = await chamarGemini(prompt);
-    
-    document.getElementById(loadingId)?.remove();
-    
-    if(response) {
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div></div>`;
-    } else {
-         history.innerHTML += `<div class="text-center text-xs text-red-400 mt-2">IA indisponível no momento.</div>`;
-    }
-    history.scrollTop = history.scrollHeight;
-}
-
-// Funções IA Auxiliares
-async function gerarAbordagemIA() {
-  const nome = document.getElementById('leadNome').value;
-  if (!nome) return alert("⚠️ Preencha o nome!");
-  showLoading(true, "CRIANDO PITCH...");
-  const txt = await chamarGemini(`Crie mensagem WhatsApp curta (3 linhas) para vender fibra MHNET para ${nome}. Use emojis.`);
-  showLoading(false);
-  if(txt) document.getElementById('leadObs').value = txt.replace(/["*]/g, '');
-  else alert("Erro na IA. Verifique conexão.");
-}
-
-async function analisarCarteiraIA() {
-  if (!leadsCache.length) return alert("Sem leads.");
-  showLoading(true, "ANALISANDO...");
-  const bairros = [...new Set(leadsCache.slice(0, 30).map(l => l.bairro || 'Geral'))].join(', ');
-  const txt = await chamarGemini(`Sugira uma rota lógica para estes bairros: ${bairros}. Resposta curta.`);
-  showLoading(false);
-  if (txt) alert(`💡 DICA:\n\n${txt}`);
-}
-
-async function gerarCoachIA() {
-  showLoading(true, "COACH...");
-  const hoje = new Date().toLocaleDateString('pt-BR');
-  const leadsHoje = leadsCache.filter(l => (l.timestamp || '').startsWith(hoje)).length;
-  const txt = await chamarGemini(`Vendedor fez ${leadsHoje} leads hoje. Dê um feedback motivacional curto.`);
-  showLoading(false);
-  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
-}
-
-// ------------------------------------------------------------
-// 7. ROTA GPS
-// ------------------------------------------------------------
+// ============================================================
+// 4. ROTA GPS
+// ============================================================
 function startRoute() {
   if (!navigator.geolocation) return alert('Ative o GPS.');
   routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
@@ -411,7 +287,6 @@ async function stopRoute() {
   navigator.geolocation.clearWatch(watchId);
   showLoading(true, "ENVIANDO ROTA...");
   
-  // Envia rota (se KML não gera, é config do Backend Drive API)
   const res = await apiCall('saveRoute', {
       vendedor: loggedUser, 
       inicioISO: routeStartTime, 
@@ -422,25 +297,100 @@ async function stopRoute() {
   showLoading(false);
   if ((res && res.status === 'success') || res === 'CORS_ERROR_BUT_SENT') {
       alert("✅ Rota salva!");
-      // Reset UI
-      document.getElementById('btnStart').style.display = 'flex';
-      document.getElementById('btnStop').style.display = 'none';
-      document.getElementById('timer').innerText = "00:00:00"; 
-      document.getElementById('points').innerText = "0";
-      document.getElementById('gpsStatus').innerText = "Parado";
+      resetRouteUI();
       navegarPara('dashboard');
   } else {
       alert("Erro ao salvar rota.");
   }
 }
 
-// ------------------------------------------------------------
-// 8. API CALL
-// ------------------------------------------------------------
+function resetRouteUI() {
+  document.getElementById('btnStart').style.display = 'flex';
+  document.getElementById('btnStop').style.display = 'none';
+  document.getElementById('timer').innerText = "00:00:00"; 
+  document.getElementById('points').innerText = "0";
+  document.getElementById('gpsStatus').innerText = "Parado";
+}
+
+// ============================================================
+// 5. IA (GEMINI) - CHAT
+// ============================================================
+async function chamarGemini(prompt) {
+  if (!GEMINI_KEY) return null;
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    if(res.status !== 200) return null;
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+  } catch (e) { return null; }
+}
+
+function toggleChat() {
+    const el = document.getElementById('chatModal');
+    const history = document.getElementById('chatHistory');
+    if(el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        setTimeout(() => document.getElementById('chatInput').focus(), 300);
+        if(!history.hasChildNodes()) history.innerHTML = `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-4 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[80%]">Olá! Sou o assistente MHNET.</div></div>`;
+    } else {
+        el.classList.add('hidden');
+    }
+}
+
+async function enviarMensagemChat() {
+    const input = document.getElementById('chatInput');
+    const history = document.getElementById('chatHistory');
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
+    input.value = '';
+    history.scrollTop = history.scrollHeight;
+
+    const loadingId = 'load' + Date.now();
+    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm"><span class="animate-pulse">...</span></div></div>`;
+    history.scrollTop = history.scrollHeight;
+
+    const response = await chamarGemini(`Aja como especialista MHNET Telecom. Responda curto: "${msg}"`);
+    document.getElementById(loadingId)?.remove();
+
+    if(response) {
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div></div>`;
+    } else {
+         history.innerHTML += `<div class="text-center text-xs text-red-400 mt-2">IA indisponível.</div>`;
+    }
+    history.scrollTop = history.scrollHeight;
+}
+
+async function gerarAbordagemIA() {
+  const nome = document.getElementById('leadNome').value;
+  if(!nome) return alert("Preencha o nome!");
+  showLoading(true, "CRIANDO PITCH...");
+  const txt = await chamarGemini(`Crie mensagem WhatsApp curta venda fibra MHNET para ${nome}.`);
+  showLoading(false);
+  if(txt) document.getElementById('leadObs').value = txt.replace(/["*]/g, '');
+}
+
+async function gerarCoachIA() {
+  showLoading(true, "COACH...");
+  const txt = await chamarGemini(`Dê frase motivacional curta para vendedor.`);
+  showLoading(false);
+  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
+}
+
+// ============================================================
+// 6. CONEXÃO API (ROBUSTA)
+// ============================================================
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
   try {
-    const res = await fetch(API_URL, {
+    // CACHE BUSTING: Adiciona ?t=123123 para evitar cache do browser no GET
+    const url = `${API_URL}?t=${new Date().getTime()}`;
+    
+    const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
         body: JSON.stringify({route, payload, token: TOKEN})
@@ -450,11 +400,12 @@ async function apiCall(route, payload, show=true, suppress=false) {
     let json;
     try { json = JSON.parse(text); } 
     catch (e) { 
+        // Sucesso opaco para escrita
         if (route === 'addLead' || route === 'saveRoute') {
             if(show) showLoading(false);
             return 'CORS_ERROR_BUT_SENT';
         }
-        throw new Error("Servidor não retornou JSON."); 
+        throw new Error("Erro leitura servidor."); 
     }
 
     if(show) showLoading(false);
@@ -464,19 +415,20 @@ async function apiCall(route, payload, show=true, suppress=false) {
   } catch(e) {
     if(show) showLoading(false);
     
-    // Tratamento de falha silenciosa para POST
     if (e.name === 'TypeError' && (route === 'addLead' || route === 'saveRoute')) {
          return 'CORS_ERROR_BUT_SENT';
     }
     
-    if(!suppress && route !== 'getLeads') alert("Erro conexão: " + e.message);
+    console.error("Erro API:", e);
+    if(!suppress && route !== 'getLeads') alert("Erro conexão: Verifique se fez o deploy 'Qualquer Pessoa'.");
     return null;
   }
 }
 
 function showLoading(show, txt) {
   const loader = document.getElementById('loader');
-  const loaderTxt = document.getElementById('loaderText');
-  if(loader) loader.style.display = show ? 'flex' : 'none';
-  if(loaderTxt && txt) loaderTxt.innerText = txt;
+  if(loader) {
+      loader.style.display = show ? 'flex' : 'none';
+      if(txt) document.getElementById('loaderText').innerText = txt;
+  }
 }
