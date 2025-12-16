@@ -4,246 +4,272 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MHNET Vendas</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f4f7fa; -webkit-tap-highlight-color: transparent; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+        
+        /* Utilitários de Animação */
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .btn-primary { @apply bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg active:scale-95 transition-transform w-full flex justify-center items-center gap-2 text-lg; }
+        /* Botão Principal Estiloso */
+        .btn-primary { 
+            @apply bg-blue-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg shadow-blue-700/20 active:scale-[0.98] transition-all w-full flex justify-center items-center gap-3 text-lg; 
+        }
+
+        /* Inputs de Design Elegante */
+        .form-section { @apply mb-6 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm; }
+        .form-section-title { @apply text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2; }
         
-        /* Inputs melhorados com mais espaço interno */
-        .input-group { @apply mb-5; }
-        .input-label { @apply block text-xs font-bold text-gray-500 uppercase ml-1 mb-1.5; }
-        .input-field { @apply w-full p-3.5 bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm; }
+        .input-group { @apply relative mb-4; }
+        .input-icon { @apply absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg pointer-events-none transition-colors; }
+        .input-field:focus ~ .input-icon { @apply text-blue-600; }
         
-        .card { @apply bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-4; }
-        .status-badge { @apply px-3 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-600; }
-        .status-badge.success { @apply bg-green-100 text-green-700; }
-        .status-badge.error { @apply bg-red-100 text-red-700; }
-        input, select, textarea { font-size: 16px !important; }
+        .input-field { 
+            @apply w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-xl text-gray-800 font-medium placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all;
+            font-size: 16px !important; 
+        }
+
+        /* Bottom Nav */
+        .nav-item { @apply flex flex-col items-center justify-center text-gray-400 text-[10px] gap-1 py-3 w-full transition-colors font-medium; }
+        .nav-item.active { @apply text-blue-700; }
+        .nav-item.active i { @apply transform -translate-y-1; }
+        .nav-item i { @apply text-xl mb-0.5 transition-transform duration-300; }
         
-        .nav-item { @apply flex flex-col items-center justify-center text-gray-400 text-xs gap-1 py-2 w-full transition-colors; }
-        .nav-item.active { @apply text-blue-600 font-semibold; }
-        .nav-item i { @apply text-xl mb-0.5; }
-        
-        .btn-ai-magic { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; border: none; }
+        /* Badges */
+        .badge-interest { @apply px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide; }
     </style>
 </head>
-<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+<body class="text-slate-800 h-screen flex flex-col overflow-hidden">
 
-    <!-- LOGIN -->
+    <!-- TELA DE LOGIN -->
     <div id="userMenu" class="fixed inset-0 bg-blue-800 z-50 flex flex-col items-center justify-center p-6 text-white" style="display: flex;">
-        <div class="mb-8 text-center fade-in">
-            <div class="bg-white p-4 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4 shadow-xl">
-                <i class="fas fa-wifi text-4xl text-blue-700"></i>
+        <div class="mb-10 text-center fade-in">
+            <div class="bg-white p-5 rounded-3xl w-28 h-28 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-900/40">
+                <i class="fas fa-wifi text-5xl text-blue-700"></i>
             </div>
-            <h1 class="text-2xl font-bold">Vendas Externas</h1>
-            <p class="text-blue-200 text-sm">MHNET Telecom</p>
+            <h1 class="text-3xl font-bold tracking-tight">MHNET</h1>
+            <p class="text-blue-200 mt-1 font-medium">Vendas Externas</p>
         </div>
-        <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-2xl fade-in text-gray-800">
-            <label class="block text-sm font-medium text-gray-600 mb-2">Quem é você?</label>
-            <select id="userSelect" class="input-field mb-4 bg-gray-50">
-                <option value="">Carregando lista...</option>
-            </select>
+        
+        <div class="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-xl fade-in text-gray-800">
+            <label class="block text-sm font-bold text-gray-500 mb-3 ml-1 uppercase text-xs tracking-wide">Identifique-se</label>
+            <div class="relative mb-6">
+                <i class="fas fa-user-circle absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl"></i>
+                <select id="userSelect" class="w-full pl-12 pr-8 py-4 bg-gray-50 rounded-xl text-gray-700 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                    <option value="">Carregando equipe...</option>
+                </select>
+                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+            </div>
             <button onclick="setLoggedUser()" class="btn-primary bg-blue-600 hover:bg-blue-700">
-                <i class="fas fa-sign-in-alt"></i> Acessar Sistema
+                Entrar
             </button>
         </div>
-        <p class="absolute bottom-6 text-xs text-blue-300 opacity-60">Versão 5.5 (Layout Fix)</p>
+        <p class="absolute bottom-8 text-xs text-blue-300/60 font-medium">Versão 5.9 Safe</p>
     </div>
 
-    <!-- MAIN APP -->
+    <!-- APP CONTENT -->
     <div id="mainContent" class="flex-1 flex flex-col overflow-hidden relative" style="display: none;">
         
-        <header class="bg-white border-b border-gray-100 px-5 py-4 flex justify-between items-center shadow-sm z-10">
-            <div>
-                <h2 class="text-lg font-bold text-blue-800 leading-tight">MHNET</h2>
-                <p id="userInfo" class="text-xs text-gray-500 font-medium">Carregando...</p>
+        <!-- HEADER -->
+        <header class="bg-white/90 backdrop-blur-md border-b border-gray-200 px-5 py-3 flex justify-between items-center z-10 sticky top-0">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">MH</div>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800 leading-tight">Vendas</h2>
+                    <p id="userInfo" class="text-[10px] text-slate-400 font-bold uppercase tracking-wide">...</p>
+                </div>
             </div>
-            <button onclick="logout()" class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+            <button onclick="logout()" class="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
                 <i class="fas fa-power-off text-sm"></i>
             </button>
         </header>
 
-        <main class="flex-1 overflow-y-auto p-4 pb-24 scroll-smooth bg-[#f4f7fa]">
+        <!-- AREA DE ROLAGEM -->
+        <main class="flex-1 overflow-y-auto p-5 pb-32 scroll-smooth bg-[#f1f5f9]">
             
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
-                <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-lg mb-6 relative overflow-hidden">
-                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
-                        <i class="fas fa-chart-line text-8xl"></i>
+                <!-- Card Principal -->
+                <div class="bg-gradient-to-br from-blue-700 to-indigo-700 rounded-[2rem] p-6 text-white shadow-xl shadow-blue-700/20 mb-6 relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 bg-white/10 w-40 h-40 rounded-full blur-2xl"></div>
+                    <p class="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Performance Hoje</p>
+                    <div class="flex items-end gap-3 mb-6">
+                        <span id="statLeads" class="text-6xl font-bold tracking-tighter">0</span>
+                        <span class="text-sm text-blue-200 mb-3 font-medium">leads</span>
                     </div>
-                    <p class="text-blue-100 text-sm mb-1">Resumo de Hoje</p>
-                    <div class="flex items-baseline gap-2">
-                        <span id="statLeads" class="text-4xl font-bold">0</span>
-                        <span class="text-sm opacity-80">novos leads</span>
-                    </div>
-                    <button onclick="gerarCoachIA()" class="mt-4 text-xs bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-2 transition border border-white/30">
-                        <i class="fas fa-robot"></i> ✨ Feedback do Coach IA
+                    <button onclick="gerarCoachIA()" class="bg-white/15 hover:bg-white/25 active:scale-95 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition w-full backdrop-blur-sm border border-white/10">
+                        <i class="fas fa-robot text-yellow-300"></i> Feedback Diário IA
                     </button>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <button onclick="document.getElementById('nav-novo').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
-                        <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <button onclick="document.getElementById('nav-novo').click()" class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl mb-1">
                             <i class="fas fa-plus"></i>
                         </div>
-                        <span class="text-sm font-medium text-gray-600">Novo Lead</span>
+                        <span class="text-sm font-bold text-gray-600">Novo Lead</span>
                     </button>
-                    <button onclick="document.getElementById('nav-rota').click()" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center gap-2 active:scale-95 transition">
-                        <div class="w-10 h-10 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                    <button onclick="document.getElementById('nav-rota').click()" class="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition">
+                        <div class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center text-xl mb-1">
                             <i class="fas fa-map-marker-alt"></i>
                         </div>
-                        <span class="text-sm font-medium text-gray-600">Minha Rota</span>
+                        <span class="text-sm font-bold text-gray-600">Minha Rota</span>
                     </button>
-                </div>
-
-                <h3 class="text-sm font-bold text-gray-700 mb-3 px-1">Última Atividade</h3>
-                <div class="card" id="lastLeadContent">
-                    <div class="text-center text-gray-400 py-4 text-sm">Nenhuma atividade recente</div>
                 </div>
             </div>
 
-            <!-- CADASTRO LEAD (Layout Arrumado) -->
+            <!-- CADASTRO LEAD (DESIGN NOVO) -->
             <div id="cadastroLead" class="page hidden fade-in">
-                <h2 class="text-xl font-bold text-gray-800 mb-5 pl-1">Novo Cliente</h2>
+                <div class="flex items-center justify-between mb-6 px-1">
+                    <h2 class="text-2xl font-bold text-slate-800">Novo Cadastro</h2>
+                    <span class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-md uppercase tracking-wide">Ficha Digital</span>
+                </div>
                 
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <!-- Grupo 1: Contato -->
+                <!-- Bloco 1: Quem -->
+                <div class="form-section">
+                    <p class="form-section-title"><i class="fas fa-address-card"></i> Dados do Cliente</p>
                     <div class="input-group">
-                        <label class="input-label">Nome Completo</label>
-                        <input type="text" id="leadNome" class="input-field" placeholder="Ex: João da Silva">
+                        <input type="text" id="leadNome" class="input-field" placeholder="Nome Completo">
+                        <i class="fas fa-user input-icon"></i>
                     </div>
-                    
-                    <div class="input-group">
-                        <label class="input-label">Telefone / WhatsApp</label>
-                        <input type="tel" id="leadTelefone" class="input-field" placeholder="(51) 99999-9999">
+                    <div class="input-group mb-0">
+                        <input type="tel" id="leadTelefone" class="input-field" placeholder="WhatsApp / Telefone">
+                        <i class="fab fa-whatsapp input-icon text-green-500"></i>
                     </div>
+                </div>
 
-                    <hr class="border-gray-100 my-5">
-
-                    <!-- Grupo 2: Endereço -->
+                <!-- Bloco 2: Onde -->
+                <div class="form-section">
+                    <p class="form-section-title"><i class="fas fa-map-marked-alt"></i> Endereço</p>
                     <div class="input-group">
-                        <label class="input-label">Bairro</label>
-                        <input type="text" id="leadBairro" class="input-field" placeholder="Ex: Centro">
+                        <input type="text" id="leadBairro" class="input-field" placeholder="Bairro">
+                        <i class="fas fa-map-pin input-icon text-red-400"></i>
                     </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 input-group">
-                        <div>
-                            <label class="input-label">Cidade</label>
+                    <div class="flex gap-4 mb-0">
+                        <div class="relative w-1/2">
                             <input type="text" id="leadCidade" class="input-field" value="Lajeado">
+                            <i class="fas fa-city input-icon"></i>
                         </div>
-                        <div>
-                            <label class="input-label">Endereço</label>
-                            <input type="text" id="leadEndereco" class="input-field" placeholder="Rua/Nº">
-                        </div>
-                    </div>
-
-                    <hr class="border-gray-100 my-5">
-
-                    <!-- Grupo 3: Detalhes -->
-                    <div class="input-group">
-                        <label class="input-label">Nível de Interesse</label>
-                        <select id="leadInteresse" class="input-field bg-white">
-                            <option value="Alto">🔥 Alto (Quer instalar)</option>
-                            <option value="Médio">🤔 Médio (Pesquisando)</option>
-                            <option value="Baixo">❄️ Baixo (Só curiosidade)</option>
-                        </select>
-                    </div>
-
-                    <div class="input-group">
-                        <div class="flex justify-between items-end mb-2">
-                            <label class="input-label mb-0">Observações</label>
-                            <button onclick="gerarAbordagemIA()" class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md font-bold flex items-center gap-1 active:scale-95 transition">
-                                <i class="fab fa-whatsapp"></i> Criar Pitch
-                            </button>
-                        </div>
-                        <textarea id="leadObs" rows="3" class="input-field" placeholder="Detalhes do atendimento..."></textarea>
-                        
-                        <div class="flex justify-end mt-2">
-                             <button onclick="refinarObservacaoIA()" class="text-xs text-purple-600 font-bold flex items-center gap-1 hover:text-purple-800">
-                                <i class="fas fa-magic"></i> ✨ Melhorar Texto
-                            </button>
+                        <div class="relative w-1/2">
+                            <input type="text" id="leadEndereco" class="input-field" placeholder="Rua e Nº">
+                            <i class="fas fa-home input-icon"></i>
                         </div>
                     </div>
                 </div>
 
-                <div class="pt-4 pb-8">
-                    <button onclick="enviarLead()" class="btn-primary bg-green-600 hover:bg-green-700 shadow-green-200">
-                        <i class="fas fa-paper-plane"></i> Salvar Lead
+                <!-- Bloco 3: O Que -->
+                <div class="form-section">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="form-section-title mb-0"><i class="fas fa-info-circle"></i> Detalhes</p>
+                        <div class="flex gap-2">
+                             <button onclick="gerarAbordagemIA()" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold flex items-center gap-1">
+                                <i class="fas fa-magic"></i> Pitch IA
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <select id="leadInteresse" class="input-field appearance-none bg-white">
+                            <option value="Alto">🔥 Interesse Alto (Quer Fechar)</option>
+                            <option value="Médio">🤔 Interesse Médio (Pesquisa)</option>
+                            <option value="Baixo">❄️ Interesse Baixo (Curioso)</option>
+                        </select>
+                        <i class="fas fa-fire input-icon text-orange-500"></i>
+                        <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                    </div>
+
+                    <div class="relative mt-4">
+                        <textarea id="leadObs" rows="3" class="input-field pl-12 pt-4 resize-none" placeholder="Observações do vendedor..."></textarea>
+                        <i class="fas fa-comment-alt input-icon top-6"></i>
+                        <button onclick="refinarObservacaoIA()" class="absolute right-2 bottom-2 text-[10px] text-purple-600 bg-purple-50 px-2 py-1 rounded-lg font-bold">
+                            ✨ Melhorar Texto
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-4 mb-8">
+                    <button onclick="enviarLead()" class="btn-primary">
+                        <i class="fas fa-paper-plane"></i> Salvar Registro
                     </button>
                 </div>
             </div>
 
             <!-- GESTÃO LEADS -->
             <div id="gestaoLeads" class="page hidden fade-in">
-                <div class="sticky top-0 bg-[#f4f7fa] pt-1 pb-4 z-10 shadow-sm mb-4">
-                    <div class="flex justify-between items-center px-1 mb-3">
-                        <h2 class="text-xl font-bold text-gray-800">Meus Leads</h2>
-                        <button onclick="analisarCarteiraIA()" class="text-xs btn-ai-magic px-3 py-1.5 rounded-full font-bold shadow-md active:scale-95 transition">
-                            ✨ Estratégia IA
+                <div class="sticky top-0 bg-[#f1f5f9]/95 backdrop-blur-sm pt-2 pb-4 z-10">
+                    <div class="flex justify-between items-center px-2 mb-4">
+                        <h2 class="text-2xl font-bold text-slate-800">Meus Leads</h2>
+                        <button onclick="analisarCarteiraIA()" class="bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm active:scale-95 transition">
+                            ✨ Dicas IA
                         </button>
                     </div>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-                        <input type="text" id="searchLead" onkeyup="renderLeads()" placeholder="Buscar nome, bairro..." class="input-field pl-10 rounded-full shadow-sm">
+                    <div class="relative mx-1">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchLead" onkeyup="renderLeads()" placeholder="Buscar..." class="w-full pl-10 p-4 bg-white border-none rounded-2xl text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-100">
                     </div>
                 </div>
-                <div id="listaLeadsGestao" class="pb-4"></div>
+                <div id="listaLeadsGestao" class="pb-4 space-y-3 px-1"></div>
             </div>
 
             <!-- ROTA -->
-            <div id="rota" class="page hidden fade-in text-center">
-                <h2 class="text-xl font-bold text-gray-800 mb-6">Controle de Rota</h2>
-                <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 mx-auto max-w-xs relative">
-                    <div class="absolute inset-0 rounded-3xl border-4 border-blue-50 pointer-events-none"></div>
-                    <div class="text-gray-400 text-sm font-medium mb-1">TEMPO DE ROTA</div>
-                    <div id="timer" class="text-5xl font-mono font-bold text-gray-800 tracking-wider mb-6">00:00:00</div>
-                    <div class="grid grid-cols-2 gap-4 text-left border-t border-gray-100 pt-6">
-                        <div>
-                            <div class="text-xs text-gray-400 uppercase">Pontos</div>
+            <div id="rota" class="page hidden fade-in text-center px-4 pt-4">
+                <h2 class="text-2xl font-bold text-slate-800 mb-8">Controle de Rota</h2>
+                
+                <div class="bg-white rounded-[2.5rem] p-8 shadow-xl shadow-slate-200 border border-slate-100 mb-10 mx-auto max-w-xs relative overflow-hidden">
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-blue-500 rounded-b-lg"></div>
+                    
+                    <div class="text-slate-400 text-[10px] font-bold tracking-widest uppercase mb-4">Tempo em Campo</div>
+                    <div id="timer" class="text-5xl font-mono font-bold text-slate-800 tracking-tighter mb-8">00:00:00</div>
+                    
+                    <div class="flex justify-between border-t border-slate-50 pt-6">
+                        <div class="text-left">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase">Pontos GPS</div>
                             <div id="points" class="text-xl font-bold text-blue-600">0</div>
                         </div>
-                        <div>
-                            <div class="text-xs text-gray-400 uppercase">Status GPS</div>
-                            <div id="gpsStatus" class="status-badge inline-block mt-1">Aguardando</div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Status</div>
+                            <div id="gpsStatus" class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-bold inline-block">Aguardando</div>
                         </div>
                     </div>
                 </div>
-                <div class="space-y-3 max-w-xs mx-auto">
-                    <button id="btnStart" onclick="startRoute()" class="btn-primary bg-blue-600 hover:bg-blue-700 py-4">
+
+                <div class="space-y-4 max-w-xs mx-auto">
+                    <button id="btnStart" onclick="startRoute()" class="btn-primary bg-blue-600">
                         <i class="fas fa-play"></i> Iniciar Rota
                     </button>
-                    <button id="btnStop" onclick="stopRoute()" class="btn-primary bg-red-500 hover:bg-red-600 py-4 hidden">
+                    <button id="btnStop" onclick="stopRoute()" class="btn-primary bg-red-500 hidden">
                         <i class="fas fa-stop"></i> Finalizar Rota
                     </button>
                 </div>
-                <p class="text-xs text-gray-400 mt-8 px-8">Mantenha a tela desbloqueada.</p>
             </div>
+
         </main>
 
-        <nav class="bg-white border-t border-gray-200 flex justify-around px-2 pb-safe pt-1 absolute bottom-0 w-full z-20">
+        <!-- NAVEGAÇÃO -->
+        <nav class="bg-white border-t border-gray-100 flex justify-around px-4 pb-safe pt-2 absolute bottom-0 w-full z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.03)] rounded-t-3xl">
             <button id="nav-home" onclick="showPage('dashboard'); setActiveNav(this)" class="nav-item active">
                 <i class="fas fa-home"></i> <span>Início</span>
             </button>
             <button id="nav-novo" onclick="showPage('cadastroLead'); setActiveNav(this)" class="nav-item">
-                <i class="fas fa-user-plus"></i> <span>Novo</span>
+                <i class="fas fa-plus-circle text-2xl mb-1 text-blue-600"></i> <span class="text-blue-600">Novo</span>
             </button>
             <button id="nav-lista" onclick="showPage('gestaoLeads'); setActiveNav(this)" class="nav-item">
-                <i class="fas fa-list-alt"></i> <span>Lista</span>
+                <i class="fas fa-stream"></i> <span>Leads</span>
             </button>
             <button id="nav-rota" onclick="showPage('rota'); setActiveNav(this)" class="nav-item">
-                <i class="fas fa-map-marked-alt"></i> <span>Rota</span>
+                <i class="fas fa-location-arrow"></i> <span>Rota</span>
             </button>
         </nav>
         
-        <div id="loader" class="fixed inset-0 bg-white/90 z-[60] hidden flex-col items-center justify-center backdrop-blur-sm">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mb-4"></div>
-            <p id="loaderText" class="text-blue-800 font-medium animate-pulse">Carregando...</p>
+        <!-- LOADER -->
+        <div id="loader" class="fixed inset-0 bg-white/95 z-[70] hidden flex-col items-center justify-center backdrop-blur-sm">
+            <div class="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <p id="loaderText" class="text-blue-900 font-bold animate-pulse text-sm tracking-widest">PROCESSANDO</p>
         </div>
     </div>
     
@@ -251,11 +277,19 @@
     <script>
         function setActiveNav(element) {
             document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active', 'text-blue-600', 'font-semibold');
+                el.classList.remove('active');
                 el.classList.add('text-gray-400');
+                if(el.querySelector('.fa-plus-circle')) {
+                    el.classList.remove('text-blue-600');
+                    el.querySelector('span').classList.remove('text-blue-600');
+                }
             });
-            element.classList.add('active', 'text-blue-600', 'font-semibold');
+            element.classList.add('active');
             element.classList.remove('text-gray-400');
+        }
+        if (window.CSS && CSS.supports("padding-bottom: env(safe-area-inset-bottom)")) {
+            document.querySelector('nav').style.paddingBottom = "env(safe-area-inset-bottom)";
+            document.querySelector('main').style.paddingBottom = "calc(6rem + env(safe-area-inset-bottom))";
         }
     </script>
 </body>
