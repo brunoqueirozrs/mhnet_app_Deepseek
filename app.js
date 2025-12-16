@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA v11.1 (Fix Leads & Busca Inteligente)
+ * MHNET VENDAS - LÓGICA v11.2 (CORS + Mobile Fix)
  * ============================================================
  */
 
@@ -10,21 +10,14 @@ const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
-// LISTA FIXA (GARANTIA DE LOGIN)
+// LISTA FIXA
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
     "Elton da Silva Rodrigo Gonçalves"
 ];
 
-// CONTEXTO DE PLANOS PARA A IA
-const PLANOS_CONTEXTO = `
-CONTEXTO MHNET:
-- 500 Mega: R$ 89,90 (Fidelidade 12 meses)
-- 700 Mega: R$ 99,90 (Melhor custo-benefício)
-- 1 Giga: R$ 119,90 (Para gamers e heavy users)
-Instalação grátis. Wi-Fi 6 incluso no plano Giga.
-`;
+const PLANOS_CONTEXTO = `CONTEXTO MHNET: 500 Mega: R$ 89,90 | 700 Mega: R$ 99,90 | 1 Giga: R$ 119,90. Instalação grátis.`;
 
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
@@ -68,7 +61,6 @@ function navegarPara(pageId) {
   const target = document.getElementById(pageId);
   if(target) target.style.display = 'block';
   
-  // Scroll do container principal, não da janela
   const mainScroll = document.getElementById('main-scroll');
   if(mainScroll) mainScroll.scrollTo(0,0);
 
@@ -110,22 +102,15 @@ function logout() {
   }
 }
 
-// === API IA (GEMINI) ===
+// === API IA ===
 async function chamarGemini(prompt) {
   if (!GEMINI_KEY) return null;
   const fullPrompt = `${PLANOS_CONTEXTO}\n\nPERGUNTA: ${prompt}`;
-  
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
     });
-    
-    if(!res.ok) {
-        console.error("Erro IA:", res.status);
-        return null;
-    }
-    
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text;
   } catch (e) { return null; }
@@ -135,49 +120,24 @@ async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   if(!nome) return alert("Preencha o nome!");
   showLoading(true, "CRIANDO PITCH...");
-  const txt = await chamarGemini(`Crie mensagem curta de WhatsApp para vender fibra MHNET para ${nome}. Use emojis.`);
+  const txt = await chamarGemini(`Mensagem WhatsApp venda fibra MHNET para ${nome}.`);
   showLoading(false);
   if(txt) document.getElementById('leadObs').value = txt.replace(/\*\*/g, '');
 }
 
-async function refinarObservacaoIA() {
-  const obs = document.getElementById('leadObs').value;
-  if (!obs) return;
-  showLoading(true, "IA Refinando...");
-  const txt = await chamarGemini(`Resuma formalmente para CRM: "${obs}"`);
-  if (txt) document.getElementById('leadObs').value = txt.trim();
-  showLoading(false);
-}
-
-// Função para o botão "Consultor Planos IA"
 async function consultarPlanosIA() {
     toggleChat();
     const history = document.getElementById('chatHistory');
-    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">Quais são os planos atuais?</div></div>`;
-    
-    const loadingId = 'loading-' + Date.now();
-    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
-
-    const response = await chamarGemini("Quais são os planos e preços da MHNET? Responda em tópicos curtos.");
-    
-    document.getElementById(loadingId)?.remove();
-
-    if(response) {
-         const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${formatted}</div></div>`;
-    }
+    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">Planos?</div></div>`;
+    const response = await chamarGemini("Quais os planos e preços? Resuma.");
+    if(response) history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response}</div></div>`;
 }
 
-// === CHAT ===
 function toggleChat() {
     const el = document.getElementById('chatModal');
-    const history = document.getElementById('chatHistory');
     if(el.classList.contains('hidden')) {
         el.classList.remove('hidden');
         setTimeout(() => document.getElementById('chatInput').focus(), 300);
-        if(!history.hasChildNodes() || history.innerHTML.trim() === "") {
-             history.innerHTML = `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[85%]">Olá! Sou o assistente MHNET. Como posso ajudar nas vendas hoje?</div></div>`;
-        }
     } else {
         el.classList.add('hidden');
     }
@@ -188,21 +148,12 @@ async function enviarMensagemChat() {
     const history = document.getElementById('chatHistory');
     const msg = input.value.trim();
     if(!msg) return;
-
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
     input.value = '';
     history.scrollTop = history.scrollHeight;
-    
-    const loadingId = 'loading-' + Date.now();
-    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
-    history.scrollTop = history.scrollHeight;
-
     const response = await chamarGemini(msg);
-    document.getElementById(loadingId)?.remove();
-
     if(response) {
-         const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${formatted}</div></div>`;
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response}</div></div>`;
          history.scrollTop = history.scrollHeight;
     }
 }
@@ -239,36 +190,27 @@ async function enviarLead() {
     carregarLeads(); 
     navegarPara('gestaoLeads');
   } else {
-    if(res === 'CORS_ERROR') {
-        alert('✅ Lead salvo com sucesso!');
-        carregarLeads();
-        navegarPara('gestaoLeads');
-    } else {
-        alert('Erro ao salvar. Verifique conexão.');
-    }
+      if(res === 'CORS_ERROR') {
+          alert('✅ Lead salvo (CORS bypass)!');
+          carregarLeads();
+          navegarPara('gestaoLeads');
+      } else {
+          alert('Erro ao salvar. Verifique conexão.');
+      }
   }
 }
 
-// *** FUNÇÃO DE BUSCA INTELIGENTE (CORRIGIDA) ***
 async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
-  if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8">Buscando histórico...</div>';
+  if(lista) lista.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8">Buscando...</div>';
 
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
-    const todos = res.data || [];
-    console.log("Total leads encontrados:", todos.length);
-
-    // FILTRO INTELIGENTE: Verifica se o nome contém o outro (vice-versa) e ignora espaços extras
-    leadsCache = todos.filter(l => {
-      const v = (l.vendedor || l.Vendedor || '').toLowerCase().trim();
-      const u = loggedUser.toLowerCase().trim();
-      return v && u && (v.includes(u) || u.includes(v));
+    leadsCache = (res.data || []).filter(l => {
+      const v = (l.vendedor || l.Vendedor || '').toLowerCase();
+      return v.includes(loggedUser.toLowerCase());
     });
-    
-    console.log("Leads filtrados para o usuário:", leadsCache.length);
-
     renderLeads();
     atualizarDashboard();
   } else {
@@ -286,23 +228,9 @@ function renderLeads() {
   );
   
   if (!filtrados.length) {
-    div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1">Nenhum registro encontrado.</div>';
+    div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1">Nenhum registro.</div>';
     return;
   }
-  
-  // Ordena por data (recente primeiro)
-  filtrados.sort((a,b) => {
-      const getDate = (d) => {
-        if(!d) return 0;
-        if(d.includes('/')) {
-            const parts = d.split(' ');
-            const dateParts = parts[0].split('/');
-            return new Date(dateParts[2], dateParts[1]-1, dateParts[0]);
-        }
-        return new Date(d);
-      };
-      return getDate(b.timestamp) - getDate(a.timestamp);
-  });
 
   div.innerHTML = filtrados.map(l => {
     let badgeClass = "bg-gray-100 text-gray-500";
@@ -335,12 +263,12 @@ function atualizarDashboard() {
   if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
-// *** OUTRAS FUNÇÕES IA ***
+// OUTRAS FUNÇÕES
 async function analisarCarteiraIA() {
   if (!leadsCache.length) return alert("Sem leads.");
   showLoading(true, "ANALISANDO...");
   const bairros = [...new Set(leadsCache.slice(0, 30).map(l => l.bairro || 'Geral'))].join(', ');
-  const txt = await chamarGemini(`Sugira rota para estes bairros: ${bairros}.`);
+  const txt = await chamarGemini(`Sugira rota para: ${bairros}.`);
   showLoading(false);
   if (txt) alert(`💡 DICA:\n\n${txt}`);
 }
@@ -354,14 +282,11 @@ async function gerarCoachIA() {
   if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
 }
 
-// ROTA
 function startRoute() {
   if (!navigator.geolocation) return alert('Ative o GPS.');
   routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
-  
   document.getElementById('btnStart').style.display = 'none';
   document.getElementById('btnStop').style.display = 'flex';
-  
   timerInterval = setInterval(() => {
     seconds++;
     const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
@@ -369,7 +294,6 @@ function startRoute() {
     const s = (seconds % 60).toString().padStart(2,'0');
     document.getElementById('timer').innerText = `${h}:${m}:${s}`;
   }, 1000);
-
   watchId = navigator.geolocation.watchPosition(p => {
     routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
     document.getElementById('points').innerText = routeCoords.length;
@@ -391,12 +315,11 @@ function updateRouteUI(on) {
 }
 function resetRouteUI() {
   updateRouteUI(false);
-  document.getElementById('timer').innerText = "00:00:00";
-  document.getElementById('points').innerText = "0";
+  document.getElementById('timer').innerText = "00:00:00"; document.getElementById('points').innerText = "0";
   document.getElementById('gpsStatus').innerText = "Parado";
 }
 
-// API GENÉRICA
+// API
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
   try {
@@ -413,7 +336,6 @@ async function apiCall(route, payload, show=true, suppress=false) {
     return json;
   } catch(e) {
     if(show) showLoading(false);
-    // Se for erro de fetch em POST, assume sucesso opaco (CORS)
     if(e.name === 'TypeError' && (route === 'addLead' || route === 'saveRoute')) return 'CORS_ERROR';
     if(!suppress) alert("Erro conexão: " + e.message);
     return null;
