@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const DEPLOY_ID = 'AKfycbyWYgd3r5pA1dYB5LD_PY6m4V2FjWG-Oi6vYjlvNBre9r_eGiPlhia-HtJjD2Mnfc9F'; 
+const DEPLOY_ID = 'AKfycbw4zQgSu8o_5Zda-G5nOzZ2EXAx3syju6fUbqE48oNxs9Uyi33WvMgYZHpD7DCaTPoQ'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
