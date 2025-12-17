@@ -494,7 +494,6 @@ async function carregarLeads() {
 function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   if (!div) return;
-  
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
   
   const filtrados = leadsCache.filter(l => 
@@ -548,6 +547,8 @@ function abrirLeadDetalhes(index) {
     currentLeadIndex = index;
     const lead = leadsCache[index];
     if(!lead) return;
+    
+    leadAtualParaAgendar = lead; // ✅ Guarda para usar no agendamento
 
     document.getElementById('modalLeadNome').innerText = lead.nomeLead || 'Sem Nome';
     document.getElementById('modalLeadInfo').innerText = `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`;
@@ -564,10 +565,10 @@ function abrirLeadDetalhes(index) {
 
     // Preenche campos de agendamento se já existir
     if(lead.agendamento) {
-        const parts = lead.agendamento.split(' ');
-        const dParts = parts[0].split('/');
-        document.getElementById('agendarData').value = `${dParts[2]}-${dParts[1]}-${dParts[0]}`;
-        document.getElementById('agendarHora').value = parts[1] ? parts[1].substring(0,5) : '';
+        const [data, hora] = lead.agendamento.split(' ');
+        const [dia, mes, ano] = data.split('/');
+        document.getElementById('agendarData').value = `${ano}-${mes}-${dia}`;
+        document.getElementById('agendarHora').value = hora || '';
     } else {
         document.getElementById('agendarData').value = '';
         document.getElementById('agendarHora').value = '09:00';
@@ -608,6 +609,7 @@ function atualizarDashboard() {
 // ============================================================
 // 5. ROTA (GPS)
 // ============================================================
+
 function startRoute() {
   if (!navigator.geolocation) {
     return alert('⚠️ GPS não disponível neste dispositivo.');
@@ -701,10 +703,6 @@ async function apiCall(route, payload = {}, showLoader = true, suppressAlert = f
           payload: payload
         })
     });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
     
     const text = await response.text();
     let json;
