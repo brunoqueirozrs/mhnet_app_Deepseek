@@ -14,7 +14,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
     
-    <!-- Configurações Mobile (Correção do Aviso) -->
+    <!-- Configurações Mobile -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -28,7 +28,7 @@
             overflow: hidden;
         }
 
-        /* SCROLL AREA - Aumentado para garantir visibilidade */
+        /* SCROLL AREA */
         #main-scroll {
             height: 100%;
             overflow-y: auto;
@@ -39,6 +39,9 @@
         /* ANIMAÇÕES */
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
         /* BOTÃO SALVAR ELEGANTE */
         .btn-save-elegant {
@@ -85,7 +88,7 @@
                     Entrar Agora
                 </button>
             </div>
-            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v11.3 • Fix Mobile</p>
+            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v12.0 • Final Sync</p>
         </div>
     </div>
 
@@ -187,12 +190,9 @@
                     </div>
                 </div>
 
-                <!-- BOTÃO SALVAR ELEGANTE -->
                 <button onclick="enviarLead()" class="btn-save-elegant mb-4">
                     <i class="fas fa-check-circle"></i> SALVAR CADASTRO
                 </button>
-                
-                <!-- Espaço Extra para Rolagem no Mobile -->
                 <div style="height: 100px;"></div>
             </div>
 
@@ -200,7 +200,9 @@
             <div id="gestaoLeads" class="page hidden fade-in">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-[#003870] tracking-tight">Histórico</h2>
-                    <button onclick="analisarCarteiraIA()" class="text-xs bg-white border border-blue-200 text-[#004c99] px-4 py-2 rounded-full font-bold shadow-sm">✨ Analisar</button>
+                    <button onclick="carregarLeads()" class="text-xs bg-white border border-blue-200 text-[#004c99] px-4 py-2 rounded-full font-bold shadow-sm flex items-center gap-1">
+                        <i class="fas fa-sync-alt"></i> Atualizar
+                    </button>
                 </div>
                 <div class="relative mb-6">
                     <input type="text" id="searchLead" onkeyup="renderLeads()" class="modern-input" placeholder="Buscar cliente..." style="border-radius:100px; padding-left:55px;">
@@ -246,6 +248,52 @@
                 <div class="p-3 bg-white border-t flex gap-2 pb-safe">
                     <input type="text" id="chatInput" class="flex-1 border rounded-full px-4 py-2 outline-none" placeholder="Digite...">
                     <button onclick="enviarMensagemChat()" class="bg-[#004c99] text-white w-10 h-10 rounded-full"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DETALHES LEAD (NOVO) -->
+        <div id="leadModal" class="hidden fixed inset-0 z-[70]">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="fecharLeadModal()"></div>
+            <div class="absolute bottom-0 w-full h-[92%] bg-[#f8fafc] rounded-t-[2.5rem] flex flex-col overflow-hidden shadow-2xl transition-transform slide-up">
+                <!-- Header Modal -->
+                <div class="bg-white p-5 border-b border-gray-100 flex justify-between items-center relative">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ficha do Cliente</p>
+                        <h3 id="modalLeadNome" class="font-bold text-[#003870] text-xl leading-tight">Nome</h3>
+                        <p id="modalLeadInfo" class="text-xs text-gray-500 mt-1">Detalhes...</p>
+                    </div>
+                    <button onclick="fecharLeadModal()" class="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+                <!-- Conteúdo Modal -->
+                <div class="flex-1 overflow-y-auto p-6 bg-[#f8fafc]">
+                    <!-- Ações -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <button id="btnModalWhats" class="bg-green-100 text-green-700 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fab fa-whatsapp text-xl"></i> WhatsApp
+                        </button>
+                        <button id="btnModalAgenda" class="bg-blue-100 text-blue-700 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-sm">
+                            <i class="fas fa-calendar-plus text-xl"></i> Agendar
+                        </button>
+                    </div>
+                    <!-- Agenda -->
+                    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 overflow-hidden mb-6">
+                        <div class="p-4 border-b border-gray-100 bg-gray-50">
+                            <h4 class="font-bold text-gray-700 text-sm uppercase flex items-center gap-2"><i class="fas fa-calendar-alt text-[#004c99]"></i> Disponibilidade</h4>
+                        </div>
+                        <div class="aspect-[4/3] w-full relative bg-white">
+                             <iframe src="https://calendar.google.com/calendar/embed?src=e6e6469ed745c33bb0286bafbc8706fe8c371ea0551db46642d5765292aa06f7%40group.calendar.google.com&ctz=America%2FSao_Paulo&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=0&showCalendars=0&mode=AGENDA" 
+                             style="border: 0; width:100%; height:100%; position:absolute; top:0; left:0;" frameborder="0" scrolling="no"></iframe>
+                        </div>
+                    </div>
+                    <!-- Detalhes -->
+                    <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
+                        <p class="text-xs font-bold text-gray-400 uppercase mb-2">Observações</p>
+                        <p id="modalLeadObs" class="text-sm text-gray-700 leading-relaxed">...</p>
+                    </div>
+                    <div class="h-20"></div>
                 </div>
             </div>
         </div>
