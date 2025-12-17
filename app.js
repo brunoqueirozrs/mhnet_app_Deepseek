@@ -1,16 +1,17 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND (v12.0 - Modal & Sync)
+ * MHNET VENDAS - LÓGICA FRONTEND (v12.1 - ID Atualizado)
+ * Sincronizado com Backend V20 (Híbrido)
  * ============================================================
  */
 
-// ✅ CONFIGURAÇÃO
-const DEPLOY_ID = 'AKfycbxa40YwWmSWT964dyRTHvS9GLSZG9TiQCN0Qx2kMVLLsXv3-mEHJaefCkH-QR5VILma'; 
+// ✅ CONFIGURAÇÃO (ID NOVO APLICADO)
+const DEPLOY_ID = 'AKfycbwcA8S8xJZWYWgA6UueGOLJcB75iKAMTaVjc5B0wPfUlcalyy7hZ3YNeinIVwTNvCd5'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
-// LISTA FIXA DE VENDEDORES
+// LISTA FIXA DE VENDEDORES (Para login imediato)
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
@@ -33,7 +34,7 @@ let routeStartTime = null;
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Preenche a lista de vendedores (Visual)
+  // Preenche a lista de vendedores imediatamente
   const select = document.getElementById('userSelect');
   if(select) {
       select.innerHTML = '<option value="">Toque para selecionar...</option>';
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // Tenta recuperar cache local do navegador
+  // Recupera cache local se existir
   const localData = localStorage.getItem('mhnet_leads_cache');
   if(localData) {
       try { leadsCache = JSON.parse(localData); } catch(e){}
@@ -66,10 +67,10 @@ function initApp() {
   
   navegarPara('dashboard');
   
-  // Renderiza o que tem no cache primeiro (instantâneo)
+  // Renderiza cache primeiro
   renderLeads();
   
-  // Tenta atualizar da nuvem em background
+  // Busca atualização na nuvem
   carregarLeads();
 }
 
@@ -132,23 +133,17 @@ function logout() {
 }
 
 // ============================================================
-// 3. GESTÃO DE LEADS E MODAL (NOVO)
+// 3. GESTÃO DE LEADS E MODAL
 // ============================================================
 
-// Abre o Modal com Detalhes
 function abrirLeadDetalhes(index) {
     const lead = leadsCache[index];
     if(!lead) return;
 
-    // Preenche os dados
     document.getElementById('modalLeadNome').innerText = lead.nomeLead || lead.lead || 'Sem Nome';
     document.getElementById('modalLeadInfo').innerText = `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`;
-    
-    // Obs
-    const obs = lead.observacao || "Nenhuma observação registada.";
-    document.getElementById('modalLeadObs').innerText = obs;
+    document.getElementById('modalLeadObs').innerText = lead.observacao || "Nenhuma observação registada.";
 
-    // Configura botões de ação
     const tel = (lead.telefone || lead.whatsapp || "").replace(/\D/g, '');
     const btnWhats = document.getElementById('btnModalWhats');
     
@@ -157,7 +152,6 @@ function abrirLeadDetalhes(index) {
         else alert("Telefone não disponível.");
     };
 
-    // Abre o Modal
     const modal = document.getElementById('leadModal');
     modal.classList.remove('hidden');
     const content = modal.querySelector('div.absolute');
@@ -170,7 +164,6 @@ function fecharLeadModal() {
     document.getElementById('leadModal').classList.add('hidden');
 }
 
-// Envio de Lead
 async function enviarLead() {
   const nome = document.getElementById('leadNome').value;
   const tel = document.getElementById('leadTelefone').value;
@@ -189,20 +182,16 @@ async function enviarLead() {
     provedor: "", timestamp: new Date().toISOString()
   };
   
-  // 1. Salva na Nuvem
+  // POST para salvar
   const res = await apiCall('addLead', novoLead);
-  
   showLoading(false);
   
-  // Se sucesso OU erro CORS (que é sucesso opaco)
+  // Sucesso ou CORS Opaco
   if ((res && res.status === 'success') || res === 'CORS_ERROR') {
       alert('✅ Lead Salvo!');
-      
-      // 2. Salva no Cache Local (Para aparecer imediatamente no app)
       leadsCache.unshift(novoLead);
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
 
-      // Limpa
       document.getElementById('leadNome').value = ''; 
       document.getElementById('leadTelefone').value = '';
       document.getElementById('leadEndereco').value = ''; 
@@ -215,22 +204,32 @@ async function enviarLead() {
   }
 }
 
+// *** LEITURA DE DADOS OTIMIZADA (GET) ***
 async function carregarLeads() {
-  // Silent refresh (não bloqueia tela)
-  const res = await apiCall('getLeads', {}, false, true);
+  const lista = document.getElementById('listaLeadsGestao');
+  if(lista && leadsCache.length === 0) lista.innerHTML = '<div style="text-align:center; padding:30px; color:#94a3b8">Atualizando...</div>';
+
+  // Usa GET na URL para evitar bloqueio de leitura
+  const url = `${API_URL}?route=getLeads&token=${encodeURIComponent(TOKEN)}`;
   
-  if (res && res.status === 'success') {
-    // Filtra leads do usuário
-    leadsCache = (res.data || []).filter(l => {
-      const v = (l.vendedor || l.Vendedor || '').toLowerCase();
-      return v.includes(loggedUser.toLowerCase());
-    });
+  try {
+    const response = await fetch(url);
+    const json = await response.json();
     
-    // Atualiza cache local
-    localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-    
-    renderLeads();
-    atualizarDashboard();
+    if (json.status === 'success') {
+      // Filtra leads do usuário
+      leadsCache = (json.data || []).filter(l => {
+        const v = (l.vendedor || l.Vendedor || '').toLowerCase();
+        return v.includes(loggedUser.toLowerCase());
+      });
+      
+      localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+      renderLeads();
+      atualizarDashboard();
+    }
+  } catch(e) {
+    console.error("Erro GET Leads:", e);
+    // Se falhar, mantém o cache local
   }
 }
 
@@ -244,18 +243,16 @@ function renderLeads() {
   );
   
   if (!filtrados.length) {
-    div.innerHTML = '<div style="text-align:center; padding:60px; color:#cbd5e1">Nenhum registro.</div>';
+    div.innerHTML = '<div style="text-align:center; padding:40px; color:#cbd5e1">Nenhum registro.</div>';
     return;
   }
 
-  // HTML da Lista (Card Clicável)
   div.innerHTML = filtrados.map((l, index) => {
     let badgeClass = "bg-gray-100 text-gray-500";
     const inter = (l.interesse || 'MÉDIO').toUpperCase();
     if(inter.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
     if(inter.includes('BAIXO')) badgeClass = "bg-red-50 text-red-500";
     
-    // O pulo do gato: onclick="abrirLeadDetalhes(${index})"
     return `
     <div onclick="abrirLeadDetalhes(${index})" class="bg-white p-5 rounded-[1.5rem] border border-blue-50 shadow-sm mb-4 cursor-pointer active:bg-blue-50 transition">
       <div class="flex justify-between items-start mb-3 pointer-events-none">
@@ -269,7 +266,7 @@ function renderLeads() {
          <i class="fas fa-map-marker-alt text-red-400"></i> ${l.bairro || 'Geral'}
       </div>
       <div class="text-xs text-blue-400 font-bold text-right pointer-events-none">
-         Toque para ver detalhes <i class="fas fa-chevron-right"></i>
+         Ver detalhes <i class="fas fa-chevron-right"></i>
       </div>
     </div>`;
   }).join('');
@@ -311,8 +308,19 @@ async function consultarPlanosIA() {
     toggleChat();
     const history = document.getElementById('chatHistory');
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">Planos?</div></div>`;
-    const response = await chamarGemini("Quais os planos e preços? Resuma.");
-    if(response) history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response}</div></div>`;
+    
+    // Feedback visual
+    const loadingId = 'loading-' + Date.now();
+    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm flex gap-1"><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></span><span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span></div></div>`;
+
+    const response = await chamarGemini("Quais são os planos e preços da MHNET? Responda em tópicos curtos.");
+    
+    document.getElementById(loadingId)?.remove();
+
+    if(response) {
+         const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${formatted}</div></div>`;
+    }
 }
 
 function toggleChat() {
@@ -335,7 +343,8 @@ async function enviarMensagemChat() {
     
     const response = await chamarGemini(msg);
     if(response) {
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response}</div></div>`;
+         const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${formatted}</div></div>`;
     }
 }
 
@@ -396,7 +405,7 @@ function resetRouteUI() {
   document.getElementById('gpsStatus').innerText = "Parado";
 }
 
-// === API ===
+// API POST (GRAVAÇÃO)
 async function apiCall(route, payload, show=true, suppress=false) {
   if(show) showLoading(true);
   try {
@@ -405,8 +414,6 @@ async function apiCall(route, payload, show=true, suppress=false) {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // FIX CORS
         body: JSON.stringify({route, payload, token: TOKEN})
     });
-    
-    // Se o fetch funcionou, tenta ler JSON
     const text = await res.text();
     let json;
     try { json = JSON.parse(text); } catch (e) { 
@@ -414,7 +421,6 @@ async function apiCall(route, payload, show=true, suppress=false) {
         if(route === 'addLead' || route === 'saveRoute') return 'CORS_ERROR';
         throw new Error("Erro resposta"); 
     }
-    
     if(show) showLoading(false);
     if (json.status === 'error') throw new Error(json.message);
     return json;
