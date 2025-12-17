@@ -8,7 +8,7 @@
  */
 
 // CONFIGURAÇÃO
-const DEPLOY_ID = 'AKfycbwcA8S8xJZWYWgA6UueGOLJcB75iKAMTaVjc5B0wPfUlcalyy7hZ3YNeinIVwTNvCd5'; 
+const DEPLOY_ID = 'AKfycbzO_bAa-RwuQsVm3INkwkCrNq54VMX9Lcz8L2n0_FMd74NRLXh_oHlJc0E3bodvoUkr'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
