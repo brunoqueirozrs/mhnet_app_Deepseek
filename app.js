@@ -6,7 +6,7 @@
  */
 
 // ✅ CONFIGURAÇÃO (ID NOVO APLICADO)
-const DEPLOY_ID = 'AKfycbwcA8S8xJZWYWgA6UueGOLJcB75iKAMTaVjc5B0wPfUlcalyy7hZ3YNeinIVwTNvCd5'; 
+const DEPLOY_ID = 'AKfycbxo-ih5BYV30KD6rlKVYcXf3c0cGb_x4hviHjWhKKEGVh-QeWIBG2vCgyShxUDFKyM9'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
