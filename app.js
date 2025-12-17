@@ -1,27 +1,26 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND (v13.0 - Full POST Fix)
- * Solução: Usa POST para tudo (Leitura e Escrita) para evitar CORS
+ * MHNET VENDAS - LÓGICA FRONTEND (v13.1 - Fix Leitura POST)
  * ============================================================
  */
 
-// ✅ SEU NOVO ID DE IMPLANTAÇÃO
+// ✅ ID DA IMPLANTAÇÃO
 const DEPLOY_ID = 'AKfycbyprSsQFXsywlgFfZtLSR5Flra_UZAyHUrlUG8eT5adMKNwzX_XXUyxyFtFyag5Lrgr'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const TOKEN = "MHNET2025#SEG";
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
-// LISTA FIXA DE SEGURANÇA (Garante que o login funciona sempre)
+// LISTA FIXA DE SEGURANÇA
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
     "Elton da Silva Rodrigo Gonçalves"
 ];
 
-// Contexto para a IA responder sobre planos
+// Contexto IA
 const PLANOS_CONTEXTO = `CONTEXTO MHNET: 500 Mega (R$ 89,90), 700 Mega (R$ 99,90), 1 Giga (R$ 119,90). Instalação grátis.`;
 
-// Estado da Aplicação
+// Estado
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let routeCoords = [];
@@ -34,7 +33,9 @@ let routeStartTime = null;
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Preenche a lista de vendedores imediatamente
+  console.log("🏁 [INIT] App v13.1 Iniciado.");
+
+  // Preenche lista de vendedores
   const select = document.getElementById('userSelect');
   if(select) {
       select.innerHTML = '<option value="">Toque para selecionar...</option>';
@@ -46,13 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   }
 
-  // Recupera dados salvos no celular (Cache)
+  // Tenta carregar cache
   const localData = localStorage.getItem('mhnet_leads_cache');
   if(localData) {
       try { leadsCache = JSON.parse(localData); } catch(e){}
   }
 
-  // Verifica se já está logado
+  // Verifica login
   if (loggedUser) {
     initApp();
   } else {
@@ -62,17 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-  // Troca para a tela principal
   document.getElementById('userMenu').style.display = 'none';
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
   
   navegarPara('dashboard');
   
-  // Renderiza o que tem no cache imediatamente
+  // Renderiza cache primeiro (instantâneo)
   renderLeads();
   
-  // Busca atualização na nuvem
+  // Busca na nuvem usando POST (Fix CORS)
   carregarLeads();
 }
 
@@ -80,10 +80,8 @@ function initApp() {
 // 2. NAVEGAÇÃO
 // ============================================================
 function navegarPara(pageId) {
-  // Esconde todas as páginas
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
   
-  // Mostra a página desejada
   const target = document.getElementById(pageId);
   if(target) {
       target.style.display = 'block';
@@ -92,11 +90,9 @@ function navegarPara(pageId) {
       target.classList.add('fade-in');
   }
   
-  // Rola para o topo
   const mainScroll = document.getElementById('main-scroll');
   if(mainScroll) mainScroll.scrollTo(0,0);
 
-  // Atualiza botões do menu inferior
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.remove('active', 'text-blue-700');
     el.classList.add('text-slate-400');
@@ -137,7 +133,7 @@ function logout() {
 }
 
 // ============================================================
-// 3. GESTÃO DE LEADS (AGORA COM POST PARA LEITURA TAMBÉM)
+// 3. GESTÃO DE LEADS
 // ============================================================
 
 function abrirLeadDetalhes(index) {
@@ -206,13 +202,12 @@ async function enviarLead() {
   }
 }
 
-// *** ALTERADO: USA POST (apiCall) PARA LER DADOS ***
-// Isso evita o erro de CORS que estava bloqueando o GET
+// CORREÇÃO: Usa POST para ler dados (Evita bloqueio de GET)
 async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
   if(lista && leadsCache.length === 0) lista.innerHTML = '<div style="text-align:center; padding:30px; color:#94a3b8">Atualizando...</div>';
 
-  // Usa POST em vez de GET
+  // Usa apiCall (POST) em vez de fetch GET direto
   const res = await apiCall('getLeads', {}, false, true);
   
   if (res && res.status === 'success') {
@@ -226,7 +221,6 @@ async function carregarLeads() {
     renderLeads();
     atualizarDashboard();
   } else {
-    // Se falhar a leitura, não faz mal, usamos o cache
     if(lista && leadsCache.length === 0) lista.innerHTML = '<div style="text-align:center; color:#cbd5e1; padding:20px">Histórico vazio.</div>';
   }
 }
