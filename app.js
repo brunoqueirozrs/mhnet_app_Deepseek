@@ -5,7 +5,7 @@
  */
 
 // ✅ COLOQUE SEU ID DE IMPLANTAÇÃO MAIS RECENTE AQUI
-const DEPLOY_ID = 'AKfycbwcA8S8xJZWYWgA6UueGOLJcB75iKAMTaVjc5B0wPfUlcalyy7hZ3YNeinIVwTNvCd5'; 
+const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
