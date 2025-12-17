@@ -5,7 +5,7 @@
  */
 
 // ⚠️ ID ATUALIZADO
-const DEPLOY_ID = 'AKfycbwM64LebBEQ41LzEO3TB7RXHDreR4uvN2a1kzFbOgc'; 
+const DEPLOY_ID = 'AKfycbyprSsQFXsywlgFfZtLSR5Flra_UZAyHUrlUG8eT5adMKNwzX_XXUyxyFtFyag5Lrgr'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
