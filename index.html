@@ -88,7 +88,7 @@
                     Entrar Agora
                 </button>
             </div>
-            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v12.0 • Final Sync</p>
+            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v17.0 • Final Sync</p>
         </div>
     </div>
 
@@ -112,6 +112,21 @@
             
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
+                
+                <!-- ✅ 1. TARJA DE LEMBRETES (NOVO) -->
+                <div id="lembreteBanner" class="hidden bg-amber-50 border-l-4 border-amber-500 text-amber-900 p-4 mb-6 rounded-r-xl shadow-sm cursor-pointer hover:bg-amber-100 transition-colors" onclick="navegarPara('gestaoLeads')">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-amber-100 p-2 rounded-full">
+                            <i class="fas fa-bell text-xl text-amber-600 animate-pulse"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-bold text-sm">Lembretes para Hoje!</p>
+                            <p id="lembreteTexto" class="text-xs text-amber-700 mt-0.5">Você tem retornos agendados.</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-xs text-amber-400"></i>
+                    </div>
+                </div>
+
                 <!-- Card Resumo -->
                 <div class="bg-gradient-to-br from-[#004c99] to-[#003366] rounded-[2rem] p-8 text-white shadow-xl shadow-blue-900/20 mb-8 relative overflow-hidden group">
                     <div class="absolute right-[-20px] top-[-20px] opacity-10 rotate-12"><i class="fas fa-trophy text-9xl"></i></div>
@@ -279,7 +294,7 @@
                         </button>
                     </div>
 
-                    <!-- NOVO: AGENDAMENTO INTEGRADO -->
+                    <!-- AGENDAMENTO INTEGRADO -->
                     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 p-5 mb-6">
                         <h4 class="font-bold text-gray-700 text-sm uppercase mb-4 flex items-center gap-2">
                             <i class="fas fa-calendar-check text-[#004c99]"></i> Agendar Retorno
@@ -299,7 +314,18 @@
                         </button>
                     </div>
                     
-                    <!-- Agenda (MODIFICADO PARA BOTÃO SEGURO) -->
+                    <!-- ✅ 2. OBSERVAÇÃO EDITÁVEL (NOVO) -->
+                    <div class="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm mb-6">
+                        <div class="flex justify-between items-end mb-2">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Observações</p>
+                            <button onclick="salvarObservacaoModal()" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition-colors">
+                                <i class="fas fa-save mr-1"></i> Salvar Obs
+                            </button>
+                        </div>
+                        <textarea id="modalLeadObs" class="w-full text-sm text-gray-700 leading-relaxed bg-transparent outline-none resize-none border-b border-gray-100 focus:border-[#004c99] transition-colors p-1" rows="4"></textarea>
+                    </div>
+
+                    <!-- Agenda Externa -->
                     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 overflow-hidden mb-6">
                         <div class="p-4 border-b border-gray-100 bg-gray-50">
                             <h4 class="font-bold text-gray-700 text-sm uppercase flex items-center gap-2">
@@ -314,11 +340,6 @@
                         </div>
                     </div>
 
-                    <!-- Detalhes -->
-                    <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm">
-                        <p class="text-xs font-bold text-gray-400 uppercase mb-2">Observações</p>
-                        <p id="modalLeadObs" class="text-sm text-gray-700 leading-relaxed">...</p>
-                    </div>
                     <div class="h-20"></div>
                 </div>
             </div>
