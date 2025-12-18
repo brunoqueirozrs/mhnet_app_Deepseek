@@ -169,8 +169,13 @@ function verificarAgendamentosHoje() {
 async function salvarAgendamento() {
   if (!leadAtualParaAgendar) return alert("Erro ao identificar lead.");
   
-  const data = document.getElementById('agendarData').value;
-  const hora = document.getElementById('agendarHora').value;
+  const dataEl = document.getElementById('agendarData');
+  const horaEl = document.getElementById('agendarHora');
+  
+  if (!dataEl || !horaEl) return alert("Campos de agendamento não encontrados no HTML.");
+
+  const data = dataEl.value;
+  const hora = horaEl.value;
   
   if (!data) return alert("❌ Selecione uma data!");
   
@@ -532,8 +537,12 @@ function abrirLeadDetalhes(index) {
     
     leadAtualParaAgendar = lead; // ✅ Guarda para usar no agendamento
 
-    document.getElementById('modalLeadNome').innerText = lead.nomeLead || 'Sem Nome';
-    document.getElementById('modalLeadInfo').innerText = `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`;
+    // Helper Functions para evitar erros se o elemento não existir
+    const setText = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text; };
+    const setValue = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+
+    setText('modalLeadNome', lead.nomeLead || 'Sem Nome');
+    setText('modalLeadInfo', `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`);
     
     let info = [];
     if(lead.telefone) info.push(`📞 ${lead.telefone}`);
@@ -543,41 +552,53 @@ function abrirLeadDetalhes(index) {
     if(lead.agendamento) info.push(`\n🔔 Agendado para: ${lead.agendamento}`);
     if(lead.observacao) info.push(`\n💬 ${lead.observacao}`);
     
-    document.getElementById('modalLeadObs').innerText = info.length ? info.join('\n') : "Nenhuma informação adicional.";
+    setText('modalLeadObs', info.length ? info.join('\n') : "Nenhuma informação adicional.");
 
-    // Preenche campos de agendamento se já existir
-    if(lead.agendamento) {
-        try {
-            const [data, hora] = lead.agendamento.split(' ');
-            const [dia, mes, ano] = data.split('/');
-            document.getElementById('agendarData').value = `${ano}-${mes}-${dia}`;
-            document.getElementById('agendarHora').value = hora || '';
-        } catch(e) {
-            document.getElementById('agendarData').value = '';
+    // Preenche campos de agendamento se já existir e os elementos existirem no DOM
+    const elData = document.getElementById('agendarData');
+    const elHora = document.getElementById('agendarHora');
+
+    if (elData && elHora) {
+        if(lead.agendamento) {
+            try {
+                const [data, hora] = lead.agendamento.split(' ');
+                const [dia, mes, ano] = data.split('/');
+                elData.value = `${ano}-${mes}-${dia}`;
+                elHora.value = hora || '';
+            } catch(e) {
+                elData.value = '';
+            }
+        } else {
+            elData.value = '';
+            elHora.value = '09:00';
         }
-    } else {
-        document.getElementById('agendarData').value = '';
-        document.getElementById('agendarHora').value = '09:00';
     }
 
     const tel = (lead.telefone || "").replace(/\D/g, '');
     const btnWhats = document.getElementById('btnModalWhats');
     
-    btnWhats.onclick = () => {
-        if(tel) window.open(`https://wa.me/55${tel}`, '_blank');
-        else alert("Telefone não disponível.");
-    };
+    if (btnWhats) {
+        btnWhats.onclick = () => {
+            if(tel) window.open(`https://wa.me/55${tel}`, '_blank');
+            else alert("Telefone não disponível.");
+        };
+    }
 
     const modal = document.getElementById('leadModal');
-    modal.classList.remove('hidden');
-    const content = modal.querySelector('div.absolute');
-    content.classList.remove('slide-up');
-    void content.offsetWidth;
-    content.classList.add('slide-up');
+    if (modal) {
+        modal.classList.remove('hidden');
+        const content = modal.querySelector('div.absolute');
+        if (content) {
+            content.classList.remove('slide-up');
+            void content.offsetWidth;
+            content.classList.add('slide-up');
+        }
+    }
 }
 
 function fecharLeadModal() {
-    document.getElementById('leadModal').classList.add('hidden');
+    const modal = document.getElementById('leadModal');
+    if(modal) modal.classList.add('hidden');
     leadAtualParaAgendar = null;
 }
 
