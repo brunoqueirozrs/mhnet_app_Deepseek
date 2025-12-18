@@ -11,7 +11,7 @@
 // CONFIGURAÇÃO
 const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
+const GEMINI_KEY = "AIzaSyAj_eaHKlHb7Kotpn0xKZIU38BegtVb-PE"; 
 
 // LISTA FIXA DE SEGURANÇA
 const VENDEDORES_OFFLINE = [
