@@ -9,7 +9,7 @@
 
 // CONFIGURAÇÃO
 // ⚠️ IMPORTANTE: O DEPLOY_ID DEVE SER O NOVO QUE VOCÊ GERAR NO APPS SCRIPT
-const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
+const DEPLOY_ID = 'AKfycbxUC2blWBBolcBD9GZwNsTWrLoo9Ia7J8tMcVu6y5gBpiUEm7EiMCJkmvTp0L-ghpoP'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 // Chave para funções criativas locais (Pitch de Vendas/Coach)
