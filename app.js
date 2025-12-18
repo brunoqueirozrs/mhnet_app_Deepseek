@@ -1,15 +1,15 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V25.0 (COM IA DOCS BACKEND)
- * ✅ Chat Integrado ao Google Docs (Base de Conhecimento)
- * ✅ Pitch e Coach via IA Rápida
- * ✅ Sistema de Agendamento e Rotas
+ * MHNET VENDAS - LÓGICA FRONTEND V25.2 (FIX INTERESSE & LOGS)
+ * ✅ Correção de Crash na lista de Leads (Interesse não-texto)
+ * ✅ Logs de erro da IA mais claros
+ * ✅ Chat Integrado ao Google Docs
  * ============================================================
  */
 
 // CONFIGURAÇÃO
-// ⚠️ IMPORTANTE: O DEPLOY_ID DEVE SER O NOVO QUE VOCÊ GERAR NO APPS SCRIPT
-const DEPLOY_ID = 'AKfycbxUC2blWBBolcBD9GZwNsTWrLoo9Ia7J8tMcVu6y5gBpiUEm7EiMCJkmvTp0L-ghpoP'; 
+// ⚠️ IMPORTANTE: GERE UMA NOVA IMPLANTAÇÃO NO BACKEND E COLE O ID NOVO AQUI:
+const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 // Chave para funções criativas locais (Pitch de Vendas/Coach)
@@ -42,7 +42,7 @@ let leadAtualParaAgendar = null;
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v25.0 - Iniciado com IA Híbrida");
+  console.log("🚀 MHNET App v25.2 - Correção Interesse & Logs");
 
   const select = document.getElementById('userSelect');
   if(select) {
@@ -270,11 +270,14 @@ async function perguntarIABackend(pergunta) {
   try {
     // Chama a rota 'askAI' no backend que lê o Google Doc
     const res = await apiCall('askAI', { question: pergunta }, false); 
+    
     if (res && res.status === 'success') {
       return res.answer;
     } else {
-      console.error("Erro Backend AI:", res);
-      return "O sistema de IA está indisponível no momento. Verifique sua conexão.";
+      console.error("❌ Erro Backend AI:", res);
+      // Extrai mensagem de erro se existir
+      const msgErro = (res && res.message) ? res.message : "Resposta desconhecida do servidor";
+      return `⚠️ O sistema de IA encontrou um erro: ${msgErro}. Tente novamente.`;
     }
   } catch (e) {
     return "Erro de comunicação com o servidor.";
@@ -417,7 +420,10 @@ function renderLeads() {
 
   div.innerHTML = filtrados.map((l, index) => {
     let badgeClass = "bg-gray-100 text-gray-500";
-    if((l.interesse || '').includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
+    
+    // FIX: Converte para String e Maiúsculo para evitar erro se 'interesse' for null ou número
+    const interesseStr = String(l.interesse || '').toUpperCase();
+    if(interesseStr.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
     
     const temAgendamento = l.agendamento && l.agendamento.trim() !== '';
     const agendaBadge = temAgendamento ? `<span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full ml-2"><i class="fas fa-calendar-check"></i> ${l.agendamento.split(' ')[0]}</span>` : '';
