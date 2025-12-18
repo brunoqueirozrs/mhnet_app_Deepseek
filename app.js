@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * MHNET VENDAS - V17.0 FINAL
+ * MHNET VENDAS - LÓGICA FRONTEND V17.0 (SEPARADO E CORRIGIDO)
  * ✅ IA Treinada com Planos Reais MHNET
  * ✅ Sistema de Agendamento (Coluna O)
  * ✅ Alertas de Retorno na Dashboard
@@ -8,10 +8,12 @@
  */
 
 // CONFIGURAÇÃO
+// ID do Deploy fornecido no seu código V17
 const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
 
+// LISTA FIXA DE SEGURANÇA
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
@@ -98,7 +100,7 @@ let leadAtualParaAgendar = null; // Guarda o lead aberto no modal
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v17.0 - IA + Agendamento");
+  console.log("🚀 MHNET App v17.0 - Frontend Separado");
 
   const select = document.getElementById('userSelect');
   if(select) {
@@ -137,7 +139,7 @@ function initApp() {
   if(leadsCache.length > 0) {
     renderLeads();
     atualizarDashboard();
-    verificarAgendamentosHoje(); // ✅ NOVO
+    verificarAgendamentosHoje();
   }
   
   carregarLeads();
@@ -202,6 +204,8 @@ async function salvarAgendamento() {
     }
     
     fecharLeadModal();
+    // Re-renderiza para mostrar o ícone de agenda
+    renderLeads(); 
   } else {
     alert('❌ Erro ao salvar agendamento. Tente novamente.');
   }
@@ -265,7 +269,7 @@ function logout() {
 }
 
 // ============================================================
-// 3. INTELIGÊNCIA ARTIFICIAL (GEMINI)
+// 3. INTELIGÊNCIA ARTIFICIAL (GEMINI - Atualizado)
 // ============================================================
 
 async function chamarGemini(prompt, systemInstruction = "") {
@@ -274,15 +278,12 @@ async function chamarGemini(prompt, systemInstruction = "") {
   const fullPrompt = `${systemInstruction}\n\n${PLANOS_CONTEXTO}\n\nPERGUNTA: ${prompt}`;
   
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_KEY}`, {
+    // ATUALIZAÇÃO IMPORTANTE: Usando modelo estável disponível no ambiente
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        contents: [{ parts: [{ text: fullPrompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 500
-        }
+        contents: [{ parts: [{ text: fullPrompt }] }]
       })
     });
     
@@ -510,16 +511,16 @@ function renderLeads() {
     <div onclick="abrirLeadDetalhes(${index})" class="bg-white p-5 rounded-[1.5rem] border border-blue-50 shadow-sm mb-4 cursor-pointer active:bg-blue-50 transition hover:shadow-md">
       <div class="flex justify-between items-start mb-3 pointer-events-none">
         <div>
-          <div class="font-bold text-[#003870] text-lg">${l.nomeLead}</div>
-          <div class="text-xs text-gray-400">${dataShow} ${horaShow} ${agendaBadge}</div>
+          <div class="font-bold text-[#003870] text-lg leading-tight flex items-center flex-wrap">${l.nomeLead} ${agendaBadge}</div>
+          <div class="text-xs text-gray-400 mt-1">${dataShow} ${horaShow}</div>
         </div>
-        <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold">${inter}</span>
+        <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap">${inter}</span>
       </div>
-      <div class="text-sm text-gray-600 mb-2 pointer-events-none">
-         <i class="fas fa-map-marker-alt text-red-400"></i> ${l.bairro || 'Não informado'}
+      <div class="text-sm text-gray-600 mb-2 pointer-events-none flex items-center">
+         <i class="fas fa-map-marker-alt text-red-400 mr-2"></i> ${l.bairro || 'Não informado'}
       </div>
-      <div class="text-sm text-gray-500 pointer-events-none">
-         <i class="fas fa-phone text-green-500"></i> ${l.telefone || 'Sem telefone'}
+      <div class="text-sm text-gray-500 pointer-events-none flex items-center">
+         <i class="fas fa-phone text-green-500 mr-2"></i> ${l.telefone || 'Sem telefone'}
       </div>
     </div>`;
   }).join('');
@@ -546,10 +547,14 @@ function abrirLeadDetalhes(index) {
 
     // Preenche campos de agendamento se já existir
     if(lead.agendamento) {
-        const [data, hora] = lead.agendamento.split(' ');
-        const [dia, mes, ano] = data.split('/');
-        document.getElementById('agendarData').value = `${ano}-${mes}-${dia}`;
-        document.getElementById('agendarHora').value = hora || '';
+        try {
+            const [data, hora] = lead.agendamento.split(' ');
+            const [dia, mes, ano] = data.split('/');
+            document.getElementById('agendarData').value = `${ano}-${mes}-${dia}`;
+            document.getElementById('agendarHora').value = hora || '';
+        } catch(e) {
+            document.getElementById('agendarData').value = '';
+        }
     } else {
         document.getElementById('agendarData').value = '';
         document.getElementById('agendarHora').value = '09:00';
@@ -718,6 +723,7 @@ async function apiCall(route, payload, show=true) {
     try {
       json = JSON.parse(text);
     } catch (e) {
+      // Se der erro de JSON mas for uma dessas rotas, é o erro de CORS do Google (mas deu certo)
       if(route === 'addLead' || route === 'saveRoute' || route === 'updateAgendamento') {
         return 'CORS_OK';
       }
@@ -735,6 +741,7 @@ async function apiCall(route, payload, show=true) {
   } catch(e) {
     if(show) showLoading(false);
     
+    // Tratamento específico para erro de CORS onde a requisição na verdade funcionou
     if(e.name === 'TypeError' && (route === 'addLead' || route === 'saveRoute' || route === 'updateAgendamento')) {
       return 'CORS_OK';
     }
