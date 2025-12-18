@@ -779,3 +779,69 @@ function showLoading(show, txt = "AGUARDE...") {
   const loaderText = document.getElementById('loaderText');
   if(loaderText && txt) loaderText.innerText = txt;
 }
+
+/ 1. Função para Salvar a Observação Editada
+async function salvarObservacaoModal() {
+    if (!leadAtualParaAgendar) return alert("Erro: Nenhum lead selecionado.");
+
+    const novaObs = document.getElementById('modalLeadObs').value;
+
+    showLoading(true, "ATUALIZANDO...");
+
+    const res = await apiCall('updateObservacao', {
+        vendedor: loggedUser,
+        nomeLead: leadAtualParaAgendar.nomeLead,
+        observacao: novaObs
+    });
+
+    showLoading(false);
+
+    if (res && res.status === 'success') {
+        alert("✅ Observação atualizada com sucesso!");
+        
+        // Atualiza o cache local para não precisar recarregar tudo
+        const index = leadsCache.findIndex(l => 
+            l.nomeLead === leadAtualParaAgendar.nomeLead && 
+            l.vendedor === loggedUser
+        );
+        if (index !== -1) {
+            leadsCache[index].observacao = novaObs;
+            localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+        }
+    } else {
+        alert("❌ Erro ao atualizar observação.");
+    }
+}
+
+// 2. Atualização da função verificarAgendamentosHoje para mostrar a Tarja
+function verificarAgendamentosHoje() {
+    const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0]; 
+    
+    const retornosHoje = leadsCache.filter(l => {
+        if (!l.agendamento) return false;
+        const dataAgendamento = l.agendamento.split(' ')[0];
+        return dataAgendamento === hoje;
+    });
+    
+    const banner = document.getElementById('lembreteBanner');
+    const texto = document.getElementById('lembreteTexto');
+
+    if (retornosHoje.length > 0) {
+        // Mostra a tarja
+        if(banner) banner.classList.remove('hidden');
+        if(texto) texto.innerText = `Você tem ${retornosHoje.length} clientes para retornar hoje!`;
+        
+        // Mantém o alerta pop-up também (opcional)
+        // alert(`🔔 LEMBRETE: ${retornosHoje.length} retornos hoje!`);
+    } else {
+        // Esconde a tarja se não tiver nada
+        if(banner) banner.classList.add('hidden');
+    }
+}
+
+// 3. Pequeno ajuste na função abrirLeadDetalhes para usar .value no textarea
+/* Procure a função abrirLeadDetalhes no seu app.js atual e 
+   troque a linha: setText('modalLeadObs', ...) 
+   por: setValue('modalLeadObs', ...); 
+   pois agora é um campo editável (textarea), não mais um texto fixo (p).
+*/
