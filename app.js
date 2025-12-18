@@ -1,17 +1,19 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V24.0 (FINAL + PWA)
- * ✅ IA Treinada com Planos Reais MHNET
- * ✅ Sistema de Agendamento (Coluna O)
- * ✅ Alertas de Retorno na Dashboard (Tarja)
- * ✅ Edição de Observações
+ * MHNET VENDAS - LÓGICA FRONTEND V25.0 (COM IA DOCS BACKEND)
+ * ✅ Chat Integrado ao Google Docs (Base de Conhecimento)
+ * ✅ Pitch e Coach via IA Rápida
+ * ✅ Sistema de Agendamento e Rotas
  * ============================================================
  */
 
 // CONFIGURAÇÃO
+// ⚠️ IMPORTANTE: O DEPLOY_ID DEVE SER O NOVO QUE VOCÊ GERAR NO APPS SCRIPT
 const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-const GEMINI_KEY = "AIzaSyAj_eaHKlHb7Kotpn0xKZIU38BegtVb-PE"; 
+
+// Chave para funções criativas locais (Pitch de Vendas/Coach)
+const GEMINI_KEY_FRONT = "AIzaSyAj_eaHKlHb7Kotpn0xKZIU38BegtVb-PE"; 
 
 // LISTA FIXA DE SEGURANÇA
 const VENDEDORES_OFFLINE = [
@@ -20,19 +22,11 @@ const VENDEDORES_OFFLINE = [
     "Elton da Silva Rodrigo Gonçalves"
 ];
 
-// ============================================================
-// 🧠 CONTEXTO DA IA - PLANOS REAIS MHNET
-// ============================================================
-const PLANOS_CONTEXTO = `
+// Contexto leve para funções offline/criativas (O pesado fica no Google Doc agora)
+const CONTEXTO_CRIATIVO = `
 VOCÊ É UM ESPECIALISTA DE VENDAS DA MHNET TELECOM.
-USE ESTAS INFORMAÇÕES REAIS E ATUALIZADAS PARA RESPONDER:
-
-📊 PLANOS VAREJO (Pessoa Física) - LAJEADO/RS:
-1. PLANO 500 MEGA (Mais Vendido) ⭐ R$ 99,90/mês
-2. PLANO 700 MEGA (Premium) R$ 149,99/mês
-3. PLANO 400 MEGA (Econômico) R$ 99,00/mês
-
-🎯 DIFERENCIAIS: 100% Fibra Óptica, Instalação Grátis (sujeito análise), Wi-Fi incluso.
+Foco: Vender planos de fibra óptica (500 Mega a 700 Mega).
+Diferenciais: Wi-Fi grátis, Instalação rápida, Estabilidade.
 `;
 
 let loggedUser = localStorage.getItem('loggedUser');
@@ -48,7 +42,7 @@ let leadAtualParaAgendar = null;
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v24.0 - Iniciado");
+  console.log("🚀 MHNET App v25.0 - Iniciado com IA Híbrida");
 
   const select = document.getElementById('userSelect');
   if(select) {
@@ -87,7 +81,7 @@ function initApp() {
   if(leadsCache.length > 0) {
     renderLeads();
     atualizarDashboard();
-    verificarAgendamentosHoje(); // Verifica lembretes ao iniciar
+    verificarAgendamentosHoje();
   }
   
   carregarLeads();
@@ -106,7 +100,6 @@ function verificarAgendamentosHoje() {
     return dataAgendamento === hoje;
   });
   
-  // Controle da Tarja de Lembretes
   const banner = document.getElementById('lembreteBanner');
   const texto = document.getElementById('lembreteTexto');
 
@@ -133,7 +126,6 @@ async function salvarAgendamento() {
   
   showLoading(true, "AGENDANDO...");
   
-  // Formata para dd/MM/yyyy HH:mm
   const [ano, mes, dia] = data.split('-');
   const dataFormatada = `${dia}/${mes}/${ano} ${hora || '09:00'}`;
   
@@ -255,14 +247,15 @@ function logout() {
 }
 
 // ============================================================
-// 3. INTELIGÊNCIA ARTIFICIAL
+// 3. INTELIGÊNCIA ARTIFICIAL (HÍBRIDA)
 // ============================================================
 
-async function chamarGemini(prompt, systemInstruction = "") {
-  if (!GEMINI_KEY) return null;
-  const fullPrompt = `${systemInstruction}\n\n${PLANOS_CONTEXTO}\n\nPERGUNTA: ${prompt}`;
+// A) IA CRIATIVA (USA CHAVE FRONTEND PARA RAPIDEZ)
+async function chamarGeminiCriativo(prompt, systemInstruction = "") {
+  if (!GEMINI_KEY_FRONT) return null;
+  const fullPrompt = `${systemInstruction}\n\n${CONTEXTO_CRIATIVO}\n\nPERGUNTA: ${prompt}`;
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY_FRONT}`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
@@ -272,21 +265,70 @@ async function chamarGemini(prompt, systemInstruction = "") {
   } catch (e) { return null; }
 }
 
+// B) IA DE CONHECIMENTO (CHAMA O BACKEND + DOCS)
+async function perguntarIABackend(pergunta) {
+  try {
+    // Chama a rota 'askAI' no backend que lê o Google Doc
+    const res = await apiCall('askAI', { question: pergunta }, false); 
+    if (res && res.status === 'success') {
+      return res.answer;
+    } else {
+      console.error("Erro Backend AI:", res);
+      return "O sistema de IA está indisponível no momento. Verifique sua conexão.";
+    }
+  } catch (e) {
+    return "Erro de comunicação com o servidor.";
+  }
+}
+
+// --- FUNÇÕES DE UI DA IA ---
+
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   const bairro = document.getElementById('leadBairro').value || "sua região";
   if(!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
+  
   showLoading(true, "✨ CRIANDO PITCH...");
-  const txt = await chamarGemini(`Crie msg curta WhatsApp MHNET 500 Mega para ${nome} em ${bairro}.`, "Vendedor telecom");
+  // Usa IA Criativa (Frontend)
+  const txt = await chamarGeminiCriativo(`Crie msg curta WhatsApp MHNET 500 Mega para ${nome} em ${bairro}.`, "Vendedor telecom");
   showLoading(false);
+  
   if(txt) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
 }
+
+async function gerarCoachIA() {
+  showLoading(true, "🚀 MOTIVANDO...");
+  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
+  const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
+  // Usa IA Criativa (Frontend)
+  const txt = await chamarGeminiCriativo(`Fiz ${leadsHoje} vendas hoje. Frase motivacional curta.`);
+  showLoading(false);
+  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
+}
+
+// --- CHAT AGORA USA O BACKEND (DOCS) ---
 
 async function consultarPlanosIA() {
     toggleChat();
     const history = document.getElementById('chatHistory');
-    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">Planos?</div></div>`;
-    const response = await chamarGemini("Liste 3 planos MHNET, emojis, objetivo.");
+    
+    // Pergunta automática
+    const msg = "Quais são os planos atuais da MHNET?";
+    
+    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
+    
+    // Loading visual no chat
+    const loadId = 'load-' + Date.now();
+    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Consultando base de conhecimento...</div></div>`;
+    history.scrollTop = history.scrollHeight;
+
+    // Chama Backend
+    const response = await perguntarIABackend(msg);
+    
+    // Remove loading
+    const loader = document.getElementById(loadId);
+    if(loader) loader.remove();
+
     if(response) {
          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
@@ -308,22 +350,27 @@ async function enviarMensagemChat() {
     const history = document.getElementById('chatHistory');
     const msg = input.value.trim();
     if(!msg) return;
+    
+    // Adiciona mensagem do usuário
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
     input.value = '';
-    const response = await chamarGemini(msg);
+    
+    // Loading visual
+    const loadId = 'load-' + Date.now();
+    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Pesquisando...</div></div>`;
+    history.scrollTop = history.scrollHeight;
+
+    // Chama Backend (Google Doc)
+    const response = await perguntarIABackend(msg);
+    
+    // Remove loading
+    const loader = document.getElementById(loadId);
+    if(loader) loader.remove();
+
     if(response) {
          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
     }
-}
-
-async function gerarCoachIA() {
-  showLoading(true, "🚀 MOTIVANDO...");
-  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
-  const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  const txt = await chamarGemini(`Fiz ${leadsHoje} vendas hoje. Frase motivacional curta.`);
-  showLoading(false);
-  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
 }
 
 // ============================================================
@@ -344,7 +391,7 @@ async function carregarLeads() {
     const data = await res.json();
     if (data.status === 'success') {
       leadsCache = (data.data || []).filter(l => l.vendedor.toLowerCase().includes(loggedUser.toLowerCase()));
-      leadsCache.sort((a, b) => b._linha - a._linha); // Ordem reversa (mais novos primeiro)
+      leadsCache.sort((a, b) => b._linha - a._linha); 
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
       renderLeads();
       atualizarDashboard();
@@ -395,17 +442,14 @@ function abrirLeadDetalhes(index) {
     
     leadAtualParaAgendar = lead;
 
-    // Helper Functions
     const setText = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text; };
     const setValue = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
 
     setText('modalLeadNome', lead.nomeLead || 'Sem Nome');
     setText('modalLeadInfo', `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`);
     
-    // Agora preenchemos o Textarea (value) e não mais um parágrafo
     setValue('modalLeadObs', lead.observacao || "");
 
-    // Preenche campos de agendamento
     const elData = document.getElementById('agendarData');
     const elHora = document.getElementById('agendarHora');
 
