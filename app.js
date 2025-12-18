@@ -1,14 +1,14 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V17.0 (SEPARADO E CORRIGIDO)
+ * MHNET VENDAS - LÓGICA FRONTEND V24.0 (FINAL + PWA)
  * ✅ IA Treinada com Planos Reais MHNET
  * ✅ Sistema de Agendamento (Coluna O)
- * ✅ Alertas de Retorno na Dashboard
+ * ✅ Alertas de Retorno na Dashboard (Tarja)
+ * ✅ Edição de Observações
  * ============================================================
  */
 
 // CONFIGURAÇÃO
-// ID do Deploy fornecido no seu código V17
 const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const GEMINI_KEY = "AIzaSyD8btK2gPgH9qzuPX84f6m508iggUs6Vuo"; 
@@ -21,70 +21,18 @@ const VENDEDORES_OFFLINE = [
 ];
 
 // ============================================================
-// 🧠 CONTEXTO DA IA - PLANOS REAIS MHNET (Atualizado 2024)
+// 🧠 CONTEXTO DA IA - PLANOS REAIS MHNET
 // ============================================================
 const PLANOS_CONTEXTO = `
 VOCÊ É UM ESPECIALISTA DE VENDAS DA MHNET TELECOM.
 USE ESTAS INFORMAÇÕES REAIS E ATUALIZADAS PARA RESPONDER:
 
 📊 PLANOS VAREJO (Pessoa Física) - LAJEADO/RS:
+1. PLANO 500 MEGA (Mais Vendido) ⭐ R$ 99,90/mês
+2. PLANO 700 MEGA (Premium) R$ 149,99/mês
+3. PLANO 400 MEGA (Econômico) R$ 99,00/mês
 
-1. PLANO 500 MEGA (Mais Vendido) ⭐
-   - Preço: R$ 99,90/mês (pagamento em dia)
-   - Preço com atraso: R$ 111,00
-   - Velocidade: 500 Mbps download / 250 Mbps upload
-   - Instalação: GRATUITA (sujeito a análise de crédito)
-   - Fidelidade: 12 meses
-   - Inclui: Roteador Wi-Fi (locação gratuita)
-   - Ideal para: Famílias médias, streaming Full HD, trabalho remoto, 5-8 dispositivos
-
-2. PLANO 700 MEGA (Premium)
-   - Preço: R$ 149,99/mês
-   - Velocidade: 700 Mbps download / 350 Mbps upload
-   - Instalação: GRATUITA
-   - Fidelidade: 12 meses
-   - Inclui: Roteador Wi-Fi Dual Band de alta potência
-   - Ideal para: Casas grandes, gamers, 4K/8K streaming, 10+ dispositivos
-
-3. PLANO 400 MEGA (Econômico)
-   - Preço: R$ 99,00/mês (promoção)
-   - Velocidade: 400 Mbps download / 200 Mbps upload
-   - Instalação: GRATUITA
-   - Fidelidade: 12 meses
-   - Ideal para: Uso básico, casais, 3-4 dispositivos
-
-🎯 DIFERENCIAIS COMPETITIVOS:
-✅ 100% Fibra Óptica FTTH (ponta a ponta)
-✅ Internet ilimitada (sem franquia de dados)
-✅ Instalação em até 2 dias úteis
-✅ Suporte técnico 24/7: 0800 050 0800
-✅ Empresa regional com 22 anos de mercado
-✅ Melhor estabilidade em dias de chuva (vs rádio)
-✅ Menor latência para jogos online
-✅ Atende 170+ cidades no Sul do Brasil
-
-💰 COMBOS DISPONÍVEIS:
-- Internet + Telefone Fixo
-- Internet + TV por assinatura
-- Internet + Telefonia Móvel (5GB a 40GB)
-
-⚠️ REGRAS IMPORTANTES:
-- Multa por cancelamento antecipado (proporcional aos meses restantes)
-- Valores promocionais válidos para pagamento em dia
-- Taxa de instalação isenta mediante análise de crédito
-- Roteador Wi-Fi incluso (modelo sujeito a disponibilidade)
-
-🎓 DICAS DE VENDA:
-1. Para cliente de concorrente: "Nossa fibra vai DIRETO até sua casa, sem intermediários"
-2. Para quem reclama de queda: "Fibra óptica não sofre com chuva e vento"
-3. Para gamers: "Latência ultrabaixa, ideal para jogos competitivos"
-4. Para famílias: "500 Mega aguenta toda família conectada sem travar"
-
-📞 CONTATO VENDAS:
-WhatsApp: (47) 2101-9918
-0800: 0800 050 0800
-
-IMPORTANTE: Sempre confirme disponibilidade no CEP do cliente antes de fechar venda.
+🎯 DIFERENCIAIS: 100% Fibra Óptica, Instalação Grátis (sujeito análise), Wi-Fi incluso.
 `;
 
 let loggedUser = localStorage.getItem('loggedUser');
@@ -94,13 +42,13 @@ let watchId = null;
 let timerInterval = null;
 let seconds = 0;
 let routeStartTime = null;
-let leadAtualParaAgendar = null; // Guarda o lead aberto no modal
+let leadAtualParaAgendar = null; 
 
 // ============================================================
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v17.0 - Frontend Separado");
+  console.log("🚀 MHNET App v24.0 - Iniciado");
 
   const select = document.getElementById('userSelect');
   if(select) {
@@ -139,14 +87,14 @@ function initApp() {
   if(leadsCache.length > 0) {
     renderLeads();
     atualizarDashboard();
-    verificarAgendamentosHoje();
+    verificarAgendamentosHoje(); // Verifica lembretes ao iniciar
   }
   
   carregarLeads();
 }
 
 // ============================================================
-// 🔔 SISTEMA DE AGENDAMENTO
+// 🔔 SISTEMA DE AGENDAMENTO E OBSERVAÇÕES
 // ============================================================
 
 function verificarAgendamentosHoje() {
@@ -154,15 +102,19 @@ function verificarAgendamentosHoje() {
   
   const retornosHoje = leadsCache.filter(l => {
     if (!l.agendamento) return false;
-    const dataAgendamento = l.agendamento.split(' ')[0]; // Pega só a data
+    const dataAgendamento = l.agendamento.split(' ')[0];
     return dataAgendamento === hoje;
   });
   
+  // Controle da Tarja de Lembretes
+  const banner = document.getElementById('lembreteBanner');
+  const texto = document.getElementById('lembreteTexto');
+
   if (retornosHoje.length > 0) {
-    const nomes = retornosHoje.map(l => `• ${l.nomeLead}`).join('\n');
-    setTimeout(() => {
-      alert(`🔔 LEMBRETE DE RETORNO!\n\nVocê tem ${retornosHoje.length} cliente(s) agendado(s) para HOJE:\n\n${nomes}`);
-    }, 1500);
+    if(banner) banner.classList.remove('hidden');
+    if(texto) texto.innerText = `Você tem ${retornosHoje.length} cliente(s) para retornar hoje!`;
+  } else {
+    if(banner) banner.classList.add('hidden');
   }
 }
 
@@ -172,7 +124,7 @@ async function salvarAgendamento() {
   const dataEl = document.getElementById('agendarData');
   const horaEl = document.getElementById('agendarHora');
   
-  if (!dataEl || !horaEl) return alert("Campos de agendamento não encontrados no HTML.");
+  if (!dataEl || !horaEl) return alert("Campos de agendamento não encontrados.");
 
   const data = dataEl.value;
   const hora = horaEl.value;
@@ -185,7 +137,6 @@ async function salvarAgendamento() {
   const [ano, mes, dia] = data.split('-');
   const dataFormatada = `${dia}/${mes}/${ano} ${hora || '09:00'}`;
   
-  // Atualiza no backend (Coluna O)
   const res = await apiCall('updateAgendamento', {
     vendedor: loggedUser,
     nomeLead: leadAtualParaAgendar.nomeLead,
@@ -197,7 +148,6 @@ async function salvarAgendamento() {
   if (res && res.status === 'success') {
     alert(`✅ Agendamento salvo!\n\nRetorno: ${dataFormatada}`);
     
-    // Atualiza cache local
     const index = leadsCache.findIndex(l => 
       l.nomeLead === leadAtualParaAgendar.nomeLead && 
       l.vendedor === loggedUser
@@ -209,11 +159,41 @@ async function salvarAgendamento() {
     }
     
     fecharLeadModal();
-    // Re-renderiza para mostrar o ícone de agenda
     renderLeads(); 
+    verificarAgendamentosHoje();
   } else {
-    alert('❌ Erro ao salvar agendamento. Tente novamente.');
+    alert('❌ Erro ao salvar agendamento.');
   }
+}
+
+async function salvarObservacaoModal() {
+    if (!leadAtualParaAgendar) return alert("Erro: Nenhum lead selecionado.");
+
+    const novaObs = document.getElementById('modalLeadObs').value;
+    showLoading(true, "ATUALIZANDO...");
+
+    const res = await apiCall('updateObservacao', {
+        vendedor: loggedUser,
+        nomeLead: leadAtualParaAgendar.nomeLead,
+        observacao: novaObs
+    });
+
+    showLoading(false);
+
+    if (res && res.status === 'success') {
+        alert("✅ Observação atualizada!");
+        
+        const index = leadsCache.findIndex(l => 
+            l.nomeLead === leadAtualParaAgendar.nomeLead && 
+            l.vendedor === loggedUser
+        );
+        if (index !== -1) {
+            leadsCache[index].observacao = novaObs;
+            localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+        }
+    } else {
+        alert("❌ Erro ao atualizar.");
+    }
 }
 
 // ============================================================
@@ -222,7 +202,6 @@ async function salvarAgendamento() {
 
 function navegarPara(pageId) {
   document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-  
   const target = document.getElementById(pageId);
   if(target) {
       target.style.display = 'block';
@@ -230,7 +209,6 @@ function navegarPara(pageId) {
       void target.offsetWidth; 
       target.classList.add('fade-in');
   }
-  
   const mainScroll = document.getElementById('main-scroll');
   if(mainScroll) mainScroll.scrollTo(0,0);
 
@@ -251,7 +229,10 @@ function navegarPara(pageId) {
       btn.classList.remove('text-slate-400');
   }
 
-  if (pageId === 'dashboard') atualizarDashboard();
+  if (pageId === 'dashboard') {
+      atualizarDashboard();
+      verificarAgendamentosHoje();
+  }
   if (pageId === 'gestaoLeads') renderLeads();
 }
 
@@ -274,75 +255,40 @@ function logout() {
 }
 
 // ============================================================
-// 3. INTELIGÊNCIA ARTIFICIAL (GEMINI - Atualizado)
+// 3. INTELIGÊNCIA ARTIFICIAL
 // ============================================================
 
 async function chamarGemini(prompt, systemInstruction = "") {
   if (!GEMINI_KEY) return null;
-  
   const fullPrompt = `${systemInstruction}\n\n${PLANOS_CONTEXTO}\n\nPERGUNTA: ${prompt}`;
-  
   try {
-    // ATUALIZAÇÃO IMPORTANTE: Usando modelo estável disponível no ambiente
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_KEY}`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        contents: [{ parts: [{ text: fullPrompt }] }]
-      })
+      body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
     });
-    
-    if(!res.ok) {
-        console.error("Erro API IA:", res.status);
-        return null;
-    }
-    
     const data = await res.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text;
-  } catch (e) { 
-      console.error("Erro IA:", e);
-      return null; 
-  }
+  } catch (e) { return null; }
 }
 
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   const bairro = document.getElementById('leadBairro').value || "sua região";
-  
   if(!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
-  
   showLoading(true, "✨ CRIANDO PITCH...");
-  
-  const prompt = `Crie uma mensagem CURTA (máximo 3 linhas) para WhatsApp vendendo internet MHNET 500 Mega para ${nome} que mora em ${bairro}. Foque em instalação rápida e preço justo. Não use asteriscos ou formatação.`;
-  
-  const txt = await chamarGemini(prompt, "Você é um vendedor experiente de telecom.");
-  
+  const txt = await chamarGemini(`Crie msg curta WhatsApp MHNET 500 Mega para ${nome} em ${bairro}.`, "Vendedor telecom");
   showLoading(false);
-  
-  if(txt) {
-      document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
-  } else {
-      alert("❌ Erro ao gerar pitch. Tente novamente.");
-  }
+  if(txt) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
 }
 
 async function consultarPlanosIA() {
     toggleChat();
     const history = document.getElementById('chatHistory');
-    
-    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">Quais são os planos?</div></div>`;
-    
-    const loadingId = 'load-' + Date.now();
-    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl text-xs text-gray-400">Consultando...</div></div>`;
-    history.scrollTop = history.scrollHeight;
-
-    const response = await chamarGemini("Liste os 3 planos principais da MHNET com preços e diferenciais. Use emojis e seja objetivo.");
-    
-    document.getElementById(loadingId)?.remove();
-
+    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">Planos?</div></div>`;
+    const response = await chamarGemini("Liste 3 planos MHNET, emojis, objetivo.");
     if(response) {
-         const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${formatted}</div></div>`;
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
     }
 }
@@ -362,45 +308,20 @@ async function enviarMensagemChat() {
     const history = document.getElementById('chatHistory');
     const msg = input.value.trim();
     if(!msg) return;
-    
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
     input.value = '';
-    history.scrollTop = history.scrollHeight;
-    
-    const loadingId = 'l-' + Date.now();
-    history.innerHTML += `<div id="${loadingId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 text-xs text-gray-400">Digitando...</div></div>`;
-
     const response = await chamarGemini(msg);
-    document.getElementById(loadingId)?.remove();
-
     if(response) {
-         const formatted = response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${formatted}</div></div>`;
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
     }
-}
-
-async function analisarCarteiraIA() {
-  if (!leadsCache.length) return alert("Você ainda não tem leads.");
-  
-  showLoading(true, "ANALISANDO...");
-  const bairros = [...new Set(leadsCache.slice(0, 30).map(l => l.bairro || 'Centro'))].join(', ');
-  
-  const prompt = `Tenho clientes em: ${bairros}. Sugira uma rota eficiente de visitação (máximo 5 linhas).`;
-  const txt = await chamarGemini(prompt);
-  
-  showLoading(false);
-  if (txt) alert(`💡 SUGESTÃO DE ROTA:\n\n${txt.replace(/\*\*/g, '')}`);
 }
 
 async function gerarCoachIA() {
   showLoading(true, "🚀 MOTIVANDO...");
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
   const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  
-  const prompt = `O vendedor fez ${leadsHoje} leads hoje. Dê feedback motivacional curto (2 linhas).`;
-  const txt = await chamarGemini(prompt);
-  
+  const txt = await chamarGemini(`Fiz ${leadsHoje} vendas hoje. Frase motivacional curta.`);
   showLoading(false);
   if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
 }
@@ -411,104 +332,46 @@ async function gerarCoachIA() {
 
 async function carregarLeads() {
   const lista = document.getElementById('listaLeadsGestao');
-  
-  if(lista && leadsCache.length === 0) {
-    lista.innerHTML = `<div style="text-align:center; padding:40px;"><i class="fas fa-sync fa-spin text-3xl text-blue-400 mb-3"></i><div class="text-gray-500">Buscando leads...</div></div>`;
-  }
+  if(lista && leadsCache.length === 0) lista.innerHTML = `<div class="text-center p-10"><i class="fas fa-sync fa-spin text-3xl text-blue-400"></i></div>`;
 
   try {
-    console.log("📡 Carregando leads...");
-    
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        route: 'getLeads',
-        payload: { vendedor: loggedUser }
-      })
+      body: JSON.stringify({ route: 'getLeads', payload: { vendedor: loggedUser } })
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const text = await res.text();
-    let data;
-    
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error('❌ JSON inválido:', text);
-      throw new Error('Resposta inválida');
-    }
-
+    const data = await res.json();
     if (data.status === 'success') {
-      leadsCache = (data.data || []).filter(l => {
-        if (!l.nomeLead || l.nomeLead.trim() === '') return false;
-        const v = (l.vendedor || '').toLowerCase();
-        return v.includes(loggedUser.toLowerCase());
-      });
-      
-      leadsCache.sort((a, b) => {
-        const parseDate = (d) => {
-          if (!d) return 0;
-          if (d.includes('/')) {
-            const parts = d.split(' ');
-            const dateParts = parts[0].split('/');
-            const timeParts = parts[1] ? parts[1].split(':') : [0,0,0];
-            return new Date(dateParts[2], dateParts[1]-1, dateParts[0], timeParts[0], timeParts[1], timeParts[2]).getTime();
-          }
-          return new Date(d).getTime();
-        };
-        return parseDate(b.timestamp) - parseDate(a.timestamp);
-      });
-      
+      leadsCache = (data.data || []).filter(l => l.vendedor.toLowerCase().includes(loggedUser.toLowerCase()));
+      leadsCache.sort((a, b) => b._linha - a._linha); // Ordem reversa (mais novos primeiro)
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-      
-      console.log(`✅ ${leadsCache.length} leads carregados`);
-      
       renderLeads();
       atualizarDashboard();
       verificarAgendamentosHoje();
-      
-    } else {
-      throw new Error(data.message || 'Erro ao carregar');
     }
-      
-  } catch (e) {
-    console.error('❌ Erro:', e);
-    
-    if(lista && leadsCache.length === 0) {
-      lista.innerHTML = `<div style="text-align:center; padding:30px;"><i class="fas fa-exclamation-triangle text-4xl text-yellow-400 mb-3"></i><div class="font-bold text-gray-700">Sem conexão</div><button onclick="carregarLeads()" class="mt-4 bg-blue-500 text-white px-6 py-2 rounded-lg"><i class="fas fa-redo"></i> Tentar Novamente</button></div>`;
-    }
-  }
+  } catch (e) { console.error('Erro:', e); }
 }
 
 function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   if (!div) return;
-  
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
   
   const filtrados = leadsCache.filter(l => 
     (l.nomeLead || '').toLowerCase().includes(term) || 
-    (l.bairro || '').toLowerCase().includes(term) ||
-    (l.telefone || '').includes(term)
+    (l.bairro || '').toLowerCase().includes(term)
   );
   
   if (!filtrados.length) {
-    div.innerHTML = `<div style="text-align:center; padding:40px;"><i class="fas fa-inbox text-5xl text-gray-300 mb-3"></i><div class="text-gray-500">Nenhum lead encontrado</div></div>`;
+    div.innerHTML = `<div class="text-center p-10 text-gray-500">Nenhum lead encontrado</div>`;
     return;
   }
 
   div.innerHTML = filtrados.map((l, index) => {
     let badgeClass = "bg-gray-100 text-gray-500";
-    const inter = (l.interesse || 'MÉDIO').toUpperCase();
-    if(inter.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
-    if(inter.includes('BAIXO')) badgeClass = "bg-red-50 text-red-500";
+    if((l.interesse || '').includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
     
-    const dataShow = l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje';
-    const horaShow = l.timestamp && l.timestamp.includes(' ') ? l.timestamp.split(' ')[1].substring(0,5) : '';
-    
-    // Verifica se tem agendamento
     const temAgendamento = l.agendamento && l.agendamento.trim() !== '';
     const agendaBadge = temAgendamento ? `<span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full ml-2"><i class="fas fa-calendar-check"></i> ${l.agendamento.split(' ')[0]}</span>` : '';
 
@@ -517,16 +380,11 @@ function renderLeads() {
       <div class="flex justify-between items-start mb-3 pointer-events-none">
         <div>
           <div class="font-bold text-[#003870] text-lg leading-tight flex items-center flex-wrap">${l.nomeLead} ${agendaBadge}</div>
-          <div class="text-xs text-gray-400 mt-1">${dataShow} ${horaShow}</div>
+          <div class="text-xs text-gray-400 mt-1">${l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje'}</div>
         </div>
-        <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap">${inter}</span>
+        <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold">${l.interesse}</span>
       </div>
-      <div class="text-sm text-gray-600 mb-2 pointer-events-none flex items-center">
-         <i class="fas fa-map-marker-alt text-red-400 mr-2"></i> ${l.bairro || 'Não informado'}
-      </div>
-      <div class="text-sm text-gray-500 pointer-events-none flex items-center">
-         <i class="fas fa-phone text-green-500 mr-2"></i> ${l.telefone || 'Sem telefone'}
-      </div>
+      <div class="text-sm text-gray-600 mb-2 pointer-events-none"><i class="fas fa-map-marker-alt text-red-400 mr-2"></i> ${l.bairro || 'Geral'}</div>
     </div>`;
   }).join('');
 }
@@ -535,26 +393,19 @@ function abrirLeadDetalhes(index) {
     const lead = leadsCache[index];
     if(!lead) return;
     
-    leadAtualParaAgendar = lead; // ✅ Guarda para usar no agendamento
+    leadAtualParaAgendar = lead;
 
-    // Helper Functions para evitar erros se o elemento não existir
+    // Helper Functions
     const setText = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text; };
     const setValue = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
 
     setText('modalLeadNome', lead.nomeLead || 'Sem Nome');
     setText('modalLeadInfo', `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`);
     
-    let info = [];
-    if(lead.telefone) info.push(`📞 ${lead.telefone}`);
-    if(lead.endereco) info.push(`📍 ${lead.endereco}`);
-    if(lead.cidade) info.push(`🏙️ ${lead.cidade}`);
-    if(lead.provedor) info.push(`📡 Provedor atual: ${lead.provedor}`);
-    if(lead.agendamento) info.push(`\n🔔 Agendado para: ${lead.agendamento}`);
-    if(lead.observacao) info.push(`\n💬 ${lead.observacao}`);
-    
-    setText('modalLeadObs', info.length ? info.join('\n') : "Nenhuma informação adicional.");
+    // Agora preenchemos o Textarea (value) e não mais um parágrafo
+    setValue('modalLeadObs', lead.observacao || "");
 
-    // Preenche campos de agendamento se já existir e os elementos existirem no DOM
+    // Preenche campos de agendamento
     const elData = document.getElementById('agendarData');
     const elHora = document.getElementById('agendarHora');
 
@@ -565,9 +416,7 @@ function abrirLeadDetalhes(index) {
                 const [dia, mes, ano] = data.split('/');
                 elData.value = `${ano}-${mes}-${dia}`;
                 elHora.value = hora || '';
-            } catch(e) {
-                elData.value = '';
-            }
+            } catch(e) { elData.value = ''; }
         } else {
             elData.value = '';
             elHora.value = '09:00';
@@ -576,13 +425,7 @@ function abrirLeadDetalhes(index) {
 
     const tel = (lead.telefone || "").replace(/\D/g, '');
     const btnWhats = document.getElementById('btnModalWhats');
-    
-    if (btnWhats) {
-        btnWhats.onclick = () => {
-            if(tel) window.open(`https://wa.me/55${tel}`, '_blank');
-            else alert("Telefone não disponível.");
-        };
-    }
+    if (btnWhats) btnWhats.onclick = () => window.open(tel ? `https://wa.me/55${tel}` : '#', '_blank');
 
     const modal = document.getElementById('leadModal');
     if (modal) {
@@ -607,7 +450,6 @@ async function enviarLead() {
   const tel = document.getElementById('leadTelefone').value.trim();
   
   if (!nome || !tel) return alert("❌ Preencha Nome e Telefone");
-  
   showLoading(true, "SALVANDO...");
   
   const novoLead = {
@@ -619,9 +461,7 @@ async function enviarLead() {
     bairro: document.getElementById('leadBairro').value.trim(),
     interesse: document.getElementById('leadInteresse').value,
     observacao: document.getElementById('leadObs').value.trim(),
-    provedor: "",
-    agendamento: "",
-    timestamp: new Date().toLocaleString('pt-BR')
+    provedor: "", agendamento: "", timestamp: new Date().toLocaleString('pt-BR')
   };
   
   const res = await apiCall('addLead', novoLead);
@@ -629,91 +469,48 @@ async function enviarLead() {
   
   if (res && (res.status === 'success' || res === 'CORS_OK')) {
       alert('✅ Lead Salvo!');
-      
       leadsCache.unshift(novoLead);
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-
       document.getElementById('leadNome').value = ''; 
       document.getElementById('leadTelefone').value = '';
-      document.getElementById('leadEndereco').value = ''; 
-      document.getElementById('leadCidade').value = '';
-      document.getElementById('leadObs').value = '';
-      document.getElementById('leadBairro').value = '';
-      document.getElementById('leadInteresse').value = 'MÉDIO';
-      
       navegarPara('gestaoLeads');
-  } else {
-      alert('❌ Erro ao salvar.');
-  }
+  } else { alert('❌ Erro ao salvar.'); }
 }
 
 function atualizarDashboard() {
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
-  const count = leadsCache.filter(l => {
-    const leadDate = l.timestamp ? l.timestamp.split(' ')[0] : '';
-    return leadDate === hoje;
-  }).length;
-  
-  if(document.getElementById('statLeads')) {
-    document.getElementById('statLeads').innerText = count;
-  }
+  const count = leadsCache.filter(l => (l.timestamp || '').split(' ')[0] === hoje).length;
+  if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
 }
 
 // ============================================================
 // 5. ROTAS GPS
 // ============================================================
-
 function startRoute() {
   if (!navigator.geolocation) return alert('GPS não disponível.');
-  
-  routeCoords = [];
-  seconds = 0;
-  routeStartTime = new Date().toISOString();
-  
+  routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
   document.getElementById('btnStart').style.display = 'none';
   document.getElementById('btnStop').style.display = 'flex';
   
   timerInterval = setInterval(() => {
     seconds++;
-    const h = Math.floor(seconds / 3600).toString().padStart(2,'0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2,'0');
-    const s = (seconds % 60).toString().padStart(2,'0');
+    const h = Math.floor(seconds/3600).toString().padStart(2,'0'), m = Math.floor((seconds%3600)/60).toString().padStart(2,'0'), s = (seconds%60).toString().padStart(2,'0');
     document.getElementById('timer').innerText = `${h}:${m}:${s}`;
   }, 1000);
   
-  watchId = navigator.geolocation.watchPosition(
-    p => {
+  watchId = navigator.geolocation.watchPosition(p => {
       routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
       document.getElementById('points').innerText = routeCoords.length;
       document.getElementById('gpsStatus').innerText = "📍 Rastreando";
-    },
-    e => {
-      console.error("Erro GPS:", e);
-      document.getElementById('gpsStatus').innerText = "⚠️ Erro";
-    },
-    {enableHighAccuracy: true, timeout: 10000, maximumAge: 0}
-  );
+  }, e => console.error(e), {enableHighAccuracy: true});
 }
 
 async function stopRoute() {
   if(!confirm("Finalizar rastreamento?")) return;
-  
-  clearInterval(timerInterval);
-  navigator.geolocation.clearWatch(watchId);
-  
+  clearInterval(timerInterval); navigator.geolocation.clearWatch(watchId);
   showLoading(true, "SALVANDO ROTA...");
-  
-  await apiCall('saveRoute', {
-    vendedor: loggedUser,
-    inicioISO: routeStartTime,
-    fimISO: new Date().toISOString(),
-    coordenadas: routeCoords
-  });
-  
-  showLoading(false);
-  alert(`✅ Rota salva! ${routeCoords.length} pontos`);
-  resetRouteUI();
-  navegarPara('dashboard');
+  await apiCall('saveRoute', { vendedor: loggedUser, inicioISO: routeStartTime, fimISO: new Date().toISOString(), coordenadas: routeCoords });
+  showLoading(false); alert(`✅ Rota salva!`); resetRouteUI(); navegarPara('dashboard');
 }
 
 function resetRouteUI() {
@@ -727,47 +524,21 @@ function resetRouteUI() {
 // ============================================================
 // 6. API CALL
 // ============================================================
-
 async function apiCall(route, payload, show=true) {
   if(show) showLoading(true);
-  
   try {
-    const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ route, payload })
-    });
-    
+    const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({ route, payload }) });
     const text = await res.text();
     let json;
-    
-    try {
-      json = JSON.parse(text);
-    } catch (e) {
-      // Se der erro de JSON mas for uma dessas rotas, é o erro de CORS do Google (mas deu certo)
-      if(route === 'addLead' || route === 'saveRoute' || route === 'updateAgendamento') {
-        return 'CORS_OK';
-      }
+    try { json = JSON.parse(text); } catch (e) {
+      if(['addLead', 'saveRoute', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
       throw new Error("Resposta inválida");
     }
-    
     if(show) showLoading(false);
-    
-    if (json.status === 'error') {
-      throw new Error(json.message);
-    }
-    
     return json;
-    
   } catch(e) {
     if(show) showLoading(false);
-    
-    // Tratamento específico para erro de CORS onde a requisição na verdade funcionou
-    if(e.name === 'TypeError' && (route === 'addLead' || route === 'saveRoute' || route === 'updateAgendamento')) {
-      return 'CORS_OK';
-    }
-    
-    console.error(`Erro ${route}:`, e.message);
+    if(e.name === 'TypeError' && ['addLead', 'saveRoute', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
     return null;
   }
 }
@@ -775,73 +546,17 @@ async function apiCall(route, payload, show=true) {
 function showLoading(show, txt = "AGUARDE...") {
   const loader = document.getElementById('loader');
   if(loader) loader.style.display = show ? 'flex' : 'none';
-  
   const loaderText = document.getElementById('loaderText');
   if(loaderText && txt) loaderText.innerText = txt;
 }
 
-/ 1. Função para Salvar a Observação Editada
-async function salvarObservacaoModal() {
-    if (!leadAtualParaAgendar) return alert("Erro: Nenhum lead selecionado.");
-
-    const novaObs = document.getElementById('modalLeadObs').value;
-
-    showLoading(true, "ATUALIZANDO...");
-
-    const res = await apiCall('updateObservacao', {
-        vendedor: loggedUser,
-        nomeLead: leadAtualParaAgendar.nomeLead,
-        observacao: novaObs
-    });
-
-    showLoading(false);
-
-    if (res && res.status === 'success') {
-        alert("✅ Observação atualizada com sucesso!");
-        
-        // Atualiza o cache local para não precisar recarregar tudo
-        const index = leadsCache.findIndex(l => 
-            l.nomeLead === leadAtualParaAgendar.nomeLead && 
-            l.vendedor === loggedUser
-        );
-        if (index !== -1) {
-            leadsCache[index].observacao = novaObs;
-            localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-        }
-    } else {
-        alert("❌ Erro ao atualizar observação.");
-    }
+// ============================================================
+// 🚀 REGISTRO DO PWA
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('✅ Service Worker:', reg.scope))
+      .catch(err => console.log('❌ Service Worker Fail:', err));
+  });
 }
-
-// 2. Atualização da função verificarAgendamentosHoje para mostrar a Tarja
-function verificarAgendamentosHoje() {
-    const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0]; 
-    
-    const retornosHoje = leadsCache.filter(l => {
-        if (!l.agendamento) return false;
-        const dataAgendamento = l.agendamento.split(' ')[0];
-        return dataAgendamento === hoje;
-    });
-    
-    const banner = document.getElementById('lembreteBanner');
-    const texto = document.getElementById('lembreteTexto');
-
-    if (retornosHoje.length > 0) {
-        // Mostra a tarja
-        if(banner) banner.classList.remove('hidden');
-        if(texto) texto.innerText = `Você tem ${retornosHoje.length} clientes para retornar hoje!`;
-        
-        // Mantém o alerta pop-up também (opcional)
-        // alert(`🔔 LEMBRETE: ${retornosHoje.length} retornos hoje!`);
-    } else {
-        // Esconde a tarja se não tiver nada
-        if(banner) banner.classList.add('hidden');
-    }
-}
-
-// 3. Pequeno ajuste na função abrirLeadDetalhes para usar .value no textarea
-/* Procure a função abrirLeadDetalhes no seu app.js atual e 
-   troque a linha: setText('modalLeadObs', ...) 
-   por: setValue('modalLeadObs', ...); 
-   pois agora é um campo editável (textarea), não mais um texto fixo (p).
-*/
