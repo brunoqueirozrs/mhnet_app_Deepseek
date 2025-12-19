@@ -5,11 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET Gestor</title>
     
-    <!-- PWA -->
+    <!-- CONFIGURAÇÃO PWA (INSTALAÇÃO) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
+    
+    <!-- Configuração iOS (iPhone) para tela cheia -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MHNET">
+    <link rel="apple-touch-icon" href="https://mhnet.com.br/assets/img/logo_branca.png">
 
     <!-- Tailwind & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,97 +27,57 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Fix para evitar scroll elástico da página inteira no iOS */
-        body { height: 100dvh; overscroll-behavior-y: none; }
+        /* Previne o "bouncing" do scroll no iOS */
+        body { height: 100dvh; overscroll-behavior-y: none; background-color: #f1f5f9; }
         
-        /* Inputs com design refinado */
+        /* Inputs Refinados */
         .input-padrao {
-            width: 100%;
-            padding: 0.85rem;
-            background-color: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 0.75rem;
-            outline: none;
-            color: #1e293b;
-            font-size: 1rem;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: all 0.2s;
-            -webkit-appearance: none;
+            width: 100%; padding: 0.85rem; background-color: #ffffff;
+            border: 1px solid #cbd5e1; border-radius: 0.75rem; outline: none;
+            color: #1e293b; font-size: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s;
         }
-        .input-padrao:focus { 
-            border-color: #00aeef; 
-            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15); 
-        }
-        .input-padrao::placeholder { color: #94a3b8; }
+        .input-padrao:focus { border-color: #00aeef; box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15); }
+        .label-padrao { font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 0.35rem; margin-left: 0.25rem; display: block; }
         
-        .label-padrao { 
-            font-size: 0.75rem; 
-            font-weight: 800; 
-            color: #475569; 
-            text-transform: uppercase; 
-            margin-bottom: 0.35rem; 
-            margin-left: 0.25rem;
-            display: block;
-            letter-spacing: 0.025em;
-        }
-
-        /* Fallback para imagem */
-        .img-fallback {
-            display: none;
-            font-weight: bold;
-            font-style: italic;
-        }
-        img:first-child:not([src]) + .img-fallback, 
-        img:first-child[src=""] + .img-fallback, 
-        img[style*="display: none"] + .img-fallback {
-            display: block;
-        }
+        .img-fallback { display: none; font-weight: bold; font-style: italic; }
+        img[onerror] + .img-fallback { display: block; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans flex flex-col overflow-hidden select-none">
+<body class="text-slate-800 font-sans flex flex-col overflow-hidden select-none">
 
     <!-- LOGIN -->
     <div id="userMenu" class="fixed inset-0 bg-[#004c99] z-50 flex flex-col items-center justify-center p-6 fade-in">
-        <div class="mb-8 p-4 bg-white/10 rounded-full backdrop-blur-sm">
-            <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-12 object-contain" alt="MHNET" onerror="this.style.display='none'">
-            <span class="img-fallback text-white text-2xl tracking-tighter">MHNET</span>
+        <div class="mb-10 p-6 bg-white/10 rounded-full backdrop-blur-sm border border-white/10 shadow-2xl animate-pulse">
+            <i class="fas fa-wifi text-6xl text-white"></i>
         </div>
         <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl">
             <h2 class="text-center text-2xl font-bold text-gray-700 mb-2">Bem-vindo</h2>
-            <p class="text-center text-gray-400 text-sm mb-6">Selecione seu perfil para continuar</p>
-            
-            <div class="relative mb-6">
-                <i class="fas fa-user absolute left-4 top-4 text-gray-400 z-10 pointer-events-none"></i>
-                <select id="userSelect" class="w-full p-4 pl-12 bg-slate-50 rounded-xl border border-gray-300 text-lg outline-none focus:ring-2 focus:ring-[#00aeef] appearance-none text-gray-700 relative z-0">
+            <div class="relative mb-6 mt-4">
+                <select id="userSelect" class="w-full p-4 bg-slate-50 rounded-xl border border-gray-300 text-lg outline-none text-gray-700">
                     <option value="">Carregando...</option>
                 </select>
-                <i class="fas fa-chevron-down absolute right-4 top-4 text-gray-400 pointer-events-none z-10"></i>
             </div>
-            
-            <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 active:scale-95 transition flex items-center justify-center gap-2">
-                ENTRAR <i class="fas fa-arrow-right"></i>
-            </button>
+            <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 active:scale-95 transition">ENTRAR</button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão 31.0</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão 33.0 (PWA)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- HEADER -->
-        <header class="bg-[#004c99] text-white p-4 pt-10 pb-6 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[2rem]">
-            <div class="flex flex-col">
-                <div class="h-8 flex items-center">
-                    <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-6 opacity-90 object-contain" onerror="this.style.display='none'">
-                    <span class="img-fallback text-white font-bold text-xl tracking-tighter">MHNET</span>
+        <!-- HEADER SOFISTICADO -->
+        <header class="bg-white text-[#004c99] pt-12 pb-4 px-5 flex justify-between items-center shadow-sm z-20 shrink-0 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="bg-[#004c99] p-2 rounded-lg shadow-md">
+                    <i class="fas fa-wifi text-white text-lg"></i>
                 </div>
-                <div class="flex items-center gap-2 mt-1">
-                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
-                    <div id="userInfo" class="text-xs font-bold text-white/90 truncate max-w-[150px]"></div>
+                <div>
+                    <div class="text-xs text-gray-400 font-bold uppercase tracking-wider">Olá, Vendedor</div>
+                    <div id="userInfo" class="text-sm font-bold text-[#004c99] truncate max-w-[150px]"></div>
                 </div>
             </div>
-            <button onclick="logout()" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition backdrop-blur-sm border border-white/10">
-                <i class="fas fa-power-off text-sm"></i>
+            <button onclick="logout()" class="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 active:scale-90 transition">
+                <i class="fas fa-power-off text-xs"></i>
             </button>
         </header>
 
@@ -122,53 +86,45 @@
 
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
-                <!-- Banner Lembrete (COM ONCLICK PARA FILTRAR) -->
                 <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-xl shadow-sm flex items-start gap-3 animate-bounce cursor-pointer active:scale-95 transition" onclick="filtrarRetornos()">
                     <div class="text-orange-500 mt-1"><i class="fas fa-bell"></i></div>
                     <div>
                         <p class="font-bold text-orange-800 text-sm">Atenção!</p>
-                        <p id="lembreteTexto" class="text-xs text-orange-600 mt-1">Você tem retornos pendentes.</p>
+                        <p id="lembreteTexto" class="text-xs text-orange-600 mt-1">Retornos pendentes.</p>
                     </div>
                 </div>
 
-                <!-- KPIs -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center gap-1">
-                        <div class="text-4xl font-bold text-[#004c99]" id="statLeads">0</div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center">
+                        <div class="text-3xl font-bold text-[#004c99]" id="statLeads">0</div>
                         <div class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Leads Hoje</div>
                     </div>
-                    <div onclick="navegarPara('gestaoLeads')" class="bg-gradient-to-br from-[#00aeef] to-blue-500 p-5 rounded-2xl shadow-md text-white flex flex-col items-center justify-center gap-2 active:scale-95 transition cursor-pointer relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -mr-8 -mt-8 blur-xl"></div>
-                        <i class="fas fa-list-ul text-2xl drop-shadow-md"></i>
-                        <div class="text-[10px] uppercase font-bold tracking-wider drop-shadow-md">Ver Lista</div>
+                    <div onclick="navegarPara('gestaoLeads')" class="bg-gradient-to-br from-[#00aeef] to-blue-500 p-5 rounded-2xl shadow-md text-white flex flex-col items-center justify-center gap-1 active:scale-95 transition cursor-pointer">
+                        <i class="fas fa-list-ul text-2xl"></i>
+                        <div class="text-[10px] uppercase font-bold tracking-wider">Carteira</div>
                     </div>
                 </div>
 
-                <!-- Botão Principal -->
-                <button onclick="navegarPara('cadastroLead')" class="w-full bg-[#004c99] text-white p-5 rounded-2xl shadow-lg shadow-blue-900/20 font-bold flex items-center justify-between mb-6 active:scale-95 transition group relative overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/5 opacity-0 group-hover:opacity-100 transition"></div>
-                    <div class="flex items-center gap-4 relative z-10">
-                        <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center border border-white/10">
-                            <i class="fas fa-user-plus text-xl"></i>
-                        </div>
+                <button onclick="navegarPara('cadastroLead')" class="w-full bg-[#004c99] text-white p-5 rounded-2xl shadow-lg font-bold flex items-center justify-between mb-6 active:scale-95 transition">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center"><i class="fas fa-user-plus text-xl"></i></div>
                         <div class="text-left">
-                            <div class="text-sm opacity-80 font-normal">Registrar</div>
-                            <div class="text-lg tracking-tight">Novo Cliente</div>
+                            <div class="text-sm opacity-80 font-normal">Novo</div>
+                            <div class="text-lg">Cadastro</div>
                         </div>
                     </div>
-                    <i class="fas fa-chevron-right opacity-50 relative z-10"></i>
+                    <i class="fas fa-chevron-right opacity-50"></i>
                 </button>
 
-                <!-- Ferramentas de IA -->
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-1 ml-1 border-l-2 border-purple-400 pl-2">Inteligência MHNET</h3>
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-1 ml-1 border-l-2 border-purple-400 pl-2">IA MHNET</h3>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="gerarCoachIA()" class="bg-white border border-gray-200 p-3 rounded-xl shadow-sm flex flex-col items-center gap-2 active:bg-purple-50 transition group">
-                        <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-brain"></i></div>
-                        <span class="text-xs font-bold text-gray-600">Coach IA</span>
+                    <button onclick="gerarCoachIA()" class="bg-white border border-gray-200 p-3 rounded-xl shadow-sm flex flex-col items-center gap-2 active:bg-gray-50">
+                        <i class="fas fa-brain text-purple-600 text-xl"></i>
+                        <span class="text-xs font-bold text-gray-600">Coach</span>
                     </button>
-                    <button onclick="consultarPlanosIA()" class="bg-white border border-gray-200 p-3 rounded-xl shadow-sm flex flex-col items-center gap-2 active:bg-blue-50 transition group">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-book"></i></div>
-                        <span class="text-xs font-bold text-gray-600">Manual</span>
+                    <button onclick="consultarPlanosIA()" class="bg-white border border-gray-200 p-3 rounded-xl shadow-sm flex flex-col items-center gap-2 active:bg-gray-50">
+                        <i class="fas fa-comments text-blue-600 text-xl"></i>
+                        <span class="text-xs font-bold text-gray-600">Chat IA</span>
                     </button>
                 </div>
             </div>
@@ -176,114 +132,71 @@
             <!-- CADASTRO LEAD -->
             <div id="cadastroLead" class="page hidden fade-in">
                 <div class="flex items-center gap-3 mb-4 pl-1">
-                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
-                    <h2 class="text-xl font-bold text-[#004c99]">Ficha de Cliente</h2>
+                    <button onclick="navegarPara('dashboard')" class="w-9 h-9 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-lg font-bold text-[#004c99]">Ficha de Cliente</h2>
                 </div>
                 
-                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 space-y-5">
-                    
-                    <button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-700 border border-blue-200 p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:bg-blue-100 transition shadow-sm">
-                        <i class="fas fa-location-crosshairs animate-pulse"></i> PEGAR LOCALIZAÇÃO (GPS)
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 space-y-4">
+                    <button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-700 border border-blue-200 p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 active:bg-blue-100">
+                        <i class="fas fa-location-crosshairs"></i> PEGAR LOCALIZAÇÃO
                     </button>
 
-                    <div>
-                        <label class="label-padrao">Nome do Cliente *</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="leadNome" class="input-padrao" placeholder="Nome completo">
-                            <button onclick="iniciarDitado('leadNome', 'btnMicNome')" id="btnMicNome" class="w-12 bg-slate-100 border border-slate-200 rounded-xl text-gray-400 flex items-center justify-center active:bg-slate-200 active:text-red-500 transition"><i class="fas fa-microphone"></i></button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="label-padrao">WhatsApp *</label>
-                        <input type="tel" id="leadTelefone" class="input-padrao" placeholder="(00) 00000-0000">
-                    </div>
-
-                    <div>
-                        <label class="label-padrao">Endereço</label>
-                        <input type="text" id="leadEndereco" class="input-padrao" placeholder="Rua, Número">
-                    </div>
-
+                    <div><label class="label-padrao">Nome *</label><div class="flex gap-2"><input type="text" id="leadNome" class="input-padrao"><button onclick="iniciarDitado('leadNome', 'btnMicNome')" id="btnMicNome" class="w-12 bg-slate-100 border border-slate-200 rounded-xl text-gray-400"><i class="fas fa-microphone"></i></button></div></div>
+                    <div><label class="label-padrao">WhatsApp *</label><input type="tel" id="leadTelefone" class="input-padrao"></div>
+                    <div><label class="label-padrao">Endereço</label><input type="text" id="leadEndereco" class="input-padrao"></div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="label-padrao">Bairro</label>
-                            <input type="text" id="leadBairro" class="input-padrao" placeholder="Bairro">
-                        </div>
-                        <div>
-                            <label class="label-padrao">Cidade</label>
-                            <input type="text" id="leadCidade" class="input-padrao" placeholder="Cidade">
-                        </div>
+                        <div><label class="label-padrao">Bairro</label><input type="text" id="leadBairro" class="input-padrao"></div>
+                        <div><label class="label-padrao">Cidade</label><input type="text" id="leadCidade" class="input-padrao"></div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
+                         <div><label class="label-padrao">Provedor</label><input type="text" id="leadProvedor" class="input-padrao"></div>
                          <div>
-                            <label class="label-padrao">Provedor Atual</label>
-                            <input type="text" id="leadProvedor" class="input-padrao" placeholder="Ex: Vivo">
-                        </div>
-                        <div>
-                            <label class="label-padrao">Nível Interesse</label>
+                            <label class="label-padrao">Interesse</label>
                             <select id="leadInteresse" class="input-padrao bg-white">
-                                <option value="Alto">🔥 Alto</option>
-                                <option value="Médio" selected>🤔 Médio</option>
-                                <option value="Baixo">❄️ Baixo</option>
+                                <option value="Alto">🔥 Alto</option><option value="Médio" selected>🤔 Médio</option><option value="Baixo">❄️ Baixo</option>
                             </select>
                         </div>
                     </div>
-
-                    <!-- Hidden Inputs -->
                     <input type="hidden" id="leadLat"><input type="hidden" id="leadLon">
-
                     <div>
                         <label class="label-padrao">Observações</label>
                         <div class="relative">
-                            <textarea id="leadObs" rows="3" class="input-padrao min-h-[80px]" placeholder="Detalhes importantes..."></textarea>
-                            <button onclick="gerarAbordagemIA()" class="absolute bottom-3 right-3 bg-purple-100 text-purple-600 border border-purple-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95 transition hover:bg-purple-200">
-                                <i class="fas fa-magic"></i> IA Pitch
-                            </button>
+                            <textarea id="leadObs" rows="3" class="input-padrao"></textarea>
+                            <button onclick="gerarAbordagemIA()" class="absolute bottom-3 right-3 bg-purple-100 text-purple-600 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm">✨ IA Pitch</button>
                         </div>
                     </div>
-
-                    <button onclick="enviarLead()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl shadow-blue-400/30 mt-2 active:scale-95 transition flex items-center justify-center gap-2">
-                        <i class="fas fa-check"></i> SALVAR CADASTRO
-                    </button>
+                    <button onclick="enviarLead()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl mt-2 active:scale-95">SALVAR</button>
                 </div>
             </div>
 
-            <!-- LISTA DE LEADS -->
+            <!-- LISTA -->
             <div id="gestaoLeads" class="page hidden fade-in">
                 <div class="flex items-center justify-between mb-4 pl-1">
-                    <h2 class="text-xl font-bold text-[#004c99]">Carteira de Clientes</h2>
-                    <button onclick="carregarLeads()" class="w-9 h-9 bg-white border border-gray-200 text-blue-600 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition hover:bg-blue-50"><i class="fas fa-sync text-sm"></i></button>
+                    <h2 class="text-lg font-bold text-[#004c99]">Carteira de Clientes</h2>
+                    <button onclick="carregarLeads()" class="w-9 h-9 bg-white border border-gray-200 text-blue-600 rounded-full flex items-center justify-center active:scale-90"><i class="fas fa-sync text-sm"></i></button>
                 </div>
-                
                 <div class="bg-white p-2 rounded-xl shadow-sm mb-4 flex gap-2 border border-gray-200 sticky top-0 z-10">
                     <div class="pl-3 flex items-center justify-center text-gray-400"><i class="fas fa-search"></i></div>
-                    <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full p-2 outline-none text-gray-600 bg-transparent" placeholder="Buscar por nome, bairro...">
+                    <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full p-2 outline-none text-gray-600 bg-transparent" placeholder="Buscar...">
                 </div>
-
                 <div id="listaLeadsGestao" class="space-y-3 pb-20"></div>
             </div>
-
         </main>
 
-        <!-- MENU INFERIOR (Fixo, Glassmorphism) -->
-        <nav class="bg-white/90 backdrop-blur-md border-t border-gray-200 flex justify-around items-center p-2 pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 absolute bottom-0 w-full rounded-t-3xl h-20">
+        <!-- MENU INFERIOR -->
+        <nav class="bg-white/95 backdrop-blur-md border-t border-gray-200 flex justify-around items-center p-2 pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 absolute bottom-0 w-full rounded-t-3xl h-20">
             <button id="nav-home" onclick="navegarPara('dashboard')" class="nav-item w-16 group flex flex-col items-center gap-1 text-[#00aeef] transition">
-                <div class="w-8 h-1 rounded-full bg-[#00aeef] mb-1 opacity-0 group-[.active]:opacity-100 transition-all"></div>
-                <i class="fas fa-home text-xl group-[.active]:scale-110 transition"></i>
-                <span class="text-[10px] font-bold opacity-70 group-[.active]:opacity-100">Início</span>
+                <i class="fas fa-home text-xl group-[.active]:scale-110"></i>
+                <span class="text-[10px] font-bold">Início</span>
             </button>
-            
             <button id="nav-novo" onclick="navegarPara('cadastroLead')" class="nav-item relative -top-8 group">
-                <div class="w-14 h-14 bg-[#00aeef] rounded-full shadow-lg shadow-blue-400/40 flex items-center justify-center text-white border-4 border-slate-50 active:scale-90 transition transform hover:-translate-y-1">
+                <div class="w-14 h-14 bg-[#00aeef] rounded-full shadow-lg flex items-center justify-center text-white border-4 border-slate-50 active:scale-90 transition transform hover:-translate-y-1">
                     <i class="fas fa-plus text-xl"></i>
                 </div>
             </button>
-
             <button id="nav-lista" onclick="navegarPara('gestaoLeads')" class="nav-item w-16 group flex flex-col items-center gap-1 text-slate-300 transition">
-                <div class="w-8 h-1 rounded-full bg-[#00aeef] mb-1 opacity-0 group-[.active]:opacity-100 transition-all"></div>
-                <i class="fas fa-users text-xl group-[.active]:scale-110 group-[.active]:text-[#00aeef] transition"></i>
-                <span class="text-[10px] font-bold opacity-70 group-[.active]:opacity-100 group-[.active]:text-[#00aeef]">Leads</span>
+                <i class="fas fa-users text-xl group-[.active]:scale-110 group-[.active]:text-[#00aeef]"></i>
+                <span class="text-[10px] font-bold group-[.active]:text-[#00aeef]">Leads</span>
             </button>
         </nav>
     </div>
@@ -292,21 +205,14 @@
     <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center">
         <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
         <div class="bg-white w-full sm:w-[400px] sm:rounded-3xl rounded-t-3xl p-6 relative shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
-            
-            <!-- Botão Editar -->
-            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm active:scale-90 border border-slate-200">
-                <i class="fas fa-pen"></i>
-            </button>
-
+            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] active:scale-90 border border-slate-200"><i class="fas fa-pen"></i></button>
             <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
-            
             <div class="mb-6 pr-10">
-                <h3 id="modalLeadNome" class="text-2xl font-bold text-slate-800 leading-tight">Nome do Lead</h3>
+                <h3 id="modalLeadNome" class="text-xl font-bold text-slate-800 leading-tight">Nome do Lead</h3>
                 <p id="modalLeadInfo" class="text-gray-400 text-xs font-bold uppercase tracking-wider mt-1">Detalhes</p>
                 <div id="modalLeadFlag" class="mt-2"></div>
             </div>
-
-            <!-- Dados Extras -->
+            
             <div class="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-200">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs text-gray-400 font-bold uppercase">Provedor</span>
@@ -314,30 +220,23 @@
                 </div>
                 <hr class="border-gray-200 my-2">
                 <div class="text-xs text-gray-400 font-bold uppercase mb-1">Última Obs</div>
-                <textarea id="modalLeadObs" rows="2" class="w-full bg-transparent text-sm text-gray-600 outline-none resize-none border border-transparent focus:border-slate-300 focus:bg-white rounded-lg p-2 transition" placeholder="Sem observações..."></textarea>
-                <button onclick="salvarObservacaoModal()" class="text-[10px] font-bold text-blue-500 mt-2 uppercase hover:text-blue-700 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200 w-full active:scale-95 transition">Salvar Nova Obs</button>
+                <textarea id="modalLeadObs" rows="2" class="w-full bg-transparent text-sm text-gray-600 outline-none resize-none border border-transparent focus:border-slate-300 focus:bg-white rounded-lg p-2 transition"></textarea>
+                <button onclick="salvarObservacaoModal()" class="text-[10px] font-bold text-blue-500 mt-2 uppercase w-full text-right hover:text-blue-700">Salvar Obs</button>
             </div>
 
             <!-- Agendamento (AGORA AZUL) -->
             <div class="mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                <label class="label-padrao flex items-center gap-2 mb-2 text-blue-700">
-                    <i class="fas fa-calendar-alt text-blue-500"></i> Agendar Retorno
-                </label>
+                <label class="label-padrao flex items-center gap-2 mb-2 text-blue-700"><i class="fas fa-calendar-alt text-blue-500"></i> Agendar Retorno</label>
                 <div class="flex gap-2">
-                    <input type="date" id="agendarData" class="flex-1 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-blue-300">
-                    <input type="time" id="agendarHora" class="w-24 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-blue-300">
+                    <input type="date" id="agendarData" class="flex-1 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-gray-600 outline-none">
+                    <input type="time" id="agendarHora" class="w-24 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-gray-600 outline-none">
                 </div>
-                <button onclick="salvarAgendamento()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition mt-3 hover:bg-blue-700">
-                    CONFIRMAR & NOTIFICAR
-                </button>
+                <button onclick="salvarAgendamento()" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition mt-3">CONFIRMAR</button>
             </div>
 
-            <!-- Ações -->
             <div class="grid grid-cols-2 gap-3">
-                <button onclick="fecharLeadModal()" class="p-3 rounded-xl border border-gray-200 font-bold text-gray-500 text-sm active:bg-gray-100 transition">Fechar</button>
-                <button id="btnModalWhats" class="p-3 rounded-xl bg-green-500 text-white font-bold shadow-md flex items-center justify-center gap-2 text-sm active:scale-95 transition hover:bg-green-600">
-                    <i class="fab fa-whatsapp text-lg"></i> Chamar
-                </button>
+                <button onclick="fecharLeadModal()" class="p-3 rounded-xl border border-gray-200 font-bold text-gray-500 text-sm active:bg-gray-100">Fechar</button>
+                <button id="btnModalWhats" class="p-3 rounded-xl bg-green-500 text-white font-bold shadow-md flex items-center justify-center gap-2 text-sm active:scale-95"><i class="fab fa-whatsapp text-lg"></i> Chamar</button>
             </div>
         </div>
     </div>
@@ -348,24 +247,16 @@
         <div class="bg-white w-full max-w-md h-[70vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative fade-in">
             <div class="bg-[#004c99] p-4 text-white font-bold flex justify-between items-center shadow-md z-10">
                 <span class="flex items-center gap-2"><i class="fas fa-robot text-blue-200"></i> Assistente MHNET</span>
-                <button onclick="toggleChat()" class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition"><i class="fas fa-times text-sm"></i></button>
+                <button onclick="toggleChat()" class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"><i class="fas fa-times text-sm"></i></button>
             </div>
-            <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
-                <div class="flex gap-3 fade-in">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs shadow-sm border border-blue-200"><i class="fas fa-robot"></i></div>
-                    <div class="bg-white p-3 rounded-2xl rounded-tl-none text-sm text-gray-600 shadow-sm max-w-[85%] leading-relaxed border border-gray-100">
-                        Olá! Sou sua IA de vendas. Pode me perguntar sobre planos, regras ou pedir dicas de abordagem! 🚀
-                    </div>
-                </div>
-            </div>
+            <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50"></div>
             <div class="p-3 border-t bg-white flex gap-2 items-center">
-                <input type="text" id="chatInput" class="flex-1 bg-gray-100 p-3 pl-4 rounded-full outline-none text-sm focus:ring-2 focus:ring-blue-100 transition" placeholder="Digite sua dúvida...">
-                <button onclick="enviarMensagemChat()" class="bg-[#00aeef] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-90 transition hover:bg-blue-500"><i class="fas fa-paper-plane text-xs"></i></button>
+                <input type="text" id="chatInput" class="flex-1 bg-gray-100 p-3 pl-4 rounded-full outline-none text-sm" placeholder="Digite sua dúvida...">
+                <button onclick="enviarMensagemChat()" class="bg-[#00aeef] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-90"><i class="fas fa-paper-plane text-xs"></i></button>
             </div>
         </div>
     </div>
 
-    <!-- LOADER -->
     <div id="loader" class="hidden fixed inset-0 z-[70] bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center fade-in">
         <div class="relative">
             <div class="w-16 h-16 border-4 border-blue-100 border-t-[#00aeef] rounded-full animate-spin"></div>
