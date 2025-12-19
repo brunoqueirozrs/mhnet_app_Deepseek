@@ -88,7 +88,7 @@
                     Entrar Agora
                 </button>
             </div>
-            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v26.0 • Final Sync</p>
+            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v26.1 • Fix & Provedor</p>
         </div>
     </div>
 
@@ -113,7 +113,6 @@
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
                 
-                <!-- ✅ 1. TARJA DE LEMBRETES (NOVO) -->
                 <div id="lembreteBanner" class="hidden bg-amber-50 border-l-4 border-amber-500 text-amber-900 p-4 mb-6 rounded-r-xl shadow-sm cursor-pointer hover:bg-amber-100 transition-colors" onclick="navegarPara('gestaoLeads')">
                     <div class="flex items-center gap-4">
                         <div class="bg-amber-100 p-2 rounded-full">
@@ -127,7 +126,7 @@
                     </div>
                 </div>
 
-                <!-- Card Resumo (IA COACH ✨) -->
+                <!-- Card Resumo -->
                 <div class="bg-gradient-to-br from-[#004c99] to-[#003366] rounded-[2rem] p-8 text-white shadow-xl shadow-blue-900/20 mb-8 relative overflow-hidden group">
                     <div class="absolute right-[-20px] top-[-20px] opacity-10 rotate-12"><i class="fas fa-trophy text-9xl"></i></div>
                     <p class="text-blue-200 text-xs font-bold uppercase mb-2 tracking-wider">Vendas Hoje</p>
@@ -181,7 +180,6 @@
                     <div class="input-group relative">
                         <div class="flex justify-between items-center mb-1">
                             <label class="input-label mb-0">Endereço</label>
-                            <!-- BOTÃO GPS AQUI -->
                             <button onclick="buscarEnderecoGPS()" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors flex items-center gap-1 shadow-sm border border-blue-100">
                                 <i class="fas fa-map-marker-alt text-red-500"></i> <span class="tracking-wide">Usar GPS</span>
                             </button>
@@ -206,13 +204,21 @@
                             <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                         </div>
                     </div>
-                    <!-- 7. Obs + IA + Voz -->
+
+                    <!-- ✅ 7. PROVEDOR ATUAL (NOVO) -->
+                    <div class="input-group">
+                        <label class="input-label">Provedor Atual</label>
+                        <input type="text" id="leadProvedor" class="modern-input" placeholder="Ex: Vivo, Claro (Opcional)">
+                        <i class="fas fa-network-wired input-icon text-purple-500"></i>
+                    </div>
+
+                    <!-- 8. Obs + IA + Voz -->
                     <div class="input-group mb-0">
                         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px;">
                             <div class="flex items-center gap-2">
                                 <label class="input-label mb-0">Observações</label>
                                 <!-- BOTÃO MICROFONE -->
-                                <button id="btnMic" onclick="iniciarDitado()" class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm" title="Falar">
+                                <button id="btnMic" onclick="iniciarDitado('leadObs', 'btnMic')" class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm" title="Falar">
                                     <i class="fas fa-microphone text-xs"></i>
                                 </button>
                             </div>
@@ -292,12 +298,21 @@
             <div class="absolute bottom-0 w-full h-[92%] bg-[#f8fafc] rounded-t-[2.5rem] flex flex-col overflow-hidden shadow-2xl transition-transform slide-up">
                 <!-- Header Modal -->
                 <div class="bg-white p-5 border-b border-gray-100 flex justify-between items-center relative">
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ficha do Cliente</p>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ficha do Cliente</p>
+                            <!-- ✅ ETIQUETA DE INTERESSE (NOVO) -->
+                            <span id="modalLeadFlag" class="bg-gray-100 text-gray-500 px-3 py-1 rounded-lg text-[10px] font-bold hidden">...</span>
+                        </div>
                         <h3 id="modalLeadNome" class="font-bold text-[#003870] text-xl leading-tight">Nome</h3>
                         <p id="modalLeadInfo" class="text-xs text-gray-500 mt-1">Detalhes...</p>
+                        
+                        <!-- ✅ EXIBIR PROVEDOR (NOVO) -->
+                        <div class="mt-2 flex items-center gap-1 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded w-max">
+                            <i class="fas fa-network-wired"></i> <span id="modalLeadProvedor">...</span>
+                        </div>
                     </div>
-                    <button onclick="fecharLeadModal()" class="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100">
+                    <button onclick="fecharLeadModal()" class="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 flex-shrink-0">
                         <i class="fas fa-times text-lg"></i>
                     </button>
                 </div>
@@ -333,10 +348,16 @@
                         </button>
                     </div>
                     
-                    <!-- ✅ 2. OBSERVAÇÃO EDITÁVEL (NOVO) -->
+                    <!-- OBSERVAÇÃO EDITÁVEL -->
                     <div class="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm mb-6">
                         <div class="flex justify-between items-end mb-2">
-                            <p class="text-xs font-bold text-gray-400 uppercase">Observações</p>
+                            <div class="flex items-center gap-2">
+                                <p class="text-xs font-bold text-gray-400 uppercase">Observações</p>
+                                <!-- ✅ BOTÃO VOZ NO MODAL (NOVO) -->
+                                <button id="btnMicModal" onclick="iniciarDitado('modalLeadObs', 'btnMicModal')" class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm" title="Falar">
+                                    <i class="fas fa-microphone text-xs"></i>
+                                </button>
+                            </div>
                             <button onclick="salvarObservacaoModal()" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition-colors">
                                 <i class="fas fa-save mr-1"></i> Salvar Obs
                             </button>
