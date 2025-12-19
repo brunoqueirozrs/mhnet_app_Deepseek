@@ -9,7 +9,7 @@
 
 // CONFIGURAÇÃO
 // ⚠️ MANTENHA SEU ID DE IMPLANTAÇÃO ATUALIZADO AQUI:
-const DEPLOY_ID = 'AKfycbwm8VYChmJVZ8Z-LhFlWBsKyEbr7gC21NjswiPVzz6Jdbglx2bGQNNHXoDf7NWa4BUj'; 
+const DEPLOY_ID = 'AKfycbz7JqxSuSSxm9jLK8fnwpdsPdz88yNT2gc4JQwlx4z3TYA_9G9k9utNR1rKrrYGXoVY'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 // LISTA FIXA DE SEGURANÇA
