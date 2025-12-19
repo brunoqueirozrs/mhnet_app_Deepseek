@@ -9,7 +9,7 @@
 
 // CONFIGURAÇÃO
 // ⚠️ ID DA NOVA IMPLEMENTAÇÃO ATUALIZADO:
-const DEPLOY_ID = 'AKfycbzNbIauJCFL4QEJ0p78V9CrYGtMIWwM2oyso8U9xLSg8W876R-rFWtzZ9p_U7WjclPA'; 
+const DEPLOY_ID = 'AKfycbzdAoic1xxMJ-jp7fYuqt0YD87Tt58SG0e68sqEYhWjbVtro-1bv8zqkF73hlRZ08UQ'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 let loggedUser = localStorage.getItem('loggedUser');
