@@ -31,6 +31,7 @@
             width: 100%; padding: 1rem; background-color: #ffffff;
             border: 1px solid #e2e8f0; border-radius: 1rem; outline: none;
             color: #1e293b; font-size: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s;
+            -webkit-appearance: none;
         }
         .input-padrao:focus { border-color: #00aeef; box-shadow: 0 0 0 4px rgba(0, 174, 239, 0.1); }
         .label-padrao { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem; margin-left: 0.25rem; display: block; letter-spacing: 0.05em; }
@@ -62,13 +63,13 @@
                 ACESSAR SISTEMA <i class="fas fa-arrow-right"></i>
             </button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão 34.0 (Design Restore)</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão 37.0 (Premium Sync)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- HEADER CURVO (Visual V30 Restaurado) -->
+        <!-- HEADER CURVO -->
         <header class="bg-[#004c99] text-white pt-12 pb-8 px-6 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[2.5rem]">
             <div>
                 <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-7 opacity-90 object-contain" onerror="this.style.display='none'">
@@ -88,7 +89,7 @@
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
                 
-                <!-- Banner Lembrete -->
+                <!-- Banner Lembrete (Interativo) -->
                 <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-2xl shadow-sm flex items-start gap-4 animate-bounce cursor-pointer active:scale-95 transition" onclick="filtrarRetornos()">
                     <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center text-orange-500 shrink-0">
                         <i class="fas fa-bell"></i>
@@ -267,6 +268,7 @@
         <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
         <div class="bg-white w-full sm:w-[450px] sm:rounded-3xl rounded-t-[2.5rem] p-6 relative shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
             
+            <!-- Botão Editar -->
             <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm active:scale-90 border border-slate-200">
                 <i class="fas fa-pen"></i>
             </button>
@@ -295,7 +297,7 @@
                 </button>
             </div>
 
-            <!-- Agendamento (AZUL) -->
+            <!-- Agendamento -->
             <div class="mb-6 bg-blue-50 p-5 rounded-2xl border border-blue-100">
                 <label class="label-padrao flex items-center gap-2 mb-3 text-blue-800">
                     <div class="bg-blue-200 p-1.5 rounded-md"><i class="fas fa-calendar-alt text-blue-600"></i></div>
