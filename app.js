@@ -9,7 +9,7 @@
 
 // CONFIGURAÇÃO
 // ⚠️ MANTENHA O ID DA SUA IMPLANTAÇÃO V27 AQUI:
-const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
+const DEPLOY_ID = 'AKfycbxhFr84X6j3J2R3plUiFcIrwurlXP7mbj2CkixFY_qmZHPFxz2V19iRDuYA8_ZQorei'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 // Chave para funções criativas locais (Pitch de Vendas/Coach)
