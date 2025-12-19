@@ -1,32 +1,21 @@
 {
-  "name": "MHNET Vendas Externas",
-  "short_name": "MHNET Vendas",
-  "description": "Aplicativo oficial para gestão de rotas e cadastro de leads externos da MHNET.",
+  "name": "MHNET Vendas",
+  "short_name": "MHNET",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#004c99",
   "theme_color": "#004c99",
+  "description": "Gestor de Vendas Externas MHNET",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1256/1256650.png",
+      "src": "https://mhnet.com.br/assets/img/logo_branca.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1256/1256650.png",
+      "src": "https://mhnet.com.br/assets/img/logo_branca.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
-  ],
-  "categories": [
-    "business",
-    "productivity",
-    "sales"
-  ],
-  "lang": "pt-BR",
-  "dir": "ltr"
+  ]
 }
