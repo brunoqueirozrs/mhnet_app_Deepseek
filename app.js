@@ -1,50 +1,31 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V26.2 (IA CENTRALIZADA)
- * ✅ Fix: Erro 404 na IA resolvido (tudo via Backend)
- * ✅ Feature: Pitch e Coach agora leem o Documento do Drive
- * ✅ Feature: Campo "Provedor Atual" e Flags de Interesse
+ * MHNET VENDAS - LÓGICA FRONTEND V28 (GESTOR DINÂMICO)
+ * ✅ Fix: ID de Deploy atualizado e conectado ao Backend V45
+ * ✅ Feature: Lista de Vendedores puxada da Planilha
+ * ✅ Feature: Foco total em Gestão de Leads (Rotas removidas)
  * ============================================================
  */
 
 // CONFIGURAÇÃO
-// ⚠️ MANTENHA SEU ID DE IMPLANTAÇÃO ATUALIZADO AQUI:
-const DEPLOY_ID = 'AKfycbyGBM-ZL8yYQwuU2ihMSH2WkIDJfSROm1TJsPvyABGhq2K0rzHaSM-J2H2bBr6XmExL'; 
+// ⚠️ ID DA NOVA IMPLEMENTAÇÃO ATUALIZADO:
+const DEPLOY_ID = 'AKfycbzJvdEQcVEmCm7GAUJHc8gBujLPvX0bBgq3BIZha40osyPItW-ZFNjNUs3d5H9UvH0t'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-
-// LISTA FIXA DE SEGURANÇA
-const VENDEDORES_OFFLINE = [
-    "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
-    "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
-    "Elton da Silva Rodrigo Gonçalves"
-];
 
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
-let routeCoords = [];
-let watchId = null;
-let timerInterval = null;
-let seconds = 0;
-let routeStartTime = null;
 let leadAtualParaAgendar = null; 
 
 // ============================================================
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v26.2 - IA Centralizada");
+  console.log("🚀 MHNET App v28 - Gestor Conectado");
 
-  const select = document.getElementById('userSelect');
-  if(select) {
-      select.innerHTML = '<option value="">Toque para selecionar...</option>';
-      VENDEDORES_OFFLINE.forEach(nome => {
-          const opt = document.createElement('option');
-          opt.value = nome;
-          opt.innerText = nome;
-          select.appendChild(opt);
-      });
-  }
+  // Busca vendedores cadastrados na planilha (Backend V45)
+  carregarVendedores();
 
+  // Carrega cache local de leads para velocidade
   const saved = localStorage.getItem('mhnet_leads_cache');
   if(saved) {
       try { 
@@ -61,27 +42,68 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+async function carregarVendedores() {
+    const select = document.getElementById('userSelect');
+    if(!select) return;
+
+    select.innerHTML = '<option value="">Carregando equipe...</option>';
+
+    try {
+        // Chama a rota 'getVendors' do Backend V45
+        const res = await apiCall('getVendors', {}, false);
+        
+        select.innerHTML = '<option value="">Toque para selecionar...</option>';
+        
+        if (res && res.status === 'success' && res.data && res.data.length > 0) {
+            // Preenche com os dados da planilha
+            res.data.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.nome;
+                opt.innerText = v.nome;
+                select.appendChild(opt);
+            });
+        } else {
+            throw new Error("Lista vazia no backend");
+        }
+    } catch (e) {
+        console.warn("Usando lista offline de vendedores:", e);
+        // Fallback: Lista fixa se estiver sem internet ou erro no backend
+        const VENDEDORES_OFFLINE = [
+            "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
+            "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
+            "Elton da Silva Rodrigo Gonçalves"
+        ];
+        select.innerHTML = '<option value="">Selecionar (Modo Offline)...</option>';
+        VENDEDORES_OFFLINE.forEach(nome => {
+            const opt = document.createElement('option');
+            opt.value = nome;
+            opt.innerText = nome;
+            select.appendChild(opt);
+        });
+    }
+}
+
 function initApp() {
   document.getElementById('userMenu').style.display = 'none';
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
-  
+   
   navegarPara('dashboard');
-  
+   
   if(leadsCache.length > 0) {
     renderLeads();
     atualizarDashboard();
     verificarAgendamentosHoje();
   }
-  
-  carregarLeads();
+   
+  carregarLeads(); // Busca leads novos na nuvem
 }
 
 // ============================================================
-// 📍 AGILIDADE NO CAMPO (GPS & VOZ DINÂMICO)
+// 📍 UTILITÁRIOS (GPS & VOZ)
 // ============================================================
 
-// 1. GPS -> ENDEREÇO
+// 1. GPS -> ENDEREÇO (Apenas para preencher cadastro)
 async function buscarEnderecoGPS() {
     if (!navigator.geolocation) return alert("Seu dispositivo não suporta GPS.");
     
@@ -100,9 +122,14 @@ async function buscarEnderecoGPS() {
                 const bairro = data.address.suburb || data.address.neighbourhood || '';
                 const cidade = data.address.city || data.address.town || data.address.municipality || '';
                 
-                document.getElementById('leadEndereco').value = rua;
-                document.getElementById('leadBairro').value = bairro;
-                document.getElementById('leadCidade').value = cidade;
+                // Preenche os campos automaticamente
+                const elEnd = document.getElementById('leadEndereco');
+                const elBairro = document.getElementById('leadBairro');
+                const elCidade = document.getElementById('leadCidade');
+                
+                if(elEnd) elEnd.value = rua;
+                if(elBairro) elBairro.value = bairro;
+                if(elCidade) elCidade.value = cidade;
                 
                 alert(`✅ Localizado:\n${rua}, ${bairro}`);
             } else {
@@ -119,12 +146,12 @@ async function buscarEnderecoGPS() {
     }, { enableHighAccuracy: true });
 }
 
-// 2. DITADO DE VOZ (DINÂMICO)
+// 2. DITADO DE VOZ
 function iniciarDitado(targetId, btnId) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
-        return alert("Seu navegador não suporta ditado de voz. Tente usar o Google Chrome.");
+        return alert("Seu navegador não suporta ditado de voz.");
     }
 
     const recognition = new SpeechRecognition();
@@ -134,7 +161,7 @@ function iniciarDitado(targetId, btnId) {
 
     const btn = document.getElementById(btnId);
     
-    // Feedback visual de gravação
+    // Feedback visual
     if(btn) {
         btn.classList.remove('text-gray-400');
         btn.classList.add('text-red-600', 'animate-pulse');
@@ -145,22 +172,14 @@ function iniciarDitado(targetId, btnId) {
     recognition.onresult = (event) => {
         const fala = event.results[0][0].transcript;
         const campo = document.getElementById(targetId);
-        
         if (campo) {
             campo.value += (campo.value ? " " : "") + fala;
         }
-        
         restaurarBotao(btn);
     };
 
-    recognition.onerror = (event) => {
-        alert("Não entendi. Tente novamente.");
-        restaurarBotao(btn);
-    };
-    
-    recognition.onend = () => {
-        restaurarBotao(btn);
-    };
+    recognition.onerror = () => restaurarBotao(btn);
+    recognition.onend = () => restaurarBotao(btn);
 }
 
 function restaurarBotao(btn) {
@@ -171,18 +190,18 @@ function restaurarBotao(btn) {
 }
 
 // ============================================================
-// 🔔 SISTEMA DE AGENDAMENTO E OBSERVAÇÕES
+// 🔔 GESTÃO DE AGENDAMENTOS
 // ============================================================
 
 function verificarAgendamentosHoje() {
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0]; // dd/MM/yyyy
-  
+   
   const retornosHoje = leadsCache.filter(l => {
     if (!l.agendamento) return false;
     const dataAgendamento = l.agendamento.split(' ')[0];
     return dataAgendamento === hoje;
   });
-  
+   
   const banner = document.getElementById('lembreteBanner');
   const texto = document.getElementById('lembreteTexto');
 
@@ -198,26 +217,33 @@ async function salvarAgendamento() {
   if (!leadAtualParaAgendar) return alert("Erro ao identificar lead.");
   const dataEl = document.getElementById('agendarData');
   const horaEl = document.getElementById('agendarHora');
-  if (!dataEl || !horaEl) return alert("Campos de agendamento não encontrados.");
-  const data = dataEl.value;
-  const hora = horaEl.value;
-  if (!data) return alert("❌ Selecione uma data!");
-  showLoading(true, "AGENDANDO...");
-  const [ano, mes, dia] = data.split('-');
-  const dataFormatada = `${dia}/${mes}/${ano} ${hora || '09:00'}`;
+  
+  if (!dataEl.value) return alert("❌ Selecione uma data!");
+  
+  showLoading(true, "AGENDANDO & NOTIFICANDO...");
+  
+  const [ano, mes, dia] = dataEl.value.split('-');
+  const dataFormatada = `${dia}/${mes}/${ano} ${horaEl.value || '09:00'}`;
+  
+  // Chama Backend para salvar e disparar WhatsApp (V45)
   const res = await apiCall('updateAgendamento', {
     vendedor: loggedUser,
     nomeLead: leadAtualParaAgendar.nomeLead,
     agendamento: dataFormatada
   });
+  
   showLoading(false);
+  
   if (res && res.status === 'success') {
-    alert(`✅ Agendamento salvo!\n\nRetorno: ${dataFormatada}`);
+    alert(`✅ Agendamento salvo!\nVocê receberá um lembrete no WhatsApp.`);
+    
+    // Atualiza cache local
     const index = leadsCache.findIndex(l => l.nomeLead === leadAtualParaAgendar.nomeLead && l.vendedor === loggedUser);
     if (index !== -1) {
       leadsCache[index].agendamento = dataFormatada;
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
     }
+    
     fecharLeadModal();
     renderLeads(); 
     verificarAgendamentosHoje();
@@ -229,13 +255,17 @@ async function salvarAgendamento() {
 async function salvarObservacaoModal() {
     if (!leadAtualParaAgendar) return alert("Erro: Nenhum lead selecionado.");
     const novaObs = document.getElementById('modalLeadObs').value;
+    
     showLoading(true, "ATUALIZANDO...");
+    
     const res = await apiCall('updateObservacao', {
         vendedor: loggedUser,
         nomeLead: leadAtualParaAgendar.nomeLead,
         observacao: novaObs
     });
+    
     showLoading(false);
+    
     if (res && res.status === 'success') {
         alert("✅ Observação atualizada!");
         const index = leadsCache.findIndex(l => l.nomeLead === leadAtualParaAgendar.nomeLead && l.vendedor === loggedUser);
@@ -261,9 +291,11 @@ function navegarPara(pageId) {
       void target.offsetWidth; 
       target.classList.add('fade-in');
   }
+  
   const mainScroll = document.getElementById('main-scroll');
   if(mainScroll) mainScroll.scrollTo(0,0);
 
+  // Atualiza menu inferior
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.remove('active', 'text-blue-700');
     el.classList.add('text-slate-400');
@@ -273,7 +305,6 @@ function navegarPara(pageId) {
   if(pageId === 'dashboard') btnId = 'nav-home';
   if(pageId === 'cadastroLead') btnId = 'nav-novo';
   if(pageId === 'gestaoLeads') btnId = 'nav-lista';
-  if(pageId === 'rota') btnId = 'nav-rota';
 
   const btn = document.getElementById(btnId);
   if(btn && !btn.querySelector('div')) {
@@ -307,61 +338,50 @@ function logout() {
 }
 
 // ============================================================
-// 3. INTELIGÊNCIA ARTIFICIAL (CENTRALIZADA NO BACKEND)
+// 3. IA CENTRALIZADA (GEMINI 2.5 HÍBRIDA)
 // ============================================================
 
-/**
- * Função unificada que chama o Backend.
- * O Backend é quem lê o Documento do Drive e conecta com o Gemini.
- */
 async function perguntarIABackend(pergunta) {
   try {
-    // Chama a rota 'askAI' no backend que lê o Google Doc
     const res = await apiCall('askAI', { question: pergunta }, false); 
-    
     if (res && res.status === 'success') {
       return res.answer;
     } else {
       console.error("❌ Erro Backend AI:", res);
-      const msgErro = (res && res.message) ? res.message : "Resposta desconhecida do servidor";
-      return `⚠️ O sistema de IA encontrou um erro: ${msgErro}. Tente novamente.`;
+      return `⚠️ O sistema de IA encontrou um erro. Tente novamente.`;
     }
   } catch (e) {
     return "Erro de comunicação com o servidor.";
   }
 }
 
-// --- FUNÇÕES DE UI DA IA (AGORA USAM O BACKEND) ---
-
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   const bairro = document.getElementById('leadBairro').value || "sua região";
   if(!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
-  
-  showLoading(true, "✨ LENDO DOC E CRIANDO PITCH...");
-  
-  // Agora chama o BACKEND (askAI) em vez de tentar conexão direta
-  const prompt = `Crie uma mensagem curta de WhatsApp para o cliente ${nome} que mora em ${bairro}. Use as informações do nosso arquivo base sobre planos e diferenciais para ser persuasivo.`;
+   
+  showLoading(true, "✨ CRIANDO PITCH...");
+   
+  const prompt = `Crie uma mensagem curta de WhatsApp para o cliente ${nome} que mora em ${bairro}. Use as informações do manual MHNET.`;
   const txt = await perguntarIABackend(prompt);
-  
+   
   showLoading(false);
-  
+   
   if(txt && !txt.includes("⚠️")) {
       document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
   } else {
-      alert("Erro ao gerar pitch: " + txt);
+      alert("Erro ao gerar pitch.");
   }
 }
 
 async function gerarCoachIA() {
-  showLoading(true, "🚀 CONSULTANDO O CÉREBRO DA MHNET...");
+  showLoading(true, "🚀 CONSULTANDO COACH...");
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
   const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  
-  // Chama o Backend
-  const prompt = `Sou um vendedor e fiz ${leadsHoje} cadastros hoje. Com base nos valores da nossa empresa descritos no documento, me dê uma frase motivacional curta.`;
+   
+  const prompt = `Sou um vendedor e fiz ${leadsHoje} cadastros hoje. Me dê uma frase motivacional curta baseada nos valores da MHNET.`;
   const txt = await perguntarIABackend(prompt);
-  
+   
   showLoading(false);
   if(txt) alert(`🚀 COACH MHNET:\n\n${txt.replace(/\*\*/g, '')}`);
 }
@@ -371,22 +391,21 @@ async function consultarPlanosIA() {
     const history = document.getElementById('chatHistory');
     const msg = "Quais são os planos atuais da MHNET?";
     
+    // Adiciona msg usuário
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
     
     const loadId = 'load-' + Date.now();
-    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Consultando base de conhecimento...</div></div>`;
+    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Consultando...</div></div>`;
     history.scrollTop = history.scrollHeight;
 
-    // Chama Backend
     const response = await perguntarIABackend(msg);
     
-    // Remove loading
     const loader = document.getElementById(loadId);
     if(loader) loader.remove();
 
     if(response) {
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
-         history.scrollTop = history.scrollHeight;
+          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
+          history.scrollTop = history.scrollHeight;
     }
 }
 
@@ -406,25 +425,21 @@ async function enviarMensagemChat() {
     const msg = input.value.trim();
     if(!msg) return;
     
-    // Adiciona mensagem do usuário
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
     input.value = '';
     
-    // Loading visual
     const loadId = 'load-' + Date.now();
-    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Pesquisando...</div></div>`;
+    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">...</div></div>`;
     history.scrollTop = history.scrollHeight;
 
-    // Chama Backend (Google Doc)
     const response = await perguntarIABackend(msg);
     
-    // Remove loading
     const loader = document.getElementById(loadId);
     if(loader) loader.remove();
 
     if(response) {
-         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
-         history.scrollTop = history.scrollHeight;
+          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
+          history.scrollTop = history.scrollHeight;
     }
 }
 
@@ -459,12 +474,12 @@ function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   if (!div) return;
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
-  
+   
   const filtrados = leadsCache.filter(l => 
     (l.nomeLead || '').toLowerCase().includes(term) || 
     (l.bairro || '').toLowerCase().includes(term)
   );
-  
+   
   if (!filtrados.length) {
     div.innerHTML = `<div class="text-center p-10 text-gray-500">Nenhum lead encontrado</div>`;
     return;
@@ -504,10 +519,9 @@ function abrirLeadDetalhes(index) {
     setText('modalLeadNome', lead.nomeLead || 'Sem Nome');
     setText('modalLeadInfo', `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`);
     
-    // ✅ MOSTRAR FLAG DE INTERESSE
     const elFlag = document.getElementById('modalLeadFlag');
     if(elFlag) {
-        elFlag.className = ""; // Reset
+        elFlag.className = "";
         elFlag.style.display = "inline-block";
         const int = String(lead.interesse || "Médio").toUpperCase();
         if(int.includes("ALTO")) {
@@ -522,7 +536,6 @@ function abrirLeadDetalhes(index) {
         }
     }
 
-    // ✅ PROVEDOR ATUAL
     const elProv = document.getElementById('modalLeadProvedor');
     if(elProv) elProv.innerText = lead.provedor || "Não informado";
 
@@ -546,6 +559,7 @@ function abrirLeadDetalhes(index) {
     const tel = (lead.telefone || "").replace(/\D/g, '');
     const btnWhats = document.getElementById('btnModalWhats');
     if (btnWhats) btnWhats.onclick = () => window.open(tel ? `https://wa.me/55${tel}` : '#', '_blank');
+    
     const modal = document.getElementById('leadModal');
     if (modal) {
         modal.classList.remove('hidden');
@@ -569,7 +583,7 @@ async function enviarLead() {
   const tel = document.getElementById('leadTelefone').value.trim();
   if (!nome || !tel) return alert("❌ Preencha Nome e Telefone");
   showLoading(true, "SALVANDO...");
-  
+   
   const novoLead = {
     vendedor: loggedUser,
     nomeLead: nome,
@@ -578,11 +592,11 @@ async function enviarLead() {
     cidade: document.getElementById('leadCidade').value.trim(),
     bairro: document.getElementById('leadBairro').value.trim(),
     interesse: document.getElementById('leadInteresse').value,
-    provedor: document.getElementById('leadProvedor').value.trim(), // ✅ NOVO CAMPO
+    provedor: document.getElementById('leadProvedor').value.trim(),
     observacao: document.getElementById('leadObs').value.trim(),
     agendamento: "", timestamp: new Date().toLocaleString('pt-BR')
   };
-  
+   
   const res = await apiCall('addLead', novoLead);
   showLoading(false);
   if (res && (res.status === 'success' || res === 'CORS_OK')) {
@@ -608,61 +622,27 @@ function atualizarDashboard() {
 }
 
 // ============================================================
-// 5. ROTAS GPS
-// ============================================================
-function startRoute() {
-  if (!navigator.geolocation) return alert('GPS não disponível.');
-  routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
-  document.getElementById('btnStart').style.display = 'none';
-  document.getElementById('btnStop').style.display = 'flex';
-  
-  timerInterval = setInterval(() => {
-    seconds++;
-    const h = Math.floor(seconds/3600).toString().padStart(2,'0'), m = Math.floor((seconds%3600)/60).toString().padStart(2,'0'), s = (seconds%60).toString().padStart(2,'0');
-    document.getElementById('timer').innerText = `${h}:${m}:${s}`;
-  }, 1000);
-  
-  watchId = navigator.geolocation.watchPosition(p => {
-      routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
-      document.getElementById('points').innerText = routeCoords.length;
-      document.getElementById('gpsStatus').innerText = "📍 Rastreando";
-  }, e => console.error(e), {enableHighAccuracy: true});
-}
-
-async function stopRoute() {
-  if(!confirm("Finalizar rastreamento?")) return;
-  clearInterval(timerInterval); navigator.geolocation.clearWatch(watchId);
-  showLoading(true, "SALVANDO ROTA...");
-  await apiCall('saveRoute', { vendedor: loggedUser, inicioISO: routeStartTime, fimISO: new Date().toISOString(), coordenadas: routeCoords });
-  showLoading(false); alert(`✅ Rota salva!`); resetRouteUI(); navegarPara('dashboard');
-}
-
-function resetRouteUI() {
-  document.getElementById('btnStart').style.display = 'flex';
-  document.getElementById('btnStop').style.display = 'none';
-  document.getElementById('timer').innerText = "00:00:00";
-  document.getElementById('points').innerText = "0";
-  document.getElementById('gpsStatus').innerText = "Parado";
-}
-
-// ============================================================
 // 6. API CALL
 // ============================================================
 async function apiCall(route, payload, show=true) {
   if(show) showLoading(true);
   try {
-    const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({ route, payload }) });
+    const res = await fetch(API_URL, { 
+        method: 'POST', 
+        headers: {'Content-Type': 'text/plain;charset=utf-8'}, 
+        body: JSON.stringify({ route, payload }) 
+    });
     const text = await res.text();
     let json;
     try { json = JSON.parse(text); } catch (e) {
-      if(['addLead', 'saveRoute', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
+      if(['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
       throw new Error("Resposta inválida");
     }
     if(show) showLoading(false);
     return json;
   } catch(e) {
     if(show) showLoading(false);
-    if(e.name === 'TypeError' && ['addLead', 'saveRoute', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
+    if(e.name === 'TypeError' && ['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
     return null;
   }
 }
