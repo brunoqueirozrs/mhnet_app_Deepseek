@@ -1,10 +1,9 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V26.1 (REVISADO & ESTÁVEL)
- * ✅ Feature: Campo "Provedor Atual"
- * ✅ Feature: Flag de Interesse no Modal
- * ✅ Fix: IA Criativa (Modelo 1.5 Flash estável)
- * ✅ Fix: Ditado de Voz Dinâmico (Cadastro e Modal)
+ * MHNET VENDAS - LÓGICA FRONTEND V26.2 (IA CENTRALIZADA)
+ * ✅ Fix: Erro 404 na IA resolvido (tudo via Backend)
+ * ✅ Feature: Pitch e Coach agora leem o Documento do Drive
+ * ✅ Feature: Campo "Provedor Atual" e Flags de Interesse
  * ============================================================
  */
 
@@ -13,22 +12,12 @@
 const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
-// Chave para funções criativas locais (Pitch de Vendas/Coach)
-const GEMINI_KEY_FRONT = "AIzaSyAj_eaHKlHb7Kotpn0xKZIU38BegtVb-PE"; 
-
 // LISTA FIXA DE SEGURANÇA
 const VENDEDORES_OFFLINE = [
     "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
     "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
     "Elton da Silva Rodrigo Gonçalves"
 ];
-
-// Contexto leve para funções offline/criativas
-const CONTEXTO_CRIATIVO = `
-VOCÊ É UM ESPECIALISTA DE VENDAS DA MHNET TELECOM.
-Foco: Vender planos de fibra óptica (500 Mega a 700 Mega).
-Diferenciais: Wi-Fi grátis, Instalação rápida, Estabilidade.
-`;
 
 let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
@@ -43,7 +32,7 @@ let leadAtualParaAgendar = null;
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v26.1 - Revisado");
+  console.log("🚀 MHNET App v26.2 - IA Centralizada");
 
   const select = document.getElementById('userSelect');
   if(select) {
@@ -318,28 +307,16 @@ function logout() {
 }
 
 // ============================================================
-// 3. INTELIGÊNCIA ARTIFICIAL (HÍBRIDA)
+// 3. INTELIGÊNCIA ARTIFICIAL (CENTRALIZADA NO BACKEND)
 // ============================================================
 
-// A) IA CRIATIVA (FRONTEND)
-async function chamarGeminiCriativo(prompt, systemInstruction = "") {
-  if (!GEMINI_KEY_FRONT) return null;
-  const fullPrompt = `${systemInstruction}\n\n${CONTEXTO_CRIATIVO}\n\nPERGUNTA: ${prompt}`;
-  try {
-    // ⚠️ USANDO MODELO ESTÁVEL 1.5 FLASH
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY_FRONT}`, {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
-    });
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text;
-  } catch (e) { return null; }
-}
-
-// B) IA DE CONHECIMENTO (BACKEND)
+/**
+ * Função unificada que chama o Backend.
+ * O Backend é quem lê o Documento do Drive e conecta com o Gemini.
+ */
 async function perguntarIABackend(pergunta) {
   try {
+    // Chama a rota 'askAI' no backend que lê o Google Doc
     const res = await apiCall('askAI', { question: pergunta }, false); 
     
     if (res && res.status === 'success') {
@@ -354,36 +331,59 @@ async function perguntarIABackend(pergunta) {
   }
 }
 
+// --- FUNÇÕES DE UI DA IA (AGORA USAM O BACKEND) ---
+
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   const bairro = document.getElementById('leadBairro').value || "sua região";
   if(!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
-  showLoading(true, "✨ CRIANDO PITCH...");
-  const txt = await chamarGeminiCriativo(`Crie msg curta WhatsApp MHNET 500 Mega para ${nome} em ${bairro}.`, "Vendedor telecom");
+  
+  showLoading(true, "✨ LENDO DOC E CRIANDO PITCH...");
+  
+  // Agora chama o BACKEND (askAI) em vez de tentar conexão direta
+  const prompt = `Crie uma mensagem curta de WhatsApp para o cliente ${nome} que mora em ${bairro}. Use as informações do nosso arquivo base sobre planos e diferenciais para ser persuasivo.`;
+  const txt = await perguntarIABackend(prompt);
+  
   showLoading(false);
-  if(txt) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
+  
+  if(txt && !txt.includes("⚠️")) {
+      document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
+  } else {
+      alert("Erro ao gerar pitch: " + txt);
+  }
 }
 
 async function gerarCoachIA() {
-  showLoading(true, "🚀 MOTIVANDO...");
+  showLoading(true, "🚀 CONSULTANDO O CÉREBRO DA MHNET...");
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
   const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  const txt = await chamarGeminiCriativo(`Fiz ${leadsHoje} vendas hoje. Frase motivacional curta.`);
+  
+  // Chama o Backend
+  const prompt = `Sou um vendedor e fiz ${leadsHoje} cadastros hoje. Com base nos valores da nossa empresa descritos no documento, me dê uma frase motivacional curta.`;
+  const txt = await perguntarIABackend(prompt);
+  
   showLoading(false);
-  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
+  if(txt) alert(`🚀 COACH MHNET:\n\n${txt.replace(/\*\*/g, '')}`);
 }
 
 async function consultarPlanosIA() {
     toggleChat();
     const history = document.getElementById('chatHistory');
     const msg = "Quais são os planos atuais da MHNET?";
+    
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
+    
     const loadId = 'load-' + Date.now();
     history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Consultando base de conhecimento...</div></div>`;
     history.scrollTop = history.scrollHeight;
+
+    // Chama Backend
     const response = await perguntarIABackend(msg);
+    
+    // Remove loading
     const loader = document.getElementById(loadId);
     if(loader) loader.remove();
+
     if(response) {
          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
@@ -405,14 +405,23 @@ async function enviarMensagemChat() {
     const history = document.getElementById('chatHistory');
     const msg = input.value.trim();
     if(!msg) return;
+    
+    // Adiciona mensagem do usuário
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
     input.value = '';
+    
+    // Loading visual
     const loadId = 'load-' + Date.now();
     history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Pesquisando...</div></div>`;
     history.scrollTop = history.scrollHeight;
+
+    // Chama Backend (Google Doc)
     const response = await perguntarIABackend(msg);
+    
+    // Remove loading
     const loader = document.getElementById(loadId);
     if(loader) loader.remove();
+
     if(response) {
          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
