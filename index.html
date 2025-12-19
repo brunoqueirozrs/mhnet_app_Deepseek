@@ -2,64 +2,81 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET LAJEADO</title>
-    
-    <!-- PWA Manifest (Opcional, crie o arquivo manifest.json se quiser instalar) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
-
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Animações Suaves */
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
         .slide-up { animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        /* Esconder scrollbar mas permitir scroll */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Fix para iOS e Telas longas */
+        body { height: 100dvh; }
+        
+        /* Estilo para Inputs com mais contraste */
+        .input-padrao {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1; /* Borda visível */
+            border-radius: 0.75rem;
+            outline: none;
+            color: #334155;
+            font-size: 0.95rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Sombra leve */
+            transition: all 0.2s;
+        }
+        .input-padrao:focus {
+            border-color: #00aeef;
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+        }
+        .label-padrao {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-left: 0.25rem;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden select-none">
+<body class="bg-slate-100 text-slate-800 font-sans flex flex-col overflow-hidden select-none">
 
     <!-- TELA DE LOGIN -->
     <div id="userMenu" class="fixed inset-0 bg-[#004c99] z-50 flex flex-col items-center justify-center p-6 fade-in">
         <div class="mb-8 p-4 bg-white/10 rounded-full">
             <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-12" alt="MHNET">
         </div>
-        
         <div class="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl">
             <h2 class="text-center text-2xl font-bold text-gray-700 mb-2">Bem-vindo</h2>
             <p class="text-center text-gray-400 text-sm mb-6">Selecione seu perfil para continuar</p>
-            
             <div class="relative mb-6">
                 <i class="fas fa-user absolute left-4 top-4 text-gray-400"></i>
-                <select id="userSelect" class="w-full p-4 pl-12 bg-gray-50 rounded-xl border border-gray-200 text-lg outline-none focus:ring-2 focus:ring-[#00aeef] appearance-none">
+                <select id="userSelect" class="w-full p-4 pl-12 bg-slate-50 rounded-xl border border-gray-300 text-lg outline-none focus:ring-2 focus:ring-[#00aeef] appearance-none text-gray-700">
                     <option value="">Carregando...</option>
                 </select>
                 <i class="fas fa-chevron-down absolute right-4 top-4 text-gray-400 pointer-events-none"></i>
             </div>
-            
             <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 transition transform active:scale-95 flex items-center justify-center gap-2">
                 ENTRAR <i class="fas fa-arrow-right"></i>
             </button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão 28.0 (Gestão de Leads)</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão 29.0</p>
     </div>
 
     <!-- APP PRINCIPAL -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
         <!-- HEADER -->
-        <header class="bg-[#004c99] text-white p-4 pt-8 pb-6 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[2rem]">
+        <header class="bg-[#004c99] text-white p-4 pt-10 pb-6 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[2rem]">
             <div>
                 <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-6 opacity-90">
                 <div class="flex items-center gap-2 mt-2">
@@ -72,14 +89,12 @@
             </button>
         </header>
 
-        <!-- ÁREA DE CONTEÚDO (Scrollável) -->
-        <main id="main-scroll" class="flex-1 overflow-y-auto p-4 pb-24 no-scrollbar">
+        <!-- ÁREA DE CONTEÚDO -->
+        <main id="main-scroll" class="flex-1 overflow-y-auto p-4 pb-32 no-scrollbar">
 
             <!-- 1. DASHBOARD -->
             <div id="dashboard" class="page fade-in">
-                
-                <!-- Alerta de Retornos -->
-                <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-xl shadow-sm flex items-start gap-3 animate-bounce">
+                <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-xl shadow-sm flex items-start gap-3 animate-bounce cursor-pointer">
                     <div class="text-orange-500 mt-1"><i class="fas fa-bell"></i></div>
                     <div>
                         <p class="font-bold text-orange-800 text-sm">Atenção!</p>
@@ -87,9 +102,8 @@
                     </div>
                 </div>
 
-                <!-- Cards de Resumo -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-1">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center gap-1">
                         <div class="text-4xl font-bold text-[#004c99]" id="statLeads">0</div>
                         <div class="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Leads Hoje</div>
                     </div>
@@ -99,7 +113,6 @@
                     </div>
                 </div>
 
-                <!-- Botão Principal -->
                 <button onclick="navegarPara('cadastroLead')" class="w-full bg-[#004c99] text-white p-5 rounded-2xl shadow-lg shadow-blue-900/20 font-bold flex items-center justify-between mb-6 active:scale-95 transition group">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center group-hover:bg-white/20 transition">
@@ -113,10 +126,9 @@
                     <i class="fas fa-chevron-right opacity-50"></i>
                 </button>
 
-                <!-- Ferramentas de IA -->
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Inteligência MHNET</h3>
                 <div class="grid grid-cols-1 gap-3">
-                    <button onclick="gerarCoachIA()" class="bg-white border border-gray-100 p-4 rounded-xl shadow-sm flex items-center gap-3 active:bg-gray-50">
+                    <button onclick="gerarCoachIA()" class="bg-white border border-gray-200 p-4 rounded-xl shadow-sm flex items-center gap-3 active:bg-gray-50">
                         <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-brain"></i></div>
                         <div class="text-left flex-1">
                             <div class="font-bold text-gray-700 text-sm">Coach de Vendas</div>
@@ -124,82 +136,82 @@
                         </div>
                         <i class="fas fa-play text-[10px] text-gray-300"></i>
                     </button>
-                    
-                    <button onclick="consultarPlanosIA()" class="bg-white border border-gray-100 p-4 rounded-xl shadow-sm flex items-center gap-3 active:bg-gray-50">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-search"></i></div>
-                        <div class="text-left flex-1">
-                            <div class="font-bold text-gray-700 text-sm">Consultar Manual</div>
-                            <div class="text-[10px] text-gray-400">Preços, planos e regras</div>
-                        </div>
-                        <i class="fas fa-play text-[10px] text-gray-300"></i>
-                    </button>
                 </div>
             </div>
 
-            <!-- 2. CADASTRO LEAD -->
+            <!-- 2. CADASTRO LEAD (Completo & Visível) -->
             <div id="cadastroLead" class="page hidden fade-in">
-                <div class="flex items-center gap-3 mb-6">
-                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-gray-400"><i class="fas fa-arrow-left"></i></button>
-                    <h2 class="text-xl font-bold text-[#004c99]">Novo Cadastro</h2>
+                <div class="flex items-center gap-3 mb-4">
+                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-gray-200 rounded-full shadow-sm flex items-center justify-center text-gray-500 active:scale-90"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-[#004c99]">Ficha de Cliente</h2>
                 </div>
                 
-                <div class="bg-white p-6 rounded-3xl shadow-sm space-y-5">
-                    <!-- Localização -->
-                    <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between">
-                        <div class="text-xs text-blue-800 font-medium"><i class="fas fa-map-pin mr-1"></i> Capturar Endereço</div>
-                        <button onclick="buscarEnderecoGPS()" class="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-md active:bg-blue-700">GPS</button>
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+                    
+                    <button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-700 border border-blue-200 p-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 mb-2 active:bg-blue-100 transition">
+                        <i class="fas fa-location-crosshairs"></i> PEGAR LOCALIZAÇÃO (GPS)
+                    </button>
+
+                    <div>
+                        <label class="label-padrao">Nome do Cliente *</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="leadNome" class="input-padrao" placeholder="Nome completo">
+                            <button onclick="iniciarDitado('leadNome', 'btnMicNome')" id="btnMicNome" class="w-12 bg-slate-100 border border-slate-200 rounded-xl text-gray-400 flex items-center justify-center"><i class="fas fa-microphone"></i></button>
+                        </div>
                     </div>
 
-                    <!-- Campos -->
-                    <div class="space-y-4">
+                    <div>
+                        <label class="label-padrao">WhatsApp *</label>
+                        <input type="tel" id="leadTelefone" class="input-padrao" placeholder="(00) 00000-0000">
+                    </div>
+
+                    <!-- Campos de Endereço agora VISÍVEIS -->
+                    <div>
+                        <label class="label-padrao">Endereço</label>
+                        <input type="text" id="leadEndereco" class="input-padrao" placeholder="Rua, Número">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase ml-1">Nome do Cliente *</label>
-                            <div class="flex gap-2 mt-1">
-                                <input type="text" id="leadNome" class="w-full p-4 bg-gray-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-200 transition" placeholder="Nome completo">
-                                <button onclick="iniciarDitado('leadNome', 'btnMicNome')" id="btnMicNome" class="w-14 bg-gray-100 rounded-xl text-gray-400 flex items-center justify-center"><i class="fas fa-microphone"></i></button>
-                            </div>
+                            <label class="label-padrao">Bairro</label>
+                            <input type="text" id="leadBairro" class="input-padrao" placeholder="Bairro">
                         </div>
-
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase ml-1">Telefone (WhatsApp) *</label>
-                            <input type="tel" id="leadTelefone" class="w-full p-4 mt-1 bg-gray-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-200 transition" placeholder="(00) 00000-0000">
+                            <label class="label-padrao">Cidade</label>
+                            <input type="text" id="leadCidade" class="input-padrao" placeholder="Cidade">
                         </div>
+                    </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                             <div>
-                                <label class="text-xs font-bold text-gray-400 uppercase ml-1">Provedor</label>
-                                <input type="text" id="leadProvedor" class="w-full p-4 mt-1 bg-gray-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-200 transition" placeholder="Ex: Vivo">
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-gray-400 uppercase ml-1">Interesse</label>
-                                <select id="leadInteresse" class="w-full p-4 mt-1 bg-gray-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-200 bg-white">
-                                    <option value="Alto">🔥 Alto</option>
-                                    <option value="Médio" selected>🤔 Médio</option>
-                                    <option value="Baixo">❄️ Baixo</option>
-                                </select>
-                            </div>
+                    <div class="grid grid-cols-2 gap-3">
+                         <div>
+                            <label class="label-padrao">Provedor Atual</label>
+                            <input type="text" id="leadProvedor" class="input-padrao" placeholder="Ex: Vivo">
                         </div>
-
-                        <!-- Campos Ocultos (Preenchidos pelo GPS) -->
-                        <input type="hidden" id="leadEndereco">
-                        <input type="hidden" id="leadBairro">
-                        <input type="hidden" id="leadCidade">
-                        <input type="hidden" id="leadLat">
-                        <input type="hidden" id="leadLon">
-
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase ml-1">Observações</label>
-                            <div class="relative mt-1">
-                                <textarea id="leadObs" rows="3" class="w-full p-4 bg-gray-50 rounded-xl border-none outline-none focus:ring-2 focus:ring-blue-200 transition text-sm mb-8" placeholder="Detalhes da conversa..."></textarea>
-                                <button onclick="gerarAbordagemIA()" class="absolute bottom-2 right-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-md flex items-center gap-1">
-                                    <i class="fas fa-magic"></i> IA Pitch
-                                </button>
-                            </div>
+                            <label class="label-padrao">Nível Interesse</label>
+                            <select id="leadInteresse" class="input-padrao">
+                                <option value="Alto">🔥 Alto</option>
+                                <option value="Médio" selected>🤔 Médio</option>
+                                <option value="Baixo">❄️ Baixo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Hidden Lat/Lon -->
+                    <input type="hidden" id="leadLat"><input type="hidden" id="leadLon">
+
+                    <div>
+                        <label class="label-padrao">Observações</label>
+                        <div class="relative">
+                            <textarea id="leadObs" rows="3" class="input-padrao" placeholder="Detalhes importantes..."></textarea>
+                            <button onclick="gerarAbordagemIA()" class="absolute bottom-2 right-2 bg-purple-100 text-purple-600 border border-purple-200 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm">
+                                ✨ IA
+                            </button>
                         </div>
                     </div>
 
                     <button onclick="enviarLead()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl shadow-blue-400/30 mt-2 active:scale-95 transition">
-                        SALVAR CLIENTE
+                        SALVAR CADASTRO
                     </button>
                 </div>
             </div>
@@ -208,23 +220,21 @@
             <div id="gestaoLeads" class="page hidden fade-in">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-[#004c99]">Carteira de Clientes</h2>
-                    <button onclick="carregarLeads()" class="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:bg-blue-100"><i class="fas fa-sync text-xs"></i></button>
+                    <button onclick="carregarLeads()" class="w-9 h-9 bg-white border border-gray-200 text-blue-600 rounded-full flex items-center justify-center shadow-sm active:scale-90"><i class="fas fa-sync text-sm"></i></button>
                 </div>
                 
-                <div class="bg-white p-2 rounded-2xl shadow-sm mb-4 flex gap-2 border border-gray-100 sticky top-0 z-10">
+                <div class="bg-white p-2 rounded-xl shadow-sm mb-4 flex gap-2 border border-gray-200 sticky top-0 z-10">
                     <div class="pl-3 flex items-center justify-center text-gray-400"><i class="fas fa-search"></i></div>
                     <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full p-2 outline-none text-gray-600 bg-transparent" placeholder="Buscar por nome...">
                 </div>
 
-                <div id="listaLeadsGestao" class="space-y-3 pb-20">
-                    <!-- Lista renderizada via JS -->
-                </div>
+                <div id="listaLeadsGestao" class="space-y-3 pb-20"></div>
             </div>
 
         </main>
 
-        <!-- MENU INFERIOR -->
-        <nav class="bg-white/90 backdrop-blur-md border-t border-gray-100 flex justify-around items-center p-2 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-30 shrink-0 absolute bottom-0 w-full rounded-t-3xl">
+        <!-- MENU INFERIOR (Fixed e Z-index alto) -->
+        <nav class="bg-white/95 backdrop-blur-md border-t border-gray-200 flex justify-around items-center p-2 pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 absolute bottom-0 w-full rounded-t-3xl">
             <button id="nav-home" onclick="navegarPara('dashboard')" class="nav-item w-16 group flex flex-col items-center gap-1 text-[#00aeef] transition">
                 <div class="w-8 h-1 rounded-full bg-[#00aeef] mb-1 opacity-0 group-[.active]:opacity-100 transition-all"></div>
                 <i class="fas fa-home text-xl group-[.active]:scale-110 transition"></i>
@@ -232,7 +242,7 @@
             </button>
             
             <button id="nav-novo" onclick="navegarPara('cadastroLead')" class="nav-item relative -top-6">
-                <div class="w-14 h-14 bg-[#00aeef] rounded-full shadow-lg shadow-blue-400/40 flex items-center justify-center text-white border-4 border-slate-50 active:scale-90 transition">
+                <div class="w-14 h-14 bg-[#00aeef] rounded-full shadow-lg shadow-blue-400/40 flex items-center justify-center text-white border-4 border-slate-50 active:scale-90 transition transform hover:-translate-y-1">
                     <i class="fas fa-plus text-xl"></i>
                 </div>
             </button>
@@ -245,43 +255,46 @@
         </nav>
     </div>
 
-    <!-- MODAL LEAD DETALHES -->
-    <div id="leadModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center">
+    <!-- MODAL DETALHES (Com botão Editar) -->
+    <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center">
         <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
         <div class="bg-white w-full sm:w-[400px] sm:rounded-3xl rounded-t-3xl p-6 relative shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
             
+            <!-- Botão de Editar Lead -->
+            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm">
+                <i class="fas fa-pen"></i>
+            </button>
+
             <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
             
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <h3 id="modalLeadNome" class="text-2xl font-bold text-slate-800 leading-tight">Nome</h3>
-                    <p id="modalLeadInfo" class="text-gray-400 text-xs font-bold uppercase tracking-wider mt-1">Detalhes</p>
-                </div>
-                <div id="modalLeadFlag"></div>
+            <div class="mb-6 pr-10">
+                <h3 id="modalLeadNome" class="text-2xl font-bold text-slate-800 leading-tight">Nome</h3>
+                <p id="modalLeadInfo" class="text-gray-400 text-xs font-bold uppercase tracking-wider mt-1">Detalhes</p>
+                <div id="modalLeadFlag" class="mt-2"></div>
             </div>
 
             <!-- Dados Extras -->
-            <div class="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-100">
+            <div class="bg-slate-50 p-4 rounded-2xl mb-6 border border-slate-200">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs text-gray-400 font-bold uppercase">Provedor Atual</span>
                     <span id="modalLeadProvedor" class="text-sm font-bold text-slate-700">--</span>
                 </div>
                 <hr class="border-gray-200 my-2">
                 <div class="text-xs text-gray-400 font-bold uppercase mb-1">Última Obs</div>
-                <textarea id="modalLeadObs" rows="2" class="w-full bg-transparent text-sm text-gray-600 outline-none resize-none" placeholder="Sem observações..."></textarea>
-                <button onclick="salvarObservacaoModal()" class="text-[10px] font-bold text-blue-500 mt-1 uppercase hover:text-blue-700">Salvar Alteração</button>
+                <textarea id="modalLeadObs" rows="2" class="w-full bg-transparent text-sm text-gray-600 outline-none resize-none border border-transparent focus:border-slate-300 rounded-lg p-1 transition" placeholder="Sem observações..."></textarea>
+                <button onclick="salvarObservacaoModal()" class="text-[10px] font-bold text-blue-500 mt-2 uppercase hover:text-blue-700 bg-white px-3 py-1 rounded shadow-sm border border-slate-200 w-full">Salvar Nova Obs</button>
             </div>
 
             <!-- Agendamento -->
             <div class="mb-6">
-                <label class="text-xs font-bold text-gray-400 uppercase block mb-2 flex items-center gap-2">
+                <label class="label-padrao flex items-center gap-2 mb-2">
                     <i class="fas fa-calendar-alt text-orange-400"></i> Agendar Retorno
                 </label>
                 <div class="flex gap-2">
-                    <input type="date" id="agendarData" class="flex-1 p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-orange-200">
-                    <input type="time" id="agendarHora" class="w-24 p-3 bg-gray-50 rounded-xl border-none text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-orange-200">
+                    <input type="date" id="agendarData" class="flex-1 p-3 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-orange-200">
+                    <input type="time" id="agendarHora" class="w-24 p-3 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-600 outline-none focus:ring-2 focus:ring-orange-200">
                 </div>
-                <p class="text-[10px] text-gray-400 mt-2 text-center">Isso criará um lembrete automático no seu WhatsApp.</p>
+                <p class="text-[10px] text-gray-400 mt-2 text-center">Isso envia um alerta imediato para o Gestor.</p>
             </div>
 
             <!-- Ações -->
@@ -290,8 +303,8 @@
                     CONFIRMAR AGENDAMENTO
                 </button>
                 <div class="grid grid-cols-2 gap-3 mt-1">
-                    <button onclick="fecharLeadModal()" class="p-3 rounded-xl border border-gray-200 font-bold text-gray-500 text-sm">Fechar</button>
-                    <button id="btnModalWhats" class="p-3 rounded-xl bg-green-500 text-white font-bold shadow-md flex items-center justify-center gap-2 text-sm">
+                    <button onclick="fecharLeadModal()" class="p-3 rounded-xl border border-gray-200 font-bold text-gray-500 text-sm active:bg-gray-100">Fechar</button>
+                    <button id="btnModalWhats" class="p-3 rounded-xl bg-green-500 text-white font-bold shadow-md flex items-center justify-center gap-2 text-sm active:scale-95">
                         <i class="fab fa-whatsapp text-lg"></i> Chamar
                     </button>
                 </div>
@@ -299,31 +312,8 @@
         </div>
     </div>
 
-    <!-- MODAL CHAT IA -->
-    <div id="chatModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4">
-        <div onclick="toggleChat()" class="absolute inset-0"></div>
-        <div class="bg-white w-full max-w-md h-[70vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative fade-in">
-            <div class="bg-[#004c99] p-4 text-white font-bold flex justify-between items-center shadow-md z-10">
-                <span class="flex items-center gap-2"><i class="fas fa-robot text-blue-200"></i> Assistente MHNET</span>
-                <button onclick="toggleChat()" class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center"><i class="fas fa-times text-sm"></i></button>
-            </div>
-            <div id="chatHistory" class="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50">
-                <div class="flex gap-3 fade-in">
-                    <div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs shadow-sm"><i class="fas fa-robot"></i></div>
-                    <div class="bg-white p-3 rounded-2xl rounded-tl-none text-sm text-gray-600 shadow-sm max-w-[85%] leading-relaxed border border-gray-100">
-                        Olá! Sou sua IA de vendas. Pode me perguntar sobre planos, regras ou pedir dicas de abordagem! 🚀
-                    </div>
-                </div>
-            </div>
-            <div class="p-3 border-t bg-white flex gap-2 items-center">
-                <input type="text" id="chatInput" class="flex-1 bg-gray-100 p-3 pl-4 rounded-full outline-none text-sm focus:ring-2 focus:ring-blue-100 transition" placeholder="Digite sua dúvida...">
-                <button onclick="enviarMensagemChat()" class="bg-[#00aeef] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-90 transition"><i class="fas fa-paper-plane text-xs"></i></button>
-            </div>
-        </div>
-    </div>
-
     <!-- LOADER -->
-    <div id="loader" class="hidden fixed inset-0 z-[60] bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center fade-in">
+    <div id="loader" class="hidden fixed inset-0 z-[70] bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center fade-in">
         <div class="relative">
             <div class="w-16 h-16 border-4 border-blue-100 border-t-[#00aeef] rounded-full animate-spin"></div>
             <div class="absolute inset-0 flex items-center justify-center">
@@ -333,7 +323,6 @@
         <p id="loaderText" class="text-gray-400 font-bold text-xs tracking-widest mt-4 animate-pulse">PROCESSANDO</p>
     </div>
 
-    <!-- Scripts -->
     <script src="app.js"></script>
 </body>
 </html>
