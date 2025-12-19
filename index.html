@@ -88,7 +88,7 @@
                     Entrar Agora
                 </button>
             </div>
-            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v17.0 • Final Sync</p>
+            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v26.0 • Final Sync</p>
         </div>
     </div>
 
@@ -127,7 +127,7 @@
                     </div>
                 </div>
 
-                <!-- Card Resumo -->
+                <!-- Card Resumo (IA COACH ✨) -->
                 <div class="bg-gradient-to-br from-[#004c99] to-[#003366] rounded-[2rem] p-8 text-white shadow-xl shadow-blue-900/20 mb-8 relative overflow-hidden group">
                     <div class="absolute right-[-20px] top-[-20px] opacity-10 rotate-12"><i class="fas fa-trophy text-9xl"></i></div>
                     <p class="text-blue-200 text-xs font-bold uppercase mb-2 tracking-wider">Vendas Hoje</p>
@@ -177,8 +177,19 @@
                     
                     <div class="h-px bg-slate-100 my-6 mx-2"></div>
                     
-                    <!-- 3. Endereço -->
-                    <div class="input-group"><label class="input-label">Endereço</label><input type="text" id="leadEndereco" class="modern-input" placeholder="Rua e Número"><i class="fas fa-home input-icon"></i></div>
+                    <!-- 3. Endereço + GPS -->
+                    <div class="input-group relative">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="input-label mb-0">Endereço</label>
+                            <!-- BOTÃO GPS AQUI -->
+                            <button onclick="buscarEnderecoGPS()" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors flex items-center gap-1 shadow-sm border border-blue-100">
+                                <i class="fas fa-map-marker-alt text-red-500"></i> <span class="tracking-wide">Usar GPS</span>
+                            </button>
+                        </div>
+                        <input type="text" id="leadEndereco" class="modern-input" placeholder="Rua e Número">
+                        <i class="fas fa-home input-icon"></i>
+                    </div>
+
                     <!-- 4. Bairro -->
                     <div class="input-group"><label class="input-label">Bairro</label><input type="text" id="leadBairro" class="modern-input" placeholder="Ex: Centro"><i class="fas fa-map-pin input-icon text-red-500"></i></div>
                     <!-- 5. Cidade -->
@@ -195,11 +206,19 @@
                             <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
                         </div>
                     </div>
-                    <!-- 7. Obs + IA -->
+                    <!-- 7. Obs + IA + Voz -->
                     <div class="input-group mb-0">
                         <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px;">
-                            <label class="input-label mb-0">Observações</label>
-                            <button onclick="gerarAbordagemIA()" class="text-[10px] font-bold text-[#004c99] bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors">✨ Gerar Pitch IA</button>
+                            <div class="flex items-center gap-2">
+                                <label class="input-label mb-0">Observações</label>
+                                <!-- BOTÃO MICROFONE -->
+                                <button id="btnMic" onclick="iniciarDitado()" class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm" title="Falar">
+                                    <i class="fas fa-microphone text-xs"></i>
+                                </button>
+                            </div>
+                            <button onclick="gerarAbordagemIA()" class="text-[10px] font-bold text-[#004c99] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors shadow-sm flex items-center gap-1 border border-blue-100">
+                                <i class="fas fa-magic"></i> Gerar Pitch IA
+                            </button>
                         </div>
                         <textarea id="leadObs" class="modern-input" rows="3" style="height:auto; padding-top:15px; padding-left:20px;" placeholder="Detalhes importantes..."></textarea>
                     </div>
