@@ -1,15 +1,15 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V25.2 (FIX INTERESSE & LOGS)
- * ✅ Correção de Crash na lista de Leads (Interesse não-texto)
- * ✅ Logs de erro da IA mais claros
- * ✅ Chat Integrado ao Google Docs
+ * MHNET VENDAS - LÓGICA FRONTEND V26.0 (AGILIDADE NO CAMPO)
+ * ✅ Feature: Preenchimento Automático de Endereço (GPS)
+ * ✅ Feature: Ditado de Voz para Observações
+ * ✅ Base V25 mantida (IA Docs + Fixes)
  * ============================================================
  */
 
 // CONFIGURAÇÃO
-// ⚠️ IMPORTANTE: GERE UMA NOVA IMPLANTAÇÃO NO BACKEND E COLE O ID NOVO AQUI:
-const DEPLOY_ID = 'AKfycbxUC2blWBBolcBD9GZwNsTWrLoo9Ia7J8tMcVu6y5gBpiUEm7EiMCJkmvTp0L-ghpoP'; 
+// ⚠️ MANTENHA O ID DA SUA IMPLANTAÇÃO V27 AQUI:
+const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 // Chave para funções criativas locais (Pitch de Vendas/Coach)
@@ -22,7 +22,7 @@ const VENDEDORES_OFFLINE = [
     "Elton da Silva Rodrigo Gonçalves"
 ];
 
-// Contexto leve para funções offline/criativas (O pesado fica no Google Doc agora)
+// Contexto leve para funções offline/criativas
 const CONTEXTO_CRIATIVO = `
 VOCÊ É UM ESPECIALISTA DE VENDAS DA MHNET TELECOM.
 Foco: Vender planos de fibra óptica (500 Mega a 700 Mega).
@@ -42,7 +42,7 @@ let leadAtualParaAgendar = null;
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v25.2 - Correção Interesse & Logs");
+  console.log("🚀 MHNET App v26.0 - Agilidade (GPS & Voz)");
 
   const select = document.getElementById('userSelect');
   if(select) {
@@ -88,6 +88,101 @@ function initApp() {
 }
 
 // ============================================================
+// 📍 AGILIDADE NO CAMPO (NOVAS FUNÇÕES V26)
+// ============================================================
+
+// 1. GPS -> ENDEREÇO (REVERSE GEOCODING)
+async function buscarEnderecoGPS() {
+    if (!navigator.geolocation) return alert("Seu dispositivo não suporta GPS.");
+    
+    showLoading(true, "📍 LOCALIZANDO...");
+    
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+            const { latitude, longitude } = pos.coords;
+            // Usa API Gratuita do OpenStreetMap (Nominatim)
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
+            
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data && data.address) {
+                // Preenche os campos automaticamente
+                const rua = data.address.road || '';
+                const bairro = data.address.suburb || data.address.neighbourhood || '';
+                const cidade = data.address.city || data.address.town || data.address.municipality || '';
+                
+                document.getElementById('leadEndereco').value = rua;
+                document.getElementById('leadBairro').value = bairro;
+                document.getElementById('leadCidade').value = cidade;
+                
+                alert(`✅ Localizado:\n${rua}, ${bairro}`);
+            } else {
+                alert("Endereço não encontrado nesta coordenada.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao buscar endereço. Verifique sua internet.");
+        }
+        showLoading(false);
+    }, (err) => {
+        showLoading(false);
+        alert("Erro no GPS. Verifique se a localização está ativada.");
+    }, { enableHighAccuracy: true });
+}
+
+// 2. DITADO DE VOZ (SPEECH TO TEXT)
+function iniciarDitado() {
+    // Verifica suporte do navegador (Chrome/Android WebView suportam webkitSpeechRecognition)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        return alert("Seu navegador não suporta ditado de voz. Tente usar o Google Chrome.");
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR"; // Português Brasil
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    const btnMic = document.getElementById('btnMic');
+    if(btnMic) {
+        btnMic.classList.remove('text-gray-400');
+        btnMic.classList.add('text-red-600', 'animate-pulse'); // Feedback visual gravando
+    }
+
+    recognition.start();
+
+    recognition.onresult = (event) => {
+        const fala = event.results[0][0].transcript;
+        const campoObs = document.getElementById('leadObs');
+        
+        // Adiciona o texto falado ao que já existe
+        campoObs.value += (campoObs.value ? " " : "") + fala;
+        
+        if(btnMic) {
+            btnMic.classList.remove('text-red-600', 'animate-pulse');
+            btnMic.classList.add('text-gray-400');
+        }
+    };
+
+    recognition.onerror = (event) => {
+        alert("Não entendi. Tente novamente.");
+        if(btnMic) {
+            btnMic.classList.remove('text-red-600', 'animate-pulse');
+            btnMic.classList.add('text-gray-400');
+        }
+    };
+    
+    recognition.onend = () => {
+        if(btnMic) {
+            btnMic.classList.remove('text-red-600', 'animate-pulse');
+            btnMic.classList.add('text-gray-400');
+        }
+    };
+}
+
+// ============================================================
 // 🔔 SISTEMA DE AGENDAMENTO E OBSERVAÇÕES
 // ============================================================
 
@@ -113,43 +208,28 @@ function verificarAgendamentosHoje() {
 
 async function salvarAgendamento() {
   if (!leadAtualParaAgendar) return alert("Erro ao identificar lead.");
-  
   const dataEl = document.getElementById('agendarData');
   const horaEl = document.getElementById('agendarHora');
-  
   if (!dataEl || !horaEl) return alert("Campos de agendamento não encontrados.");
-
   const data = dataEl.value;
   const hora = horaEl.value;
-  
   if (!data) return alert("❌ Selecione uma data!");
-  
   showLoading(true, "AGENDANDO...");
-  
   const [ano, mes, dia] = data.split('-');
   const dataFormatada = `${dia}/${mes}/${ano} ${hora || '09:00'}`;
-  
   const res = await apiCall('updateAgendamento', {
     vendedor: loggedUser,
     nomeLead: leadAtualParaAgendar.nomeLead,
     agendamento: dataFormatada
   });
-  
   showLoading(false);
-  
   if (res && res.status === 'success') {
     alert(`✅ Agendamento salvo!\n\nRetorno: ${dataFormatada}`);
-    
-    const index = leadsCache.findIndex(l => 
-      l.nomeLead === leadAtualParaAgendar.nomeLead && 
-      l.vendedor === loggedUser
-    );
-    
+    const index = leadsCache.findIndex(l => l.nomeLead === leadAtualParaAgendar.nomeLead && l.vendedor === loggedUser);
     if (index !== -1) {
       leadsCache[index].agendamento = dataFormatada;
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
     }
-    
     fecharLeadModal();
     renderLeads(); 
     verificarAgendamentosHoje();
@@ -160,25 +240,17 @@ async function salvarAgendamento() {
 
 async function salvarObservacaoModal() {
     if (!leadAtualParaAgendar) return alert("Erro: Nenhum lead selecionado.");
-
     const novaObs = document.getElementById('modalLeadObs').value;
     showLoading(true, "ATUALIZANDO...");
-
     const res = await apiCall('updateObservacao', {
         vendedor: loggedUser,
         nomeLead: leadAtualParaAgendar.nomeLead,
         observacao: novaObs
     });
-
     showLoading(false);
-
     if (res && res.status === 'success') {
         alert("✅ Observação atualizada!");
-        
-        const index = leadsCache.findIndex(l => 
-            l.nomeLead === leadAtualParaAgendar.nomeLead && 
-            l.vendedor === loggedUser
-        );
+        const index = leadsCache.findIndex(l => l.nomeLead === leadAtualParaAgendar.nomeLead && l.vendedor === loggedUser);
         if (index !== -1) {
             leadsCache[index].observacao = novaObs;
             localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
@@ -275,7 +347,6 @@ async function perguntarIABackend(pergunta) {
       return res.answer;
     } else {
       console.error("❌ Erro Backend AI:", res);
-      // Extrai mensagem de erro se existir
       const msgErro = (res && res.message) ? res.message : "Resposta desconhecida do servidor";
       return `⚠️ O sistema de IA encontrou um erro: ${msgErro}. Tente novamente.`;
     }
@@ -284,18 +355,13 @@ async function perguntarIABackend(pergunta) {
   }
 }
 
-// --- FUNÇÕES DE UI DA IA ---
-
 async function gerarAbordagemIA() {
   const nome = document.getElementById('leadNome').value;
   const bairro = document.getElementById('leadBairro').value || "sua região";
   if(!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
-  
   showLoading(true, "✨ CRIANDO PITCH...");
-  // Usa IA Criativa (Frontend)
   const txt = await chamarGeminiCriativo(`Crie msg curta WhatsApp MHNET 500 Mega para ${nome} em ${bairro}.`, "Vendedor telecom");
   showLoading(false);
-  
   if(txt) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
 }
 
@@ -303,35 +369,22 @@ async function gerarCoachIA() {
   showLoading(true, "🚀 MOTIVANDO...");
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
   const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  // Usa IA Criativa (Frontend)
   const txt = await chamarGeminiCriativo(`Fiz ${leadsHoje} vendas hoje. Frase motivacional curta.`);
   showLoading(false);
   if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
 }
 
-// --- CHAT AGORA USA O BACKEND (DOCS) ---
-
 async function consultarPlanosIA() {
     toggleChat();
     const history = document.getElementById('chatHistory');
-    
-    // Pergunta automática
     const msg = "Quais são os planos atuais da MHNET?";
-    
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
-    
-    // Loading visual no chat
     const loadId = 'load-' + Date.now();
     history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Consultando base de conhecimento...</div></div>`;
     history.scrollTop = history.scrollHeight;
-
-    // Chama Backend
     const response = await perguntarIABackend(msg);
-    
-    // Remove loading
     const loader = document.getElementById(loadId);
     if(loader) loader.remove();
-
     if(response) {
          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
@@ -353,23 +406,14 @@ async function enviarMensagemChat() {
     const history = document.getElementById('chatHistory');
     const msg = input.value.trim();
     if(!msg) return;
-    
-    // Adiciona mensagem do usuário
     history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
     input.value = '';
-    
-    // Loading visual
     const loadId = 'load-' + Date.now();
     history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Pesquisando...</div></div>`;
     history.scrollTop = history.scrollHeight;
-
-    // Chama Backend (Google Doc)
     const response = await perguntarIABackend(msg);
-    
-    // Remove loading
     const loader = document.getElementById(loadId);
     if(loader) loader.remove();
-
     if(response) {
          history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
          history.scrollTop = history.scrollHeight;
@@ -420,8 +464,6 @@ function renderLeads() {
 
   div.innerHTML = filtrados.map((l, index) => {
     let badgeClass = "bg-gray-100 text-gray-500";
-    
-    // FIX: Converte para String e Maiúsculo para evitar erro se 'interesse' for null ou número
     const interesseStr = String(l.interesse || '').toUpperCase();
     if(interesseStr.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
     
@@ -445,20 +487,14 @@ function renderLeads() {
 function abrirLeadDetalhes(index) {
     const lead = leadsCache[index];
     if(!lead) return;
-    
     leadAtualParaAgendar = lead;
-
     const setText = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text; };
     const setValue = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
-
     setText('modalLeadNome', lead.nomeLead || 'Sem Nome');
     setText('modalLeadInfo', `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`);
-    
     setValue('modalLeadObs', lead.observacao || "");
-
     const elData = document.getElementById('agendarData');
     const elHora = document.getElementById('agendarHora');
-
     if (elData && elHora) {
         if(lead.agendamento) {
             try {
@@ -472,11 +508,9 @@ function abrirLeadDetalhes(index) {
             elHora.value = '09:00';
         }
     }
-
     const tel = (lead.telefone || "").replace(/\D/g, '');
     const btnWhats = document.getElementById('btnModalWhats');
     if (btnWhats) btnWhats.onclick = () => window.open(tel ? `https://wa.me/55${tel}` : '#', '_blank');
-
     const modal = document.getElementById('leadModal');
     if (modal) {
         modal.classList.remove('hidden');
@@ -498,10 +532,8 @@ function fecharLeadModal() {
 async function enviarLead() {
   const nome = document.getElementById('leadNome').value.trim();
   const tel = document.getElementById('leadTelefone').value.trim();
-  
   if (!nome || !tel) return alert("❌ Preencha Nome e Telefone");
   showLoading(true, "SALVANDO...");
-  
   const novoLead = {
     vendedor: loggedUser,
     nomeLead: nome,
@@ -513,10 +545,8 @@ async function enviarLead() {
     observacao: document.getElementById('leadObs').value.trim(),
     provedor: "", agendamento: "", timestamp: new Date().toLocaleString('pt-BR')
   };
-  
   const res = await apiCall('addLead', novoLead);
   showLoading(false);
-  
   if (res && (res.status === 'success' || res === 'CORS_OK')) {
       alert('✅ Lead Salvo!');
       leadsCache.unshift(novoLead);
