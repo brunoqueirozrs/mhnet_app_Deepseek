@@ -1,406 +1,677 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MHNET Vendas</title>
+/**
+ * ============================================================
+ * MHNET VENDAS - LÓGICA FRONTEND V26.1 (REVISADO & ESTÁVEL)
+ * ✅ Feature: Campo "Provedor Atual"
+ * ✅ Feature: Flag de Interesse no Modal
+ * ✅ Fix: IA Criativa (Modelo 1.5 Flash estável)
+ * ✅ Fix: Ditado de Voz Dinâmico (Cadastro e Modal)
+ * ============================================================
+ */
+
+// CONFIGURAÇÃO
+// ⚠️ MANTENHA SEU ID DE IMPLANTAÇÃO ATUALIZADO AQUI:
+const DEPLOY_ID = 'AKfycbwEYWhY8uJ3Gmnva0Ny9Zu7MECHMr2ZHgSl4ABQJTeFsonMNQpAsOOKcx17L5z1CqnX'; 
+const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
+
+// Chave para funções criativas locais (Pitch de Vendas/Coach)
+const GEMINI_KEY_FRONT = "AIzaSyAj_eaHKlHb7Kotpn0xKZIU38BegtVb-PE"; 
+
+// LISTA FIXA DE SEGURANÇA
+const VENDEDORES_OFFLINE = [
+    "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
+    "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
+    "Elton da Silva Rodrigo Gonçalves"
+];
+
+// Contexto leve para funções offline/criativas
+const CONTEXTO_CRIATIVO = `
+VOCÊ É UM ESPECIALISTA DE VENDAS DA MHNET TELECOM.
+Foco: Vender planos de fibra óptica (500 Mega a 700 Mega).
+Diferenciais: Wi-Fi grátis, Instalação rápida, Estabilidade.
+`;
+
+let loggedUser = localStorage.getItem('loggedUser');
+let leadsCache = [];
+let routeCoords = [];
+let watchId = null;
+let timerInterval = null;
+let seconds = 0;
+let routeStartTime = null;
+let leadAtualParaAgendar = null; 
+
+// ============================================================
+// 1. INICIALIZAÇÃO
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("🚀 MHNET App v26.1 - Revisado");
+
+  const select = document.getElementById('userSelect');
+  if(select) {
+      select.innerHTML = '<option value="">Toque para selecionar...</option>';
+      VENDEDORES_OFFLINE.forEach(nome => {
+          const opt = document.createElement('option');
+          opt.value = nome;
+          opt.innerText = nome;
+          select.appendChild(opt);
+      });
+  }
+
+  const saved = localStorage.getItem('mhnet_leads_cache');
+  if(saved) {
+      try { 
+        leadsCache = JSON.parse(saved);
+        console.log(`📦 Cache: ${leadsCache.length} leads`);
+      } catch(e) {}
+  }
+
+  if (loggedUser) {
+    initApp();
+  } else {
+    document.getElementById('userMenu').style.display = 'flex';
+    document.getElementById('mainContent').style.display = 'none';
+  }
+});
+
+function initApp() {
+  document.getElementById('userMenu').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('userInfo').textContent = `Vendedor: ${loggedUser}`;
+  
+  navegarPara('dashboard');
+  
+  if(leadsCache.length > 0) {
+    renderLeads();
+    atualizarDashboard();
+    verificarAgendamentosHoje();
+  }
+  
+  carregarLeads();
+}
+
+// ============================================================
+// 📍 AGILIDADE NO CAMPO (GPS & VOZ DINÂMICO)
+// ============================================================
+
+// 1. GPS -> ENDEREÇO
+async function buscarEnderecoGPS() {
+    if (!navigator.geolocation) return alert("Seu dispositivo não suporta GPS.");
     
-    <!-- Scripts e Fontes -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Conexão PWA -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#004c99">
+    showLoading(true, "📍 LOCALIZANDO...");
     
-    <!-- Configurações Mobile -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-    <style>
-        /* BASE DO DESIGN */
-        html, body {
-            height: 100%;
-            background-color: #004c99;
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-        }
-
-        /* SCROLL AREA */
-        #main-scroll {
-            height: 100%;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 200px; 
-        }
-
-        /* ANIMAÇÕES */
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .slide-up { animation: slideUp 0.3s ease-out forwards; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        /* BOTÃO SALVAR ELEGANTE */
-        .btn-save-elegant {
-            @apply w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white font-bold py-4 px-6 rounded-2xl shadow-xl flex justify-center items-center gap-3 text-lg uppercase tracking-wider transform transition-all duration-200;
-            box-shadow: 0 8px 20px rgba(0, 76, 153, 0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn-save-elegant:active { transform: scale(0.98); box-shadow: 0 4px 10px rgba(0, 76, 153, 0.2); }
-
-        /* INPUTS */
-        .input-group { margin-bottom: 20px; position: relative; }
-        .input-label { font-size: 0.75rem; font-weight: 800; color: #004c99; text-transform: uppercase; margin-bottom: 6px; display: block; letter-spacing: 0.5px; }
-        .modern-input { width: 100%; padding: 16px 16px 16px 50px; border: 2px solid #e2e8f0; border-radius: 16px; font-size: 16px !important; color: #334155; background: #ffffff; outline: none; transition: border-color 0.3s; }
-        .modern-input:focus { border-color: #004c99; }
-        .input-icon { position: absolute; left: 18px; top: 42px; color: #94a3b8; font-size: 1.2rem; pointer-events: none; }
-        .modern-input:focus ~ .input-icon { color: #004c99; }
-
-        /* NAV */
-        .nav-item { @apply flex flex-col items-center justify-center text-slate-400 text-[10px] gap-1 py-3 w-full transition-all font-semibold; }
-        .nav-item.active { @apply text-blue-700; }
-        .nav-item.active i { @apply transform -translate-y-1 scale-110; }
-    </style>
-</head>
-<body class="flex flex-col text-slate-800">
-
-    <!-- 1. LOGIN -->
-    <div id="userMenu" class="fixed inset-0 w-full h-full bg-[#004c99] z-50 flex flex-col items-center justify-center p-6 text-white" style="display: flex;">
-        <div class="w-full max-w-sm fade-in text-center">
-            <div class="bg-white p-5 rounded-3xl w-28 h-28 flex items-center justify-center mx-auto mb-8 shadow-2xl">
-                <i class="fas fa-wifi text-6xl text-[#004c99]"></i>
-            </div>
-            <h1 class="text-4xl font-extrabold mb-1 tracking-tight">MHNET</h1>
-            <p class="text-blue-200 mb-10 text-lg font-medium">Portal de Vendas</p>
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+            const { latitude, longitude } = pos.coords;
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
             
-            <div class="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-[2.5rem] shadow-2xl text-left">
-                <label class="text-xs font-bold text-blue-100 uppercase mb-3 block tracking-wider">Identifique-se</label>
-                <div class="relative mb-8">
-                    <select id="userSelect" class="w-full pl-12 pr-4 py-4 bg-white text-[#004c99] font-bold rounded-xl outline-none appearance-none text-lg shadow-sm">
-                        <option value="">Carregando...</option>
-                    </select>
-                    <i class="fas fa-user-circle text-2xl absolute left-4 top-1/2 -translate-y-1/2 text-[#004c99]"></i>
-                </div>
-                <button onclick="setLoggedUser()" class="w-full bg-white text-[#004c99] font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-transform uppercase tracking-wider text-lg">
-                    Entrar Agora
-                </button>
-            </div>
-            <p class="mt-8 text-xs text-blue-300 opacity-50 font-medium">v26.1 • Fix & Provedor</p>
-        </div>
-    </div>
-
-    <!-- 2. APP -->
-    <div id="mainContent" class="flex-1 flex flex-col overflow-hidden relative bg-[#f8fafc] h-full w-full" style="display: none;">
-        
-        <!-- HEADER -->
-        <header class="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center z-10 sticky top-0 shadow-[0_4px_10px_rgba(0,0,0,0.03)]">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-[#004c99] rounded-xl flex items-center justify-center text-white font-bold shadow-md text-lg">MH</div>
-                <div>
-                    <h2 class="text-sm font-bold text-[#003870] uppercase tracking-wide">Painel de Controle</h2>
-                    <p id="userInfo" class="text-[10px] text-gray-400 font-bold uppercase mt-0.5">...</p>
-                </div>
-            </div>
-            <button onclick="logout()" class="text-gray-400 text-xl hover:text-red-500 transition-colors"><i class="fas fa-power-off"></i></button>
-        </header>
-
-        <!-- MAIN SCROLL -->
-        <main id="main-scroll" class="p-5">
+            const res = await fetch(url);
+            const data = await res.json();
             
-            <!-- DASHBOARD -->
-            <div id="dashboard" class="page fade-in">
+            if (data && data.address) {
+                const rua = data.address.road || '';
+                const bairro = data.address.suburb || data.address.neighbourhood || '';
+                const cidade = data.address.city || data.address.town || data.address.municipality || '';
                 
-                <div id="lembreteBanner" class="hidden bg-amber-50 border-l-4 border-amber-500 text-amber-900 p-4 mb-6 rounded-r-xl shadow-sm cursor-pointer hover:bg-amber-100 transition-colors" onclick="navegarPara('gestaoLeads')">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-amber-100 p-2 rounded-full">
-                            <i class="fas fa-bell text-xl text-amber-600 animate-pulse"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="font-bold text-sm">Lembretes para Hoje!</p>
-                            <p id="lembreteTexto" class="text-xs text-amber-700 mt-0.5">Você tem retornos agendados.</p>
-                        </div>
-                        <i class="fas fa-chevron-right text-xs text-amber-400"></i>
-                    </div>
-                </div>
-
-                <!-- Card Resumo -->
-                <div class="bg-gradient-to-br from-[#004c99] to-[#003366] rounded-[2rem] p-8 text-white shadow-xl shadow-blue-900/20 mb-8 relative overflow-hidden group">
-                    <div class="absolute right-[-20px] top-[-20px] opacity-10 rotate-12"><i class="fas fa-trophy text-9xl"></i></div>
-                    <p class="text-blue-200 text-xs font-bold uppercase mb-2 tracking-wider">Vendas Hoje</p>
-                    <div class="text-6xl font-black mb-6 tracking-tight" id="statLeads">0</div>
-                    <button onclick="gerarCoachIA()" class="bg-white/20 hover:bg-white/30 active:scale-95 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 border border-white/10 backdrop-blur-sm transition-all">
-                        <i class="fas fa-robot text-yellow-300"></i> Dica do Coach IA
-                    </button>
-                </div>
-
-                <!-- Botões de Ação -->
-                <div class="grid grid-cols-2 gap-4 mb-8">
-                    <!-- Novo Lead -->
-                    <button onclick="navegarPara('cadastroLead')" class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:shadow-md">
-                        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#004c99] flex items-center justify-center text-xl mb-1"><i class="fas fa-user-plus"></i></div>
-                        <span class="text-xs font-bold text-gray-700 uppercase">Novo Lead</span>
-                    </button>
-                    <!-- Gestão Leads -->
-                    <button onclick="navegarPara('gestaoLeads')" class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:shadow-md">
-                        <div class="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center text-xl mb-1"><i class="fas fa-clipboard-list"></i></div>
-                        <span class="text-xs font-bold text-gray-700 uppercase">Meus Leads</span>
-                    </button>
-                    <!-- Consultor Planos IA -->
-                    <button onclick="consultarPlanosIA()" class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:shadow-md">
-                        <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl mb-1"><i class="fas fa-brain"></i></div>
-                        <span class="text-xs font-bold text-gray-700 uppercase">Planos IA</span>
-                    </button>
-                    <!-- Rota -->
-                    <button onclick="navegarPara('rota')" class="bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col items-center gap-3 active:scale-95 transition-all hover:shadow-md">
-                        <div class="w-12 h-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center text-xl mb-1"><i class="fas fa-route"></i></div>
-                        <span class="text-xs font-bold text-gray-700 uppercase">Rota GPS</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- CADASTRO -->
-            <div id="cadastroLead" class="page hidden fade-in">
-                <div class="flex items-center gap-3 mb-6">
-                    <button onclick="navegarPara('dashboard')" class="bg-white p-2 rounded-full shadow-sm text-gray-400 hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
-                    <h2 class="text-2xl font-bold text-[#004c99] tracking-tight">Novo Cliente</h2>
-                </div>
+                document.getElementById('leadEndereco').value = rua;
+                document.getElementById('leadBairro').value = bairro;
+                document.getElementById('leadCidade').value = cidade;
                 
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-200 mb-8">
-                    <!-- 1. Nome -->
-                    <div class="input-group"><label class="input-label">Nome Completo</label><input type="text" id="leadNome" class="modern-input" placeholder="Ex: Maria da Silva"><i class="fas fa-user input-icon"></i></div>
-                    <!-- 2. WhatsApp -->
-                    <div class="input-group"><label class="input-label">WhatsApp / Telefone</label><input type="tel" id="leadTelefone" class="modern-input" placeholder="(00) 90000-0000"><i class="fab fa-whatsapp input-icon text-green-600"></i></div>
-                    
-                    <div class="h-px bg-slate-100 my-6 mx-2"></div>
-                    
-                    <!-- 3. Endereço + GPS -->
-                    <div class="input-group relative">
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="input-label mb-0">Endereço</label>
-                            <button onclick="buscarEnderecoGPS()" class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors flex items-center gap-1 shadow-sm border border-blue-100">
-                                <i class="fas fa-map-marker-alt text-red-500"></i> <span class="tracking-wide">Usar GPS</span>
-                            </button>
-                        </div>
-                        <input type="text" id="leadEndereco" class="modern-input" placeholder="Rua e Número">
-                        <i class="fas fa-home input-icon"></i>
-                    </div>
+                alert(`✅ Localizado:\n${rua}, ${bairro}`);
+            } else {
+                alert("Endereço não encontrado nesta coordenada.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao buscar endereço. Verifique sua internet.");
+        }
+        showLoading(false);
+    }, (err) => {
+        showLoading(false);
+        alert("Erro no GPS. Verifique se a localização está ativada.");
+    }, { enableHighAccuracy: true });
+}
 
-                    <!-- 4. Bairro -->
-                    <div class="input-group"><label class="input-label">Bairro</label><input type="text" id="leadBairro" class="modern-input" placeholder="Ex: Centro"><i class="fas fa-map-pin input-icon text-red-500"></i></div>
-                    <!-- 5. Cidade -->
-                    <div class="input-group"><label class="input-label">Cidade</label><input type="text" id="leadCidade" class="modern-input" value="Lajeado"><i class="fas fa-city input-icon"></i></div>
-                    
-                    <div class="h-px bg-slate-100 my-6 mx-2"></div>
-                    
-                    <!-- 6. Interesse -->
-                    <div class="input-group">
-                        <label class="input-label">Interesse</label>
-                        <div class="relative">
-                            <select id="leadInteresse" class="modern-input appearance-none bg-white cursor-pointer font-bold text-[#004c99]"><option value="Alto">🔥 ALTO (Instalar)</option><option value="Médio" selected>🤔 MÉDIO (Pesquisa)</option><option value="Baixo">❄️ BAIXO (Curioso)</option></select>
-                            <i class="fas fa-fire input-icon text-orange-500"></i>
-                            <i class="fas fa-chevron-down absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
-                        </div>
-                    </div>
+// 2. DITADO DE VOZ (DINÂMICO)
+function iniciarDitado(targetId, btnId) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        return alert("Seu navegador não suporta ditado de voz. Tente usar o Google Chrome.");
+    }
 
-                    <!-- ✅ 7. PROVEDOR ATUAL (NOVO) -->
-                    <div class="input-group">
-                        <label class="input-label">Provedor Atual</label>
-                        <input type="text" id="leadProvedor" class="modern-input" placeholder="Ex: Vivo, Claro (Opcional)">
-                        <i class="fas fa-network-wired input-icon text-purple-500"></i>
-                    </div>
+    const recognition = new SpeechRecognition();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-                    <!-- 8. Obs + IA + Voz -->
-                    <div class="input-group mb-0">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px;">
-                            <div class="flex items-center gap-2">
-                                <label class="input-label mb-0">Observações</label>
-                                <!-- BOTÃO MICROFONE -->
-                                <button id="btnMic" onclick="iniciarDitado('leadObs', 'btnMic')" class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm" title="Falar">
-                                    <i class="fas fa-microphone text-xs"></i>
-                                </button>
-                            </div>
-                            <button onclick="gerarAbordagemIA()" class="text-[10px] font-bold text-[#004c99] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors shadow-sm flex items-center gap-1 border border-blue-100">
-                                <i class="fas fa-magic"></i> Gerar Pitch IA
-                            </button>
-                        </div>
-                        <textarea id="leadObs" class="modern-input" rows="3" style="height:auto; padding-top:15px; padding-left:20px;" placeholder="Detalhes importantes..."></textarea>
-                    </div>
-                </div>
+    const btn = document.getElementById(btnId);
+    
+    // Feedback visual de gravação
+    if(btn) {
+        btn.classList.remove('text-gray-400');
+        btn.classList.add('text-red-600', 'animate-pulse');
+    }
 
-                <button onclick="enviarLead()" class="btn-save-elegant mb-4">
-                    <i class="fas fa-check-circle"></i> SALVAR CADASTRO
-                </button>
-                <div style="height: 100px;"></div>
-            </div>
+    recognition.start();
 
-            <!-- GESTÃO LEADS -->
-            <div id="gestaoLeads" class="page hidden fade-in">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-[#003870] tracking-tight">Histórico</h2>
-                    <button onclick="carregarLeads()" class="text-xs bg-white border border-blue-200 text-[#004c99] px-4 py-2 rounded-full font-bold shadow-sm flex items-center gap-1">
-                        <i class="fas fa-sync-alt"></i> Atualizar
-                    </button>
-                </div>
-                <div class="relative mb-6">
-                    <input type="text" id="searchLead" onkeyup="renderLeads()" class="modern-input" placeholder="Buscar cliente..." style="border-radius:100px; padding-left:55px;">
-                    <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
-                </div>
-                <div id="listaLeadsGestao" class="space-y-4"></div>
-                <div style="height: 150px;"></div>
-            </div>
-
-            <!-- ROTA -->
-            <div id="rota" class="page hidden fade-in">
-                <h2 class="text-2xl font-bold text-[#003870] mb-6 text-center tracking-tight">Rota GPS</h2>
-                <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border border-gray-100 text-center mb-8 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-[#004c99]"></div>
-                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Tempo em Campo</div>
-                    <div id="timer" class="text-5xl font-mono font-bold text-[#003870] my-4">00:00:00</div>
-                    <div class="flex justify-center gap-8 mt-6 pt-6 border-t border-gray-100">
-                        <div><div class="text-xs text-gray-400 font-bold uppercase">Pontos</div><div id="points" class="text-xl font-bold text-[#004c99]">0</div></div>
-                        <div><div class="text-xs text-gray-400 font-bold uppercase">Status</div><div id="gpsStatus" class="text-xl font-bold text-gray-500">Parado</div></div>
-                    </div>
-                </div>
-                <button id="btnStart" onclick="startRoute()" class="btn-save-elegant" style="background:linear-gradient(to right, #10b981, #059669); border:none;"><i class="fas fa-play"></i> INICIAR ROTA</button>
-                <button id="btnStop" onclick="stopRoute()" class="btn-save-elegant" style="background:linear-gradient(to right, #ef4444, #dc2626); border:none; display:none;"><i class="fas fa-stop"></i> FINALIZAR</button>
-                <div style="height: 150px;"></div>
-            </div>
-
-        </main>
-
-        <!-- Botão Chat IA -->
-        <button onclick="toggleChat()" class="fixed bottom-24 right-5 w-14 h-14 bg-[#004c99] rounded-full shadow-xl text-white flex items-center justify-center text-2xl z-50 hover:scale-105 transition-transform border-4 border-[#f8fafc]">
-            <i class="fas fa-comment-dots"></i>
-        </button>
-
-        <!-- Chat Modal -->
-        <div id="chatModal" class="hidden fixed inset-0 z-[60]">
-            <div class="absolute inset-0 bg-black/50" onclick="toggleChat()"></div>
-            <div class="absolute bottom-0 w-full h-[80%] bg-gray-100 rounded-t-3xl flex flex-col overflow-hidden">
-                <div class="bg-white p-4 flex justify-between items-center border-b">
-                    <h3 class="font-bold text-[#004c99]">Assistente MHNET</h3>
-                    <button onclick="toggleChat()"><i class="fas fa-times"></i></button>
-                </div>
-                <div id="chatHistory" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-                <div class="p-3 bg-white border-t flex gap-2 pb-safe">
-                    <input type="text" id="chatInput" class="flex-1 border rounded-full px-4 py-2 outline-none" placeholder="Digite...">
-                    <button onclick="enviarMensagemChat()" class="bg-[#004c99] text-white w-10 h-10 rounded-full"><i class="fas fa-paper-plane"></i></button>
-                </div>
-            </div>
-        </div>
-
-        <!-- MODAL DETALHES LEAD (NOVO) -->
-        <div id="leadModal" class="hidden fixed inset-0 z-[70]">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onclick="fecharLeadModal()"></div>
-            <div class="absolute bottom-0 w-full h-[92%] bg-[#f8fafc] rounded-t-[2.5rem] flex flex-col overflow-hidden shadow-2xl transition-transform slide-up">
-                <!-- Header Modal -->
-                <div class="bg-white p-5 border-b border-gray-100 flex justify-between items-center relative">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ficha do Cliente</p>
-                            <!-- ✅ ETIQUETA DE INTERESSE (NOVO) -->
-                            <span id="modalLeadFlag" class="bg-gray-100 text-gray-500 px-3 py-1 rounded-lg text-[10px] font-bold hidden">...</span>
-                        </div>
-                        <h3 id="modalLeadNome" class="font-bold text-[#003870] text-xl leading-tight">Nome</h3>
-                        <p id="modalLeadInfo" class="text-xs text-gray-500 mt-1">Detalhes...</p>
-                        
-                        <!-- ✅ EXIBIR PROVEDOR (NOVO) -->
-                        <div class="mt-2 flex items-center gap-1 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded w-max">
-                            <i class="fas fa-network-wired"></i> <span id="modalLeadProvedor">...</span>
-                        </div>
-                    </div>
-                    <button onclick="fecharLeadModal()" class="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 flex-shrink-0">
-                        <i class="fas fa-times text-lg"></i>
-                    </button>
-                </div>
-                <!-- Conteúdo Modal -->
-                <div class="flex-1 overflow-y-auto p-6 bg-[#f8fafc]">
-                    <!-- Ações -->
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <button id="btnModalWhats" class="bg-green-100 text-green-700 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fab fa-whatsapp text-xl"></i> WhatsApp
-                        </button>
-                        <button id="btnModalAgenda" class="bg-blue-100 text-blue-700 py-3 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fas fa-calendar-plus text-xl"></i> Agendar
-                        </button>
-                    </div>
-
-                    <!-- AGENDAMENTO INTEGRADO -->
-                    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 p-5 mb-6">
-                        <h4 class="font-bold text-gray-700 text-sm uppercase mb-4 flex items-center gap-2">
-                            <i class="fas fa-calendar-check text-[#004c99]"></i> Agendar Retorno
-                        </h4>
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div>
-                                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Data</label>
-                                <input type="date" id="agendarData" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#004c99] transition-colors">
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Hora</label>
-                                <input type="time" id="agendarHora" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm font-bold text-gray-700 outline-none focus:border-[#004c99] transition-colors">
-                            </div>
-                        </div>
-                        <button onclick="salvarAgendamento()" class="w-full bg-[#004c99] text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-transform text-sm uppercase tracking-wide">
-                            Salvar Agendamento
-                        </button>
-                    </div>
-                    
-                    <!-- OBSERVAÇÃO EDITÁVEL -->
-                    <div class="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm mb-6">
-                        <div class="flex justify-between items-end mb-2">
-                            <div class="flex items-center gap-2">
-                                <p class="text-xs font-bold text-gray-400 uppercase">Observações</p>
-                                <!-- ✅ BOTÃO VOZ NO MODAL (NOVO) -->
-                                <button id="btnMicModal" onclick="iniciarDitado('modalLeadObs', 'btnMicModal')" class="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all shadow-sm" title="Falar">
-                                    <i class="fas fa-microphone text-xs"></i>
-                                </button>
-                            </div>
-                            <button onclick="salvarObservacaoModal()" class="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-bold hover:bg-blue-100 transition-colors">
-                                <i class="fas fa-save mr-1"></i> Salvar Obs
-                            </button>
-                        </div>
-                        <textarea id="modalLeadObs" class="w-full text-sm text-gray-700 leading-relaxed bg-transparent outline-none resize-none border-b border-gray-100 focus:border-[#004c99] transition-colors p-1" rows="4"></textarea>
-                    </div>
-
-                    <!-- Agenda Externa -->
-                    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 overflow-hidden mb-6">
-                        <div class="p-4 border-b border-gray-100 bg-gray-50">
-                            <h4 class="font-bold text-gray-700 text-sm uppercase flex items-center gap-2">
-                                <i class="fas fa-calendar-alt text-[#004c99]"></i> Disponibilidade da Equipe
-                            </h4>
-                        </div>
-                        <div class="p-6 bg-white text-center">
-                             <p class="text-sm text-gray-500 mb-4">Verifique a disponibilidade da equipa técnica.</p>
-                             <a href="https://calendar.google.com/calendar/embed?src=e6e6469ed745c33bb0286bafbc8706fe8c371ea0551db46642d5765292aa06f7%40group.calendar.google.com&ctz=America%2FSao_Paulo" target="_blank" class="inline-block bg-blue-50 text-[#004c99] px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-100 transition">
-                                <i class="fas fa-external-link-alt mr-1"></i> Abrir Agenda
-                             </a>
-                        </div>
-                    </div>
-
-                    <div class="h-20"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Menu Inferior -->
-        <nav class="fixed bottom-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-200 flex justify-around pb-6 pt-2 z-40 rounded-t-[2rem] shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
-            <button id="nav-home" onclick="navegarPara('dashboard')" class="nav-item active"><i class="fas fa-home text-2xl"></i> Início</button>
-            <button id="nav-novo" onclick="navegarPara('cadastroLead')" class="nav-item"><div class="bg-[#004c99] text-white w-14 h-14 rounded-2xl flex items-center justify-center -mt-10 shadow-lg border-4 border-[#f8fafc]"><i class="fas fa-plus text-xl"></i></div></button>
-            <button id="nav-lista" onclick="navegarPara('gestaoLeads')" class="nav-item"><i class="fas fa-stream text-2xl"></i> Leads</button>
-            <button id="nav-rota" onclick="navegarPara('rota')" class="nav-item"><i class="fas fa-location-arrow text-2xl"></i> Rota</button>
-        </nav>
+    recognition.onresult = (event) => {
+        const fala = event.results[0][0].transcript;
+        const campo = document.getElementById(targetId);
         
-        <!-- Loader -->
-        <div id="loader" class="fixed inset-0 bg-[#004c99]/90 z-[70] hidden flex-col items-center justify-center text-white backdrop-blur-sm">
-            <div class="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
-            <div id="loaderText" class="font-bold tracking-[0.3em] text-xs">PROCESSANDO</div>
+        if (campo) {
+            campo.value += (campo.value ? " " : "") + fala;
+        }
+        
+        restaurarBotao(btn);
+    };
+
+    recognition.onerror = (event) => {
+        alert("Não entendi. Tente novamente.");
+        restaurarBotao(btn);
+    };
+    
+    recognition.onend = () => {
+        restaurarBotao(btn);
+    };
+}
+
+function restaurarBotao(btn) {
+    if(btn) {
+        btn.classList.remove('text-red-600', 'animate-pulse');
+        btn.classList.add('text-gray-400');
+    }
+}
+
+// ============================================================
+// 🔔 SISTEMA DE AGENDAMENTO E OBSERVAÇÕES
+// ============================================================
+
+function verificarAgendamentosHoje() {
+  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0]; // dd/MM/yyyy
+  
+  const retornosHoje = leadsCache.filter(l => {
+    if (!l.agendamento) return false;
+    const dataAgendamento = l.agendamento.split(' ')[0];
+    return dataAgendamento === hoje;
+  });
+  
+  const banner = document.getElementById('lembreteBanner');
+  const texto = document.getElementById('lembreteTexto');
+
+  if (retornosHoje.length > 0) {
+    if(banner) banner.classList.remove('hidden');
+    if(texto) texto.innerText = `Você tem ${retornosHoje.length} cliente(s) para retornar hoje!`;
+  } else {
+    if(banner) banner.classList.add('hidden');
+  }
+}
+
+async function salvarAgendamento() {
+  if (!leadAtualParaAgendar) return alert("Erro ao identificar lead.");
+  const dataEl = document.getElementById('agendarData');
+  const horaEl = document.getElementById('agendarHora');
+  if (!dataEl || !horaEl) return alert("Campos de agendamento não encontrados.");
+  const data = dataEl.value;
+  const hora = horaEl.value;
+  if (!data) return alert("❌ Selecione uma data!");
+  showLoading(true, "AGENDANDO...");
+  const [ano, mes, dia] = data.split('-');
+  const dataFormatada = `${dia}/${mes}/${ano} ${hora || '09:00'}`;
+  const res = await apiCall('updateAgendamento', {
+    vendedor: loggedUser,
+    nomeLead: leadAtualParaAgendar.nomeLead,
+    agendamento: dataFormatada
+  });
+  showLoading(false);
+  if (res && res.status === 'success') {
+    alert(`✅ Agendamento salvo!\n\nRetorno: ${dataFormatada}`);
+    const index = leadsCache.findIndex(l => l.nomeLead === leadAtualParaAgendar.nomeLead && l.vendedor === loggedUser);
+    if (index !== -1) {
+      leadsCache[index].agendamento = dataFormatada;
+      localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+    }
+    fecharLeadModal();
+    renderLeads(); 
+    verificarAgendamentosHoje();
+  } else {
+    alert('❌ Erro ao salvar agendamento.');
+  }
+}
+
+async function salvarObservacaoModal() {
+    if (!leadAtualParaAgendar) return alert("Erro: Nenhum lead selecionado.");
+    const novaObs = document.getElementById('modalLeadObs').value;
+    showLoading(true, "ATUALIZANDO...");
+    const res = await apiCall('updateObservacao', {
+        vendedor: loggedUser,
+        nomeLead: leadAtualParaAgendar.nomeLead,
+        observacao: novaObs
+    });
+    showLoading(false);
+    if (res && res.status === 'success') {
+        alert("✅ Observação atualizada!");
+        const index = leadsCache.findIndex(l => l.nomeLead === leadAtualParaAgendar.nomeLead && l.vendedor === loggedUser);
+        if (index !== -1) {
+            leadsCache[index].observacao = novaObs;
+            localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+        }
+    } else {
+        alert("❌ Erro ao atualizar.");
+    }
+}
+
+// ============================================================
+// 2. NAVEGAÇÃO
+// ============================================================
+
+function navegarPara(pageId) {
+  document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+  const target = document.getElementById(pageId);
+  if(target) {
+      target.style.display = 'block';
+      target.classList.remove('fade-in');
+      void target.offsetWidth; 
+      target.classList.add('fade-in');
+  }
+  const mainScroll = document.getElementById('main-scroll');
+  if(mainScroll) mainScroll.scrollTo(0,0);
+
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.remove('active', 'text-blue-700');
+    el.classList.add('text-slate-400');
+  });
+
+  let btnId = '';
+  if(pageId === 'dashboard') btnId = 'nav-home';
+  if(pageId === 'cadastroLead') btnId = 'nav-novo';
+  if(pageId === 'gestaoLeads') btnId = 'nav-lista';
+  if(pageId === 'rota') btnId = 'nav-rota';
+
+  const btn = document.getElementById(btnId);
+  if(btn && !btn.querySelector('div')) {
+      btn.classList.add('active', 'text-blue-700');
+      btn.classList.remove('text-slate-400');
+  }
+
+  if (pageId === 'dashboard') {
+      atualizarDashboard();
+      verificarAgendamentosHoje();
+  }
+  if (pageId === 'gestaoLeads') renderLeads();
+}
+
+function setLoggedUser() {
+  const select = document.getElementById('userSelect');
+  if (select && select.value) {
+    loggedUser = select.value;
+    localStorage.setItem('loggedUser', loggedUser);
+    initApp();
+  } else {
+    alert('Selecione seu nome!');
+  }
+}
+
+function logout() {
+  if(confirm("Sair do sistema?")) {
+    localStorage.removeItem('loggedUser');
+    location.reload();
+  }
+}
+
+// ============================================================
+// 3. INTELIGÊNCIA ARTIFICIAL (HÍBRIDA)
+// ============================================================
+
+// A) IA CRIATIVA (FRONTEND)
+async function chamarGeminiCriativo(prompt, systemInstruction = "") {
+  if (!GEMINI_KEY_FRONT) return null;
+  const fullPrompt = `${systemInstruction}\n\n${CONTEXTO_CRIATIVO}\n\nPERGUNTA: ${prompt}`;
+  try {
+    // ⚠️ USANDO MODELO ESTÁVEL 1.5 FLASH
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY_FRONT}`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: fullPrompt }] }] })
+    });
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+  } catch (e) { return null; }
+}
+
+// B) IA DE CONHECIMENTO (BACKEND)
+async function perguntarIABackend(pergunta) {
+  try {
+    const res = await apiCall('askAI', { question: pergunta }, false); 
+    
+    if (res && res.status === 'success') {
+      return res.answer;
+    } else {
+      console.error("❌ Erro Backend AI:", res);
+      const msgErro = (res && res.message) ? res.message : "Resposta desconhecida do servidor";
+      return `⚠️ O sistema de IA encontrou um erro: ${msgErro}. Tente novamente.`;
+    }
+  } catch (e) {
+    return "Erro de comunicação com o servidor.";
+  }
+}
+
+async function gerarAbordagemIA() {
+  const nome = document.getElementById('leadNome').value;
+  const bairro = document.getElementById('leadBairro').value || "sua região";
+  if(!nome) return alert("⚠️ Preencha o nome do cliente primeiro!");
+  showLoading(true, "✨ CRIANDO PITCH...");
+  const txt = await chamarGeminiCriativo(`Crie msg curta WhatsApp MHNET 500 Mega para ${nome} em ${bairro}.`, "Vendedor telecom");
+  showLoading(false);
+  if(txt) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
+}
+
+async function gerarCoachIA() {
+  showLoading(true, "🚀 MOTIVANDO...");
+  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
+  const leadsHoje = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
+  const txt = await chamarGeminiCriativo(`Fiz ${leadsHoje} vendas hoje. Frase motivacional curta.`);
+  showLoading(false);
+  if(txt) alert(`🚀 COACH:\n\n${txt.replace(/\*\*/g, '')}`);
+}
+
+async function consultarPlanosIA() {
+    toggleChat();
+    const history = document.getElementById('chatHistory');
+    const msg = "Quais são os planos atuais da MHNET?";
+    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
+    const loadId = 'load-' + Date.now();
+    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Consultando base de conhecimento...</div></div>`;
+    history.scrollTop = history.scrollHeight;
+    const response = await perguntarIABackend(msg);
+    const loader = document.getElementById(loadId);
+    if(loader) loader.remove();
+    if(response) {
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
+         history.scrollTop = history.scrollHeight;
+    }
+}
+
+function toggleChat() {
+    const el = document.getElementById('chatModal');
+    if(el.classList.contains('hidden')) {
+        el.classList.remove('hidden');
+        setTimeout(() => document.getElementById('chatInput')?.focus(), 300);
+    } else {
+        el.classList.add('hidden');
+    }
+}
+
+async function enviarMensagemChat() {
+    const input = document.getElementById('chatInput');
+    const history = document.getElementById('chatHistory');
+    const msg = input.value.trim();
+    if(!msg) return;
+    history.innerHTML += `<div class="flex gap-3 justify-end fade-in"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
+    input.value = '';
+    const loadId = 'load-' + Date.now();
+    history.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in"><div class="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0 flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic shadow-sm">Pesquisando...</div></div>`;
+    history.scrollTop = history.scrollHeight;
+    const response = await perguntarIABackend(msg);
+    const loader = document.getElementById(loadId);
+    if(loader) loader.remove();
+    if(response) {
+         history.innerHTML += `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${response.replace(/\n/g, '<br>')}</div></div>`;
+         history.scrollTop = history.scrollHeight;
+    }
+}
+
+// ============================================================
+// 4. GESTÃO DE LEADS
+// ============================================================
+
+async function carregarLeads() {
+  const lista = document.getElementById('listaLeadsGestao');
+  if(lista && leadsCache.length === 0) lista.innerHTML = `<div class="text-center p-10"><i class="fas fa-sync fa-spin text-3xl text-blue-400"></i></div>`;
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ route: 'getLeads', payload: { vendedor: loggedUser } })
+    });
+
+    const data = await res.json();
+    if (data.status === 'success') {
+      leadsCache = (data.data || []).filter(l => l.vendedor.toLowerCase().includes(loggedUser.toLowerCase()));
+      leadsCache.sort((a, b) => b._linha - a._linha); 
+      localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+      renderLeads();
+      atualizarDashboard();
+      verificarAgendamentosHoje();
+    }
+  } catch (e) { console.error('Erro:', e); }
+}
+
+function renderLeads() {
+  const div = document.getElementById('listaLeadsGestao');
+  if (!div) return;
+  const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
+  
+  const filtrados = leadsCache.filter(l => 
+    (l.nomeLead || '').toLowerCase().includes(term) || 
+    (l.bairro || '').toLowerCase().includes(term)
+  );
+  
+  if (!filtrados.length) {
+    div.innerHTML = `<div class="text-center p-10 text-gray-500">Nenhum lead encontrado</div>`;
+    return;
+  }
+
+  div.innerHTML = filtrados.map((l, index) => {
+    let badgeClass = "bg-gray-100 text-gray-500";
+    const interesseStr = String(l.interesse || '').toUpperCase();
+    if(interesseStr.includes('ALTO')) badgeClass = "bg-green-100 text-green-700";
+    
+    const temAgendamento = l.agendamento && l.agendamento.trim() !== '';
+    const agendaBadge = temAgendamento ? `<span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full ml-2"><i class="fas fa-calendar-check"></i> ${l.agendamento.split(' ')[0]}</span>` : '';
+
+    return `
+    <div onclick="abrirLeadDetalhes(${index})" class="bg-white p-5 rounded-[1.5rem] border border-blue-50 shadow-sm mb-4 cursor-pointer active:bg-blue-50 transition hover:shadow-md">
+      <div class="flex justify-between items-start mb-3 pointer-events-none">
+        <div>
+          <div class="font-bold text-[#003870] text-lg leading-tight flex items-center flex-wrap">${l.nomeLead} ${agendaBadge}</div>
+          <div class="text-xs text-gray-400 mt-1">${l.timestamp ? l.timestamp.split(' ')[0] : 'Hoje'}</div>
         </div>
+        <span class="${badgeClass} px-3 py-1 rounded-lg text-[10px] font-bold">${l.interesse}</span>
+      </div>
+      <div class="text-sm text-gray-600 mb-2 pointer-events-none"><i class="fas fa-map-marker-alt text-red-400 mr-2"></i> ${l.bairro || 'Geral'}</div>
+    </div>`;
+  }).join('');
+}
 
-    </div>
+function abrirLeadDetalhes(index) {
+    const lead = leadsCache[index];
+    if(!lead) return;
+    leadAtualParaAgendar = lead;
+    
+    // Helpers
+    const setText = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text; };
+    const setValue = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
 
-    <script src="app.js"></script>
-</body>
-</html>
+    setText('modalLeadNome', lead.nomeLead || 'Sem Nome');
+    setText('modalLeadInfo', `${lead.bairro || 'Geral'} • ${lead.timestamp ? lead.timestamp.split(' ')[0] : 'Hoje'}`);
+    
+    // ✅ MOSTRAR FLAG DE INTERESSE
+    const elFlag = document.getElementById('modalLeadFlag');
+    if(elFlag) {
+        elFlag.className = ""; // Reset
+        elFlag.style.display = "inline-block";
+        const int = String(lead.interesse || "Médio").toUpperCase();
+        if(int.includes("ALTO")) {
+            elFlag.className = "bg-green-100 text-green-700 px-3 py-1 rounded-lg text-[10px] font-bold";
+            elFlag.innerText = "🔥 ALTO";
+        } else if(int.includes("BAIXO")) {
+            elFlag.className = "bg-gray-100 text-gray-500 px-3 py-1 rounded-lg text-[10px] font-bold";
+            elFlag.innerText = "❄️ BAIXO";
+        } else {
+            elFlag.className = "bg-orange-100 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-bold";
+            elFlag.innerText = "🤔 MÉDIO";
+        }
+    }
+
+    // ✅ PROVEDOR ATUAL
+    const elProv = document.getElementById('modalLeadProvedor');
+    if(elProv) elProv.innerText = lead.provedor || "Não informado";
+
+    setValue('modalLeadObs', lead.observacao || "");
+    
+    const elData = document.getElementById('agendarData');
+    const elHora = document.getElementById('agendarHora');
+    if (elData && elHora) {
+        if(lead.agendamento) {
+            try {
+                const [data, hora] = lead.agendamento.split(' ');
+                const [dia, mes, ano] = data.split('/');
+                elData.value = `${ano}-${mes}-${dia}`;
+                elHora.value = hora || '';
+            } catch(e) { elData.value = ''; }
+        } else {
+            elData.value = '';
+            elHora.value = '09:00';
+        }
+    }
+    const tel = (lead.telefone || "").replace(/\D/g, '');
+    const btnWhats = document.getElementById('btnModalWhats');
+    if (btnWhats) btnWhats.onclick = () => window.open(tel ? `https://wa.me/55${tel}` : '#', '_blank');
+    const modal = document.getElementById('leadModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        const content = modal.querySelector('div.absolute');
+        if (content) {
+            content.classList.remove('slide-up');
+            void content.offsetWidth;
+            content.classList.add('slide-up');
+        }
+    }
+}
+
+function fecharLeadModal() {
+    const modal = document.getElementById('leadModal');
+    if(modal) modal.classList.add('hidden');
+    leadAtualParaAgendar = null;
+}
+
+async function enviarLead() {
+  const nome = document.getElementById('leadNome').value.trim();
+  const tel = document.getElementById('leadTelefone').value.trim();
+  if (!nome || !tel) return alert("❌ Preencha Nome e Telefone");
+  showLoading(true, "SALVANDO...");
+  
+  const novoLead = {
+    vendedor: loggedUser,
+    nomeLead: nome,
+    telefone: tel,
+    endereco: document.getElementById('leadEndereco').value.trim(),
+    cidade: document.getElementById('leadCidade').value.trim(),
+    bairro: document.getElementById('leadBairro').value.trim(),
+    interesse: document.getElementById('leadInteresse').value,
+    provedor: document.getElementById('leadProvedor').value.trim(), // ✅ NOVO CAMPO
+    observacao: document.getElementById('leadObs').value.trim(),
+    agendamento: "", timestamp: new Date().toLocaleString('pt-BR')
+  };
+  
+  const res = await apiCall('addLead', novoLead);
+  showLoading(false);
+  if (res && (res.status === 'success' || res === 'CORS_OK')) {
+      alert('✅ Lead Salvo!');
+      leadsCache.unshift(novoLead);
+      localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+      
+      // Limpa campos
+      document.getElementById('leadNome').value = ''; 
+      document.getElementById('leadTelefone').value = '';
+      document.getElementById('leadProvedor').value = ''; 
+      document.getElementById('leadObs').value = '';
+      document.getElementById('leadEndereco').value = '';
+      
+      navegarPara('gestaoLeads');
+  } else { alert('❌ Erro ao salvar.'); }
+}
+
+function atualizarDashboard() {
+  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
+  const count = leadsCache.filter(l => (l.timestamp || '').split(' ')[0] === hoje).length;
+  if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
+}
+
+// ============================================================
+// 5. ROTAS GPS
+// ============================================================
+function startRoute() {
+  if (!navigator.geolocation) return alert('GPS não disponível.');
+  routeCoords = []; seconds = 0; routeStartTime = new Date().toISOString();
+  document.getElementById('btnStart').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'flex';
+  
+  timerInterval = setInterval(() => {
+    seconds++;
+    const h = Math.floor(seconds/3600).toString().padStart(2,'0'), m = Math.floor((seconds%3600)/60).toString().padStart(2,'0'), s = (seconds%60).toString().padStart(2,'0');
+    document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+  }, 1000);
+  
+  watchId = navigator.geolocation.watchPosition(p => {
+      routeCoords.push({lat: p.coords.latitude, lon: p.coords.longitude});
+      document.getElementById('points').innerText = routeCoords.length;
+      document.getElementById('gpsStatus').innerText = "📍 Rastreando";
+  }, e => console.error(e), {enableHighAccuracy: true});
+}
+
+async function stopRoute() {
+  if(!confirm("Finalizar rastreamento?")) return;
+  clearInterval(timerInterval); navigator.geolocation.clearWatch(watchId);
+  showLoading(true, "SALVANDO ROTA...");
+  await apiCall('saveRoute', { vendedor: loggedUser, inicioISO: routeStartTime, fimISO: new Date().toISOString(), coordenadas: routeCoords });
+  showLoading(false); alert(`✅ Rota salva!`); resetRouteUI(); navegarPara('dashboard');
+}
+
+function resetRouteUI() {
+  document.getElementById('btnStart').style.display = 'flex';
+  document.getElementById('btnStop').style.display = 'none';
+  document.getElementById('timer').innerText = "00:00:00";
+  document.getElementById('points').innerText = "0";
+  document.getElementById('gpsStatus').innerText = "Parado";
+}
+
+// ============================================================
+// 6. API CALL
+// ============================================================
+async function apiCall(route, payload, show=true) {
+  if(show) showLoading(true);
+  try {
+    const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({ route, payload }) });
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch (e) {
+      if(['addLead', 'saveRoute', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
+      throw new Error("Resposta inválida");
+    }
+    if(show) showLoading(false);
+    return json;
+  } catch(e) {
+    if(show) showLoading(false);
+    if(e.name === 'TypeError' && ['addLead', 'saveRoute', 'updateAgendamento', 'updateObservacao'].includes(route)) return 'CORS_OK';
+    return null;
+  }
+}
+
+function showLoading(show, txt = "AGUARDE...") {
+  const loader = document.getElementById('loader');
+  if(loader) loader.style.display = show ? 'flex' : 'none';
+  const loaderText = document.getElementById('loaderText');
+  if(loaderText && txt) loaderText.innerText = txt;
+}
+
+// ============================================================
+// 🚀 REGISTRO DO PWA
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('✅ Service Worker:', reg.scope))
+      .catch(err => console.log('❌ Service Worker Fail:', err));
+  });
+}
