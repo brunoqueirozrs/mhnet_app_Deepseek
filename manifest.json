@@ -1,21 +1,24 @@
 {
-  "name": "MHNET Vendas",
+  "name": "MHNET Gestor de Vendas",
   "short_name": "MHNET",
   "start_url": "./index.html",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#004c99",
   "theme_color": "#004c99",
-  "description": "Gestor de Vendas Externas MHNET",
+  "description": "Sistema de Gestão de Vendas Externas",
   "icons": [
     {
       "src": "https://mhnet.com.br/assets/img/logo_branca.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "https://mhnet.com.br/assets/img/logo_branca.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
