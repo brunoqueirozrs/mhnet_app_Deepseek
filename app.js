@@ -1,12 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V47 (DEBUG MATERIAIS)
+ * MHNET VENDAS - LÓGICA FRONTEND V48 (FIX LOGIN & SYNC)
  * ============================================================
  * 📝 CORREÇÕES:
- * - Logs detalhados para debug de materiais
- * - Timeout na navegação para garantir renderização
- * - Botão "Tentar Novamente" em caso de erro
- * - Mantém toda a lógica de PWA, Login e Leads
+ * - Fix: Código estava cortado no final, impedindo execução.
+ * - Fix: Função carregarVendedores agora tem fallback imediato.
+ * - Mantém ID informado e funcionalidades de Materiais/Leads.
  * ============================================================
  */
 
@@ -18,11 +17,13 @@ let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let leadAtualParaAgendar = null; 
 let chatHistoryData = []; 
-let currentFolderId = null; // 🆕 Controla em qual pasta estamos
+let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v47 - Debug Materiais");
+  console.log("🚀 MHNET App v48 - Init");
+  
+  // Tenta carregar vendedores imediatamente
   carregarVendedores();
   
   const saved = localStorage.getItem('mhnet_leads_cache');
@@ -38,33 +39,44 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// --- CARREGAMENTO DE VENDEDORES ---
+// --- CARREGAMENTO DE VENDEDORES (ROBUSTO) ---
 async function carregarVendedores() {
     const select = document.getElementById('userSelect');
     if(!select) return;
     
+    // Lista de segurança caso a API falhe
     const VENDEDORES_OFFLINE = [
         "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
         "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
         "Elton da Silva Rodrigo Gonçalves", "Bruno Garcia Queiroz"
     ];
 
-    select.innerHTML = '<option value="">Carregando equipe...</option>';
+    select.innerHTML = '<option value="">Conectando...</option>';
 
     try {
+        // Tenta buscar no Backend
         const res = await apiCall('getVendors', {}, false);
+        
         if (res && res.status === 'success' && res.data && res.data.length > 0) {
             select.innerHTML = '<option value="">Toque para selecionar...</option>';
             res.data.forEach(v => {
                 const opt = document.createElement('option');
-                opt.value = v.nome; opt.innerText = v.nome; select.appendChild(opt);
+                opt.value = v.nome; 
+                opt.innerText = v.nome; 
+                select.appendChild(opt);
             });
-        } else { throw new Error("Lista vazia"); }
+        } else {
+            // Se a API retornar vazio ou erro, força erro para cair no catch
+            throw new Error("Lista vazia ou erro API");
+        }
     } catch (e) {
+        console.warn("⚠️ Usando lista offline:", e);
         select.innerHTML = '<option value="">Modo Offline (Lista Fixa)</option>';
         VENDEDORES_OFFLINE.forEach(nome => {
             const opt = document.createElement('option');
-            opt.value = nome; opt.innerText = nome; select.appendChild(opt);
+            opt.value = nome; 
+            opt.innerText = nome; 
+            select.appendChild(opt);
         });
     }
 }
@@ -118,7 +130,6 @@ function navegarPara(pageId) {
   const scroller = document.getElementById('main-scroll');
   if(scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Reset de Filtros da Lista de Leads
   if (pageId === 'gestaoLeads') {
       const busca = document.getElementById('searchLead');
       if(busca && busca.placeholder.includes("Retornos")) {
@@ -128,10 +139,9 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
-  // 🆕 Lógica de Entrada em Materiais
   if (pageId === 'materiais') { 
-      currentFolderId = null; // Reseta para a raiz (Menu Principal)
-      setTimeout(() => carregarMateriais(), 100); // Delay para garantir renderização
+      currentFolderId = null; 
+      setTimeout(() => carregarMateriais(), 100); 
   }
   
   if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
@@ -156,8 +166,6 @@ function verificarAgendamentosHoje() {
 // 3. COMUNICAÇÃO API
 
 async function apiCall(route, payload, show=true) {
-  console.log('🌐 API Call:', route, payload);
-  
   if(show) showLoading(true);
   try {
     const res = await fetch(API_URL, { 
@@ -166,25 +174,17 @@ async function apiCall(route, payload, show=true) {
         body: JSON.stringify({ route: route, payload: payload }) 
     });
     
-    console.log('📡 Status HTTP:', res.status);
-    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     
-    console.log('📄 Resposta raw:', text.substring(0, 500));
-    
     let json;
-    try { json = JSON.parse(text); } catch(e) { 
-        console.error('❌ Erro ao parsear JSON:', e);
-        throw new Error("Erro formato JSON."); 
-    }
+    try { json = JSON.parse(text); } catch(e) { throw new Error("Erro formato JSON."); }
     
     if(show) showLoading(false);
     return json;
   } catch(e) {
-    console.error('❌ Erro na chamada API:', e);
+    console.error('Erro API:', e);
     if(show) showLoading(false);
-    // Fallback para não travar
     if(['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) {
         return {status:'success', local: true};
     }
@@ -193,57 +193,39 @@ async function apiCall(route, payload, show=true) {
 }
 
 // ============================================================
-// 🖼️ MATERIAIS & PORTFÓLIOS (COM DEBUG)
+// 🖼️ MATERIAIS & PORTFÓLIOS
 // ============================================================
 
 async function carregarMateriais(folderId = null, search = "") {
-    console.log('📂 Carregando materiais:', { folderId, search });
-    
     const div = document.getElementById('materiaisGrid');
-    if (!div) {
-        console.error('❌ Elemento materiaisGrid não encontrado');
-        return;
-    }
-    
-    currentFolderId = folderId; // Atualiza estado atual
-
-    // Loader Visual
+    if (!div) return;
+    currentFolderId = folderId; 
     div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10 fade-in"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Carregando...</div>';
 
     try {
-        // Chama Backend
         const res = await apiCall('getImages', { folderId: folderId, search: search }, false);
-        
-        console.log('📦 Resposta do backend:', res);
-        
         if (res && res.status === 'success' && res.data) {
-            // Atualiza UI de Navegação (Botão Voltar)
             atualizarNavegacaoMateriais(res.isRoot);
             renderMateriais(res.data);
         } else {
-            console.error('❌ Erro na resposta:', res);
-            div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10"><i class="fas fa-exclamation-triangle mb-2"></i><br>Erro ao carregar.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
+            div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10">Erro ao carregar.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
         }
     } catch (error) {
-        console.error('❌ Erro ao carregar materiais:', error);
-        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10"><i class="fas fa-exclamation-triangle mb-2"></i><br>Erro de conexão.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
+        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10">Erro de conexão.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
     }
 }
 
 function atualizarNavegacaoMateriais(isRoot) {
-    const btnVoltar = document.querySelector('#materiais button'); // Pega o botão de voltar do header
+    const btnVoltar = document.querySelector('#materiais button'); 
     const titleEl = document.querySelector('#materiais h2');
-    
     if(btnVoltar) {
         if(isRoot) {
-            // Se está na raiz, voltar vai para o Dashboard
             btnVoltar.onclick = () => navegarPara('dashboard');
             if(titleEl) titleEl.innerText = "Marketing";
         } else {
-            // Se está em uma subpasta, voltar vai para a raiz
             btnVoltar.onclick = () => {
                 const searchInput = document.getElementById('searchMateriais');
-                if (searchInput) searchInput.value = ""; // Limpa busca se existir
+                if (searchInput) searchInput.value = ""; 
                 carregarMateriais(null);
             };
             if(titleEl) titleEl.innerText = "Voltar";
@@ -253,31 +235,22 @@ function atualizarNavegacaoMateriais(isRoot) {
 
 function buscarMateriais() {
     const input = document.getElementById('searchMateriais');
-    if (input) {
-        carregarMateriais(currentFolderId, input.value);
-    }
+    if (input) carregarMateriais(currentFolderId, input.value);
 }
 
 function renderMateriais(items) {
     const div = document.getElementById('materiaisGrid');
     if(!div) return;
-    
-    if(items.length === 0) {
-        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Esta pasta está vazia.</div>';
-        return;
-    }
+    if(items.length === 0) { div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Pasta vazia.</div>'; return; }
 
     div.innerHTML = items.map(item => {
-        // 📁 RENDERIZAÇÃO DE PASTA
         if (item.type === 'folder') {
             return `
             <div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 transition h-36 hover:bg-blue-50 group">
                 <i class="fas fa-folder text-5xl text-[#00aeef] group-hover:scale-110 transition drop-shadow-sm"></i>
                 <span class="text-xs font-bold text-slate-600 text-center leading-tight line-clamp-2">${item.name}</span>
             </div>`;
-        } 
-        // 🖼️ RENDERIZAÇÃO DE IMAGEM
-        else {
+        } else {
             return `
             <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-48 relative overflow-hidden group">
                 <img src="${item.thumbnail}" class="w-full h-32 object-cover rounded-xl bg-gray-50" alt="${item.name}" loading="lazy">
@@ -296,7 +269,7 @@ function renderMateriais(items) {
 }
 
 function compartilharImagem(url) {
-    const texto = `Olá! Segue o material da MHNET que combinamos: ${url}`;
+    const texto = `Olá! Segue o material da MHNET: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
 }
 
@@ -308,10 +281,7 @@ async function carregarLeads(showLoader = true) {
       leadsCache = res.data || [];
       leadsCache.sort((a, b) => b._linha - a._linha);
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-      
-      const elLista = document.getElementById('listaLeadsGestao');
-      if(elLista && elLista.offsetParent !== null) renderLeads();
-      
+      if(document.getElementById('listaLeadsGestao')) renderLeads();
       atualizarDashboard();
       verificarAgendamentosHoje();
   }
@@ -328,10 +298,7 @@ function renderLeads() {
     (l.provedor||'').toLowerCase().includes(term)
   );
   
-  if (!lista.length) { 
-      div.innerHTML = '<div class="flex flex-col items-center mt-10 text-slate-300"><i class="fas fa-search text-4xl mb-2"></i><p class="text-sm font-bold">Nenhum cliente encontrado.</p></div>'; 
-      return; 
-  }
+  if (!lista.length) { div.innerHTML = '<div class="text-center mt-10 text-gray-400">Nada encontrado.</div>'; return; }
 
   div.innerHTML = lista.map((l, i) => {
       const realIndex = leadsCache.indexOf(l);
@@ -343,7 +310,6 @@ function criarCardLead(l, index, destaque = false) {
     let badge = "bg-slate-100 text-slate-500";
     if (l.interesse === 'Alto') badge = "bg-green-100 text-green-700 ring-1 ring-green-200";
     if (l.interesse === 'Baixo') badge = "bg-blue-50 text-blue-400";
-
     const borda = destaque ? "border-l-4 border-l-orange-500 shadow-md bg-orange-50/50" : "border border-slate-100 shadow-sm bg-white";
 
     return `
@@ -364,7 +330,30 @@ function criarCardLead(l, index, destaque = false) {
     </div>`;
 }
 
-// 5. MODAIS
+// 5. MODAIS & AÇÕES COMPLETAS (QUE ESTAVAM FALTANDO)
+
+function setLoggedUser() {
+  const v = document.getElementById('userSelect').value;
+  if (v) { 
+      loggedUser = v; 
+      localStorage.setItem('loggedUser', v); 
+      initApp(); 
+  } else {
+      alert('Por favor, selecione seu nome.');
+  }
+}
+
+function logout() {
+  if(confirm("Sair do sistema?")) {
+      localStorage.removeItem('loggedUser');
+      location.reload();
+  }
+}
+
+function showLoading(show, txt) { 
+    const l = document.getElementById('loader'); 
+    if(l) l.style.display = show ? 'flex' : 'none'; 
+}
 
 function abrirLeadDetalhes(index) {
     const l = leadsCache[index];
@@ -374,7 +363,6 @@ function abrirLeadDetalhes(index) {
     const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
     setText('modalLeadNome', l.nomeLead);
     setText('modalLeadInfo', `${l.bairro || 'Sem bairro'} • ${l.telefone}`);
-    setText('modalLeadCidade', l.cidade || 'Cidade não informada');
     setText('modalLeadProvedor', l.provedor || 'Não informado');
     
     const obsEl = document.getElementById('modalLeadObs');
@@ -443,7 +431,10 @@ async function enviarLead() {
       alert('✅ Cadastro Salvo!');
       leadsCache.unshift(novoLead); 
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+      
+      // Limpa form
       ['leadNome', 'leadTelefone', 'leadObs', 'leadEndereco', 'leadBairro', 'leadProvedor'].forEach(id => document.getElementById(id).value = '');
+      
       navegarPara('gestaoLeads');
   } else {
       alert('Erro ao salvar.');
@@ -454,7 +445,7 @@ async function salvarAgendamento() {
   if (!leadAtualParaAgendar) return;
   const dt = document.getElementById('agendarData').value;
   const hr = document.getElementById('agendarHora').value;
-  if (!dt) return alert("Data obrigatória");
+  if (!dt) return alert("Informe a data!");
   
   const [a, m, d] = dt.split('-');
   const ag = `${d}/${m}/${a} ${hr || '09:00'}`;
@@ -478,7 +469,7 @@ async function salvarObservacaoModal() {
     const obs = document.getElementById('modalLeadObs').value;
     const res = await apiCall('updateObservacao', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, observacao: obs });
     if(res) {
-        alert("Salvo!");
+        alert("Observação salva!");
         leadAtualParaAgendar.observacao = obs;
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
     }
@@ -497,6 +488,40 @@ window.filtrarRetornos = function() {
         return criarCardLead(l, idx, true);
     }).join('');
 };
+
+function atualizarDashboard() {
+  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
+  const count = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
+  if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
+}
+
+async function buscarEnderecoGPS() {
+    if (!navigator.geolocation) return alert("GPS desligado.");
+    showLoading(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+            const data = await res.json();
+            if (data && data.address) {
+                const elEnd = document.getElementById('leadEndereco');
+                const elBairro = document.getElementById('leadBairro');
+                const elCidade = document.getElementById('leadCidade');
+                if(elEnd) elEnd.value = data.address.road || '';
+                if(elBairro) elBairro.value = data.address.suburb || data.address.neighbourhood || '';
+                if(elCidade) elCidade.value = data.address.city || data.address.town || '';
+                alert(`✅ Endereço encontrado:\n${data.address.road}`);
+            }
+        } catch (e) { alert("Erro ao obter endereço."); }
+        showLoading(false);
+    }, () => { showLoading(false); alert("Erro no GPS."); }, { enableHighAccuracy: true });
+}
+
+function iniciarDitado(t, b) { 
+    const R = window.SpeechRecognition || window.webkitSpeechRecognition; 
+    if(!R) return alert("Navegador sem voz"); 
+    const r = new R(); r.lang='pt-BR'; r.start(); 
+    r.onresult = e => { document.getElementById(t).value += " " + e.results[0][0].transcript; }; 
+}
 
 // 6. IA HÍBRIDA
 
@@ -562,15 +587,3 @@ async function enviarMensagemChat() {
           hist.scrollTop = hist.scrollHeight;
     }
 }
-
-// 7. UTILITÁRIOS
-
-function atualizarDashboard() {
-  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
-  const count = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
-}
-
-function setLoggedUser() {
-  const v = document.getElementById('userSelect').value;
-  if (v) { loggedUser = v; localStorage.setItem('loggedUser', v); initApp(); } else alert('Selec
