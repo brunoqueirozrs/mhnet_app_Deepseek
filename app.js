@@ -1,16 +1,16 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V43 (MATERIAIS + LOGIN FIX + PWA)
+ * MHNET VENDAS - LÓGICA FRONTEND V44 (FIX FINAL)
  * ============================================================
- * 📝 NOVIDADES:
- * - Tela de Materiais: Busca imagens do Drive via Backend.
- * - Compartilhamento: Botão para enviar imagem no WhatsApp.
- * - Mantém a correção de Login/Vendedores Offline.
- * - PWA: Registro do Service Worker adicionado no final.
+ * 📝 CORREÇÕES:
+ * - Restaurada função 'verificarAgendamentosHoje' (evita ReferenceError).
+ * - Proteção extra no carregamento de Leads.
+ * - Ajuste na chamada de API para evitar travamento em CORS.
  * ============================================================
  */
 
 // CONFIGURAÇÃO
+// ⚠️ IMPORTANTE: Certifique-se de implantar o Backend como "Web App" -> "Quem pode acessar: Qualquer pessoa"
 const DEPLOY_ID = 'AKfycbzJvdEQcVEmCm7GAUJHc8gBujLPvX0bBgq3BIZha40osyPItW-ZFNjNUs3d5H9UvH0t'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -18,18 +18,22 @@ let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let leadAtualParaAgendar = null; 
 let chatHistoryData = []; 
-let materialsCache = null; // 🆕 Cache de imagens
+let materialsCache = null; 
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v43 - Materiais Ready");
+  console.log("🚀 MHNET App v44 - System Check");
+  
+  // 1. Carrega Vendedores (com fallback para não travar se API falhar)
   carregarVendedores();
   
+  // 2. Carrega Cache Local de Leads (para exibir algo imediatamente)
   const saved = localStorage.getItem('mhnet_leads_cache');
   if(saved) {
       try { leadsCache = JSON.parse(saved); } catch(e) {}
   }
   
+  // 3. Verifica Login
   if (loggedUser) {
       initApp();
   } else {
@@ -38,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// --- CARREGAMENTO DE VENDEDORES (ROBUSTO) ---
+// --- CARREGAMENTO DE VENDEDORES ---
 async function carregarVendedores() {
     const select = document.getElementById('userSelect');
     if(!select) return;
@@ -73,7 +77,7 @@ async function carregarVendedores() {
             throw new Error("Lista vazia");
         }
     } catch (e) {
-        console.warn("⚠️ Usando lista offline:", e.message);
+        console.warn("⚠️ Usando lista offline (API Error):", e.message);
         select.innerHTML = '<option value="">Modo Offline (Lista Fixa)</option>';
         VENDEDORES_OFFLINE.forEach(nome => {
             const opt = document.createElement('option');
@@ -97,14 +101,17 @@ function initApp() {
   }
 
   atualizarDataCabecalho();
-  navegarPara('dashboard');
-   
+  
+  // Renderiza o que tem no cache primeiro
   if(leadsCache.length > 0) {
     renderLeads();
     atualizarDashboard();
-    verificarAgendamentosHoje();
+    verificarAgendamentosHoje(); // Esta função foi restaurada abaixo
   }
    
+  navegarPara('dashboard');
+  
+  // Busca dados frescos
   carregarLeads(false); 
 }
 
@@ -142,10 +149,29 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
-  // 🆕 Carrega imagens se for a tela de materiais
   if (pageId === 'materiais') { carregarMateriais(); }
   
-  if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
+  if (pageId === 'dashboard') { 
+      atualizarDashboard(); 
+      verificarAgendamentosHoje(); 
+  }
+}
+
+// 🔥 FUNÇÃO RESTAURADA (Causa do erro ReferenceError)
+function verificarAgendamentosHoje() {
+  try {
+      const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
+      const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
+      const banner = document.getElementById('lembreteBanner');
+      const txt = document.getElementById('lembreteTexto');
+      
+      if (retornos.length > 0) {
+        if(banner) banner.classList.remove('hidden');
+        if(txt) txt.innerText = `Você tem ${retornos.length} retornos hoje.`;
+      } else {
+        if(banner) banner.classList.add('hidden');
+      }
+  } catch (e) { console.error("Erro verificarAgendamentos:", e); }
 }
 
 // 3. COMUNICAÇÃO API
@@ -158,15 +184,20 @@ async function apiCall(route, payload, show=true) {
         headers: {'Content-Type': 'text/plain;charset=utf-8'}, 
         body: JSON.stringify({ route: route, payload: payload }) 
     });
+    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    
     const text = await res.text();
     let json;
     try { json = JSON.parse(text); } catch(e) { throw new Error("Erro formato JSON."); }
+    
     if(show) showLoading(false);
     return json;
   } catch(e) {
     console.error(`Erro API (${route}):`, e);
     if(show) showLoading(false);
+    
+    // Fallback para operações de escrita para não travar o usuário
     if(['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) {
         return {status:'success', local: true};
     }
@@ -182,19 +213,17 @@ async function carregarMateriais() {
     const div = document.getElementById('materiaisGrid');
     if (!div) return;
 
-    // Usa cache se já carregou antes
     if (materialsCache) { renderMateriais(materialsCache); return; }
 
     div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Buscando imagens...</div>';
 
-    // Chama backend rota 'getImages'
     const res = await apiCall('getImages', {}, false);
     
     if (res && res.status === 'success' && res.data) {
         materialsCache = res.data;
         renderMateriais(materialsCache);
     } else {
-        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10">Erro ao carregar imagens.<br>Verifique a conexão.</div>';
+        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10 text-xs">Erro ao carregar.<br>Verifique conexão/permissões.</div>';
     }
 }
 
@@ -203,7 +232,7 @@ function renderMateriais(imagens) {
     if(!div) return;
     
     if(imagens.length === 0) {
-        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Nenhuma imagem encontrada na pasta.</div>';
+        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Nenhuma imagem encontrada.</div>';
         return;
     }
 
@@ -231,11 +260,22 @@ function compartilharImagem(url) {
 // 4. GESTÃO DE LEADS
 
 async function carregarLeads(showLoader = true) {
+  // Passa o vendedor logado para filtrar no backend se necessário
   const res = await apiCall('getLeads', { vendedor: loggedUser }, showLoader);
+  
   if (res && res.status === 'success') {
       leadsCache = res.data || [];
+      // Ordena por data (mais recente primeiro)
+      leadsCache.sort((a, b) => b._linha - a._linha);
+      
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-      renderLeads();
+      
+      // Atualiza UI se estiver na tela
+      const elLista = document.getElementById('listaLeadsGestao');
+      if(elLista && elLista.offsetParent !== null) { // Verifica se está visível
+        renderLeads();
+      }
+      
       atualizarDashboard();
       verificarAgendamentosHoje();
   }
@@ -245,12 +285,18 @@ function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   if (!div) return;
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
+  
   const lista = leadsCache.filter(l => 
     (l.nomeLead||'').toLowerCase().includes(term) || 
     (l.bairro||'').toLowerCase().includes(term) ||
     (l.provedor||'').toLowerCase().includes(term)
   );
-  if (!lista.length) { div.innerHTML = '<div class="flex flex-col items-center mt-10 text-slate-300"><i class="fas fa-search text-4xl mb-2"></i><p class="text-sm font-bold">Nenhum cliente encontrado.</p></div>'; return; }
+  
+  if (!lista.length) { 
+      div.innerHTML = '<div class="flex flex-col items-center mt-10 text-slate-300"><i class="fas fa-search text-4xl mb-2"></i><p class="text-sm font-bold">Nenhum cliente encontrado.</p></div>'; 
+      return; 
+  }
+  
   div.innerHTML = lista.map((l, i) => {
       const realIndex = leadsCache.indexOf(l);
       return criarCardLead(l, realIndex);
