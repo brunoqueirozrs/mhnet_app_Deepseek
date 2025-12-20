@@ -1,10 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V39 (HEADER DATE FIX)
+ * MHNET VENDAS - LÓGICA FRONTEND V40 (HEADER REFINADO)
  * ============================================================
  * 📝 AJUSTES:
- * - Função atualizarDataCabecalho() adicionada.
- * - Header agora exibe a data formatada (ex: SEG, 23 DEZ).
+ * - Date Fix: Data manual (Array) para garantir formato "SÁB, 20 DEZ".
+ * - Visual: Remove travas de tamanho do nome do vendedor.
+ * - Mantém toda a lógica de IA, Filtros e PWA.
  * ============================================================
  */
 
@@ -19,7 +20,7 @@ let chatHistoryData = [];
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v39 - Header Update");
+  console.log("🚀 MHNET App v40 - Header Harmony");
   carregarVendedores();
   
   const saved = localStorage.getItem('mhnet_leads_cache');
@@ -41,14 +42,14 @@ function initApp() {
   document.getElementById('userMenu').style.display = 'none';
   document.getElementById('mainContent').style.display = 'flex'; 
   
-  // Atualiza Nome
+  // Atualiza Nome (Remove limites de tamanho para não cortar)
   const elUser = document.getElementById('userInfo');
   if(elUser) {
       elUser.innerText = loggedUser;
       elUser.classList.remove('truncate', 'max-w-[150px]'); 
   }
 
-  // Atualiza Data no Cabeçalho (NOVO)
+  // Atualiza Data no Cabeçalho (Formato Harmonioso)
   atualizarDataCabecalho();
    
   navegarPara('dashboard');
@@ -62,20 +63,21 @@ function initApp() {
   carregarLeads(false); 
 }
 
-// Funçao para formatar data bonita (NOVO)
+// Formata Data: "SEG, 23 DEZ"
 function atualizarDataCabecalho() {
     const elData = document.getElementById('headerDate');
     if(!elData) return;
     
+    const dias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+    const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    
     const agora = new Date();
-    const opcoes = { weekday: 'short', day: 'numeric', month: 'short' };
-    // Ex: "sáb., 20 de dez." -> "SÁB, 20 DEZ"
-    const dataFormatada = agora.toLocaleDateString('pt-BR', opcoes)
-        .replace(/\./g, '')
-        .replace(' de ', ' ')
-        .toUpperCase();
-        
-    elData.innerText = dataFormatada;
+    const diaSem = dias[agora.getDay()];
+    const diaNum = agora.getDate();
+    const mes = meses[agora.getMonth()];
+    
+    // Formato limpo e elegante
+    elData.innerText = `${diaSem}, ${diaNum} ${mes}`;
 }
 
 function navegarPara(pageId) {
@@ -185,6 +187,7 @@ function criarCardLead(l, index, destaque = false) {
       <div class="flex justify-between items-start relative z-10">
         <div class="flex-1 min-w-0 pr-3">
             <div class="font-bold text-slate-800 text-lg leading-tight mb-2 truncate">${l.nomeLead}</div>
+            
             <div class="flex flex-wrap gap-2">
                 ${l.bairro ? `<span class="text-[10px] bg-slate-50 text-slate-500 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider flex items-center border border-slate-200"><i class="fas fa-map-pin mr-1.5 text-slate-400"></i>${l.bairro}</span>` : ''}
                 ${l.provedor ? `<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider flex items-center border border-indigo-100"><i class="fas fa-wifi mr-1.5"></i>${l.provedor}</span>` : ''}
