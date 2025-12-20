@@ -1,11 +1,12 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V43 (MATERIAIS + LOGIN FIX)
+ * MHNET VENDAS - LÓGICA FRONTEND V43 (MATERIAIS + LOGIN FIX + PWA)
  * ============================================================
  * 📝 NOVIDADES:
  * - Tela de Materiais: Busca imagens do Drive via Backend.
  * - Compartilhamento: Botão para enviar imagem no WhatsApp.
  * - Mantém a correção de Login/Vendedores Offline.
+ * - PWA: Registro do Service Worker adicionado no final.
  * ============================================================
  */
 
@@ -174,7 +175,7 @@ async function apiCall(route, payload, show=true) {
 }
 
 // ============================================================
-// 🖼️ MATERIAIS DE MARKETING (NOVO)
+// 🖼️ MATERIAIS DE MARKETING
 // ============================================================
 
 async function carregarMateriais() {
@@ -480,6 +481,8 @@ async function enviarMensagemChat() {
     }
 }
 
+// 7. UTILITÁRIOS
+
 function atualizarDashboard() {
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
   const count = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
@@ -529,4 +532,15 @@ function iniciarDitado(t, b) {
     if(!R) return alert("Navegador sem voz"); 
     const r = new R(); r.lang='pt-BR'; r.start(); 
     r.onresult = e => { document.getElementById(t).value += " " + e.results[0][0].transcript; }; 
+}
+
+// ============================================================
+// 🚀 REGISTRO DO PWA
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('✅ Service Worker:', reg.scope))
+      .catch(err => console.log('❌ Service Worker Fail:', err));
+  });
 }
