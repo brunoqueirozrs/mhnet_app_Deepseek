@@ -1,11 +1,10 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V40 (HEADER REFINADO)
+ * MHNET VENDAS - LÓGICA FRONTEND V42 (LOGIN ROBUSTO)
  * ============================================================
- * 📝 AJUSTES:
- * - Date Fix: Data manual (Array) para garantir formato "SÁB, 20 DEZ".
- * - Visual: Remove travas de tamanho do nome do vendedor.
- * - Mantém toda a lógica de IA, Filtros e PWA.
+ * 📝 CORREÇÃO CRÍTICA:
+ * - carregarVendedores: Agora possui um fallback infalível.
+ * - Se o Backend falhar ou demorar, a lista offline aparece.
  * ============================================================
  */
 
@@ -20,7 +19,7 @@ let chatHistoryData = [];
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v40 - Header Harmony");
+  console.log("🚀 MHNET App v42 - Login Fix");
   carregarVendedores();
   
   const saved = localStorage.getItem('mhnet_leads_cache');
@@ -36,22 +35,68 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// --- CARREGAMENTO DE VENDEDORES (CORRIGIDO) ---
+async function carregarVendedores() {
+    const select = document.getElementById('userSelect');
+    if(!select) return;
+    
+    // Lista de Backup (Offline) - Mantenha sempre atualizada aqui no código
+    const VENDEDORES_OFFLINE = [
+        "Ana Paula Rodrigues", 
+        "Vitoria Caroline Baldez Rosales", 
+        "João Vithor Sader",
+        "João Paulo da Silva Santos", 
+        "Claudia Maria Semmler", 
+        "Diulia Vitoria Machado Borges",
+        "Elton da Silva Rodrigo Gonçalves",
+        "Bruno Garcia Queiroz" // Adicionado para teste
+    ];
+
+    select.innerHTML = '<option value="">Carregando equipe...</option>';
+
+    try {
+        // Tenta buscar na planilha
+        const res = await apiCall('getVendors', {}, false);
+        
+        if (res && res.status === 'success' && res.data && res.data.length > 0) {
+            select.innerHTML = '<option value="">Toque para selecionar...</option>';
+            res.data.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.nome;
+                opt.innerText = v.nome;
+                select.appendChild(opt);
+            });
+            console.log("✅ Vendedores carregados da Nuvem");
+        } else {
+            throw new Error("Lista vazia ou erro na API");
+        }
+    } catch (e) {
+        console.warn("⚠️ Usando lista offline:", e.message);
+        select.innerHTML = '<option value="">Modo Offline (Lista Fixa)</option>';
+        
+        // Carrega lista fixa imediatamente
+        VENDEDORES_OFFLINE.forEach(nome => {
+            const opt = document.createElement('option');
+            opt.value = nome;
+            opt.innerText = nome;
+            select.appendChild(opt);
+        });
+    }
+}
+
 // 2. CORE SYSTEM
 
 function initApp() {
   document.getElementById('userMenu').style.display = 'none';
   document.getElementById('mainContent').style.display = 'flex'; 
   
-  // Atualiza Nome (Remove limites de tamanho para não cortar)
   const elUser = document.getElementById('userInfo');
   if(elUser) {
       elUser.innerText = loggedUser;
       elUser.classList.remove('truncate', 'max-w-[150px]'); 
   }
 
-  // Atualiza Data no Cabeçalho (Formato Harmonioso)
   atualizarDataCabecalho();
-   
   navegarPara('dashboard');
    
   if(leadsCache.length > 0) {
@@ -63,21 +108,13 @@ function initApp() {
   carregarLeads(false); 
 }
 
-// Formata Data: "SEG, 23 DEZ"
-function atualizarDataCabecalho() {
+function actualizarDataCabecalho() {
     const elData = document.getElementById('headerDate');
     if(!elData) return;
-    
     const dias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
     const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-    
     const agora = new Date();
-    const diaSem = dias[agora.getDay()];
-    const diaNum = agora.getDate();
-    const mes = meses[agora.getMonth()];
-    
-    // Formato limpo e elegante
-    elData.innerText = `${diaSem}, ${diaNum} ${mes}`;
+    elData.innerText = `${dias[agora.getDay()]}, ${agora.getDate()} ${meses[agora.getMonth()]}`;
 }
 
 function navegarPara(pageId) {
@@ -112,23 +149,18 @@ function navegarPara(pageId) {
 
 async function apiCall(route, payload, show=true) {
   if(show) showLoading(true);
-  
   try {
     const res = await fetch(API_URL, { 
         method: 'POST', 
         headers: {'Content-Type': 'text/plain;charset=utf-8'}, 
         body: JSON.stringify({ route: route, payload: payload }) 
     });
-    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
     const text = await res.text();
     let json;
     try { json = JSON.parse(text); } catch(e) { throw new Error("Erro formato JSON."); }
-    
     if(show) showLoading(false);
     return json;
-
   } catch(e) {
     console.error(`Erro API (${route}):`, e);
     if(show) showLoading(false);
@@ -143,7 +175,6 @@ async function apiCall(route, payload, show=true) {
 
 async function carregarLeads(showLoader = true) {
   const res = await apiCall('getLeads', { vendedor: loggedUser }, showLoader);
-  
   if (res && res.status === 'success') {
       leadsCache = res.data || [];
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
@@ -156,19 +187,13 @@ async function carregarLeads(showLoader = true) {
 function renderLeads() {
   const div = document.getElementById('listaLeadsGestao');
   if (!div) return;
-  
   const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
   const lista = leadsCache.filter(l => 
     (l.nomeLead||'').toLowerCase().includes(term) || 
     (l.bairro||'').toLowerCase().includes(term) ||
     (l.provedor||'').toLowerCase().includes(term)
   );
-  
-  if (!lista.length) { 
-      div.innerHTML = '<div class="flex flex-col items-center mt-10 text-slate-300"><i class="fas fa-search text-4xl mb-2"></i><p class="text-sm font-bold">Nenhum cliente encontrado.</p></div>'; 
-      return; 
-  }
-
+  if (!lista.length) { div.innerHTML = '<div class="flex flex-col items-center mt-10 text-slate-300"><i class="fas fa-search text-4xl mb-2"></i><p class="text-sm font-bold">Nenhum cliente encontrado.</p></div>'; return; }
   div.innerHTML = lista.map((l, i) => {
       const realIndex = leadsCache.indexOf(l);
       return criarCardLead(l, realIndex);
@@ -179,7 +204,6 @@ function criarCardLead(l, index, destaque = false) {
     let badge = "bg-slate-100 text-slate-500";
     if (l.interesse === 'Alto') badge = "bg-green-100 text-green-700 ring-1 ring-green-200";
     if (l.interesse === 'Baixo') badge = "bg-blue-50 text-blue-400";
-
     const borda = destaque ? "border-l-4 border-l-orange-500 shadow-md bg-orange-50/50" : "border border-slate-100 shadow-sm bg-white";
 
     return `
@@ -187,7 +211,6 @@ function criarCardLead(l, index, destaque = false) {
       <div class="flex justify-between items-start relative z-10">
         <div class="flex-1 min-w-0 pr-3">
             <div class="font-bold text-slate-800 text-lg leading-tight mb-2 truncate">${l.nomeLead}</div>
-            
             <div class="flex flex-wrap gap-2">
                 ${l.bairro ? `<span class="text-[10px] bg-slate-50 text-slate-500 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider flex items-center border border-slate-200"><i class="fas fa-map-pin mr-1.5 text-slate-400"></i>${l.bairro}</span>` : ''}
                 ${l.provedor ? `<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider flex items-center border border-indigo-100"><i class="fas fa-wifi mr-1.5"></i>${l.provedor}</span>` : ''}
@@ -207,40 +230,28 @@ function abrirLeadDetalhes(index) {
     const l = leadsCache[index];
     if(!l) return;
     leadAtualParaAgendar = l;
-    
     const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
     setText('modalLeadNome', l.nomeLead);
     setText('modalLeadInfo', `${l.bairro || 'Sem bairro'} • ${l.telefone}`);
+    setText('modalLeadCidade', l.cidade || 'Cidade não informada');
     setText('modalLeadProvedor', l.provedor || 'Não informado');
-    
     const obsEl = document.getElementById('modalLeadObs');
     if(obsEl) obsEl.value = l.observacao || "";
-    
     const btnWhats = document.getElementById('btnModalWhats');
     if (btnWhats) {
         const num = l.telefone.replace(/\D/g,'');
         btnWhats.onclick = () => window.open(`https://wa.me/55${num}`, '_blank');
     }
-
     const m = document.getElementById('leadModal');
-    if (m) { 
-        m.classList.remove('hidden'); 
-        const c = m.querySelector('div.slide-up'); 
-        if(c) { c.classList.remove('slide-up'); void c.offsetWidth; c.classList.add('slide-up'); } 
-    }
+    if (m) { m.classList.remove('hidden'); const c = m.querySelector('div.slide-up'); if(c) { c.classList.remove('slide-up'); void c.offsetWidth; c.classList.add('slide-up'); } }
 }
 
-function fecharLeadModal() { 
-    document.getElementById('leadModal').classList.add('hidden'); 
-    leadAtualParaAgendar = null; 
-}
+function fecharLeadModal() { document.getElementById('leadModal').classList.add('hidden'); leadAtualParaAgendar = null; }
 
 window.editarLeadAtual = function() {
     if (!leadAtualParaAgendar) { alert("Selecione um lead."); return; }
     if(!confirm(`Editar cadastro de ${leadAtualParaAgendar.nomeLead}?`)) return;
-
     const lead = leadAtualParaAgendar;
-    
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ""; };
     setVal('leadNome', lead.nomeLead);
     setVal('leadTelefone', lead.telefone);
@@ -249,10 +260,8 @@ window.editarLeadAtual = function() {
     setVal('leadEndereco', lead.endereco);
     setVal('leadBairro', lead.bairro);
     setVal('leadCidade', lead.cidade);
-    
     const selInt = document.getElementById('leadInteresse');
     if(selInt) selInt.value = lead.interesse || "Médio";
-
     fecharLeadModal();
     navegarPara('cadastroLead');
 };
@@ -261,7 +270,6 @@ async function enviarLead() {
   const nome = document.getElementById('leadNome').value.trim();
   const tel = document.getElementById('leadTelefone').value.trim();
   if (!nome || !tel) return alert("Preencha Nome e WhatsApp");
-  
   const novoLead = {
     vendedor: loggedUser, nomeLead: nome, telefone: tel,
     endereco: document.getElementById('leadEndereco').value,
@@ -272,18 +280,14 @@ async function enviarLead() {
     observacao: document.getElementById('leadObs').value,
     agendamento: ""
   };
-   
   const res = await apiCall('addLead', novoLead);
-  
   if (res && (res.status === 'success' || res.local)) {
       alert('✅ Cadastro Salvo!');
       leadsCache.unshift(novoLead); 
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
       ['leadNome', 'leadTelefone', 'leadObs', 'leadEndereco', 'leadBairro', 'leadProvedor'].forEach(id => document.getElementById(id).value = '');
       navegarPara('gestaoLeads');
-  } else {
-      alert('Erro ao salvar.');
-  }
+  } else { alert('Erro ao salvar.'); }
 }
 
 async function salvarAgendamento() {
@@ -291,14 +295,9 @@ async function salvarAgendamento() {
   const dt = document.getElementById('agendarData').value;
   const hr = document.getElementById('agendarHora').value;
   if (!dt) return alert("Data obrigatória");
-  
   const [a, m, d] = dt.split('-');
   const ag = `${d}/${m}/${a} ${hr || '09:00'}`;
-  
-  const res = await apiCall('updateAgendamento', {
-      vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, agendamento: ag
-  });
-  
+  const res = await apiCall('updateAgendamento', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, agendamento: ag });
   if(res && (res.status === 'success' || res.local)) {
       alert("✅ Agendado! O Gestor será notificado.");
       leadAtualParaAgendar.agendamento = ag;
@@ -328,10 +327,7 @@ window.filtrarRetornos = function() {
     const div = document.getElementById('listaLeadsGestao');
     const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
     if(!retornos.length) { div.innerHTML = '<div class="text-center mt-10 font-bold text-slate-400">Nenhum retorno hoje! 😴</div>'; return; }
-    div.innerHTML = retornos.map(l => {
-        const idx = leadsCache.indexOf(l);
-        return criarCardLead(l, idx, true);
-    }).join('');
+    div.innerHTML = retornos.map(l => { const idx = leadsCache.indexOf(l); return criarCardLead(l, idx, true); }).join('');
 };
 
 // 6. IA HÍBRIDA
@@ -399,8 +395,6 @@ async function enviarMensagemChat() {
     }
 }
 
-// 7. UTILITÁRIOS
-
 function atualizarDashboard() {
   const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
   const count = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
@@ -418,33 +412,21 @@ function showLoading(show, txt) {
     const l = document.getElementById('loader'); 
     const t = document.getElementById('loaderText');
     if(l) {
-        if(show) {
-            l.classList.remove('hidden');
-            l.classList.add('flex');
-        } else {
-            l.classList.add('hidden');
-            l.classList.remove('flex');
-        }
+        if(show) { l.classList.remove('hidden'); l.classList.add('flex'); } else { l.classList.add('hidden'); l.classList.remove('flex'); }
     }
     if(t && txt) t.innerText = txt;
 }
 
-async function carregarVendedores() {
-    const s = document.getElementById('userSelect');
-    if(!s) return;
-    try {
-        const res = await apiCall('getVendors', {}, false);
-        s.innerHTML = '<option value="">Selecione...</option>';
-        if(res && res.data) {
-            res.data.forEach(v => { const o = document.createElement('option'); o.value=v.nome; o.innerText=v.nome; s.appendChild(o); });
-        } else throw new Error();
-    } catch(e) {
-        s.innerHTML = '<option value="">Offline</option>';
-        ["Ana Paula", "Vitoria", "João"].forEach(n=>{ const o = document.createElement('option'); o.value=n; o.innerText=n; s.appendChild(o); });
-    }
+// Função de atualização da data
+function actualizarDataCabecalho() {
+    const elData = document.getElementById('headerDate');
+    if(!elData) return;
+    const dias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+    const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    const agora = new Date();
+    elData.innerText = `${dias[agora.getDay()]}, ${agora.getDate()} ${meses[agora.getMonth()]}`;
 }
 
-// GPS & Voz
 async function buscarEnderecoGPS() {
     if (!navigator.geolocation) return alert("GPS Off");
     showLoading(true, "LOCALIZANDO...");
