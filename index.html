@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET Gestor</title>
     
-    <!-- CONFIGURAÇÃO PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Tailwind & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -20,13 +18,11 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .slide-up { animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         body { height: 100dvh; overscroll-behavior-y: none; background-color: #f8fafc; }
         
-        /* Inputs Elegantes */
         .input-padrao {
             width: 100%; padding: 1rem; background-color: #ffffff;
             border: 1px solid #e2e8f0; border-radius: 1rem; outline: none;
@@ -50,7 +46,6 @@
             <div class="absolute top-0 left-0 w-full h-2 bg-[#00aeef]"></div>
             <h2 class="text-center text-2xl font-bold text-slate-800 mb-2">Bem-vindo</h2>
             <p class="text-center text-slate-400 text-sm mb-8">Selecione seu perfil para acessar</p>
-            
             <div class="relative mb-6">
                 <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none"></i>
                 <select id="userSelect" class="w-full p-4 pl-12 bg-slate-50 rounded-xl border border-gray-200 text-lg outline-none focus:ring-2 focus:ring-[#00aeef] appearance-none text-slate-700 font-medium">
@@ -58,49 +53,54 @@
                 </select>
                 <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10"></i>
             </div>
-            
             <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 active:scale-95 transition flex items-center justify-center gap-3">
                 ACESSAR SISTEMA <i class="fas fa-arrow-right"></i>
             </button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão 37.0 (Premium Sync)</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão 40.0 (Header Sync)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- HEADER CURVO -->
-        <header class="bg-[#004c99] text-white pt-12 pb-8 px-6 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[2.5rem]">
-            <div>
-                <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-7 opacity-90 object-contain" onerror="this.style.display='none'">
-                <div class="flex items-center gap-2 mt-2 bg-white/10 px-3 py-1 rounded-full w-fit backdrop-blur-sm">
+        <!-- HEADER COMPACTO E HARMONIOSO (DATA + NOME) -->
+        <header class="bg-[#004c99] text-white pt-10 pb-4 px-5 shadow-lg flex justify-between items-end z-20 shrink-0 rounded-b-3xl">
+            <!-- Esquerda: Info -->
+            <div class="flex flex-col">
+                <div class="flex items-center gap-1.5 text-blue-200/80 text-[10px] font-bold uppercase tracking-wider mb-0.5">
+                    <i class="far fa-calendar-alt"></i> <span id="headerDate">--</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div id="userInfo" class="text-lg font-bold leading-none text-white">Vendedor</div>
                     <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
-                    <div id="userInfo" class="text-xs font-bold text-white/90 truncate max-w-[150px]">Vendedor</div>
                 </div>
             </div>
-            <button onclick="logout()" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition border border-white/10 shadow-sm">
-                <i class="fas fa-power-off text-sm"></i>
-            </button>
+
+            <!-- Direita: Ações -->
+            <div class="flex items-center gap-3">
+                <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-6 opacity-90 object-contain" onerror="this.style.display='none'">
+                <button onclick="logout()" class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition border border-white/10 shadow-sm backdrop-blur-sm">
+                    <i class="fas fa-power-off text-xs"></i>
+                </button>
+            </div>
         </header>
 
         <!-- SCROLL AREA -->
-        <main id="main-scroll" class="flex-1 overflow-y-auto p-5 pb-36 no-scrollbar scroll-smooth -mt-4 relative z-10">
+        <main id="main-scroll" class="flex-1 overflow-y-auto p-5 pb-36 no-scrollbar scroll-smooth -mt-2 relative z-10">
 
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
                 
-                <!-- Banner Lembrete (Interativo) -->
                 <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-2xl shadow-sm flex items-start gap-4 animate-bounce cursor-pointer active:scale-95 transition" onclick="filtrarRetornos()">
                     <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center text-orange-500 shrink-0">
                         <i class="fas fa-bell"></i>
                     </div>
                     <div>
                         <p class="font-bold text-orange-800 text-sm">Atenção!</p>
-                        <p id="lembreteTexto" class="text-xs text-orange-600 mt-1 leading-tight">Você tem retornos pendentes para hoje.</p>
+                        <p id="lembreteTexto" class="text-xs text-orange-600 mt-1 leading-tight">Você tem retornos pendentes.</p>
                     </div>
                 </div>
 
-                <!-- KPIs -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-1">
                         <div class="text-4xl font-black text-[#004c99]" id="statLeads">0</div>
@@ -113,7 +113,6 @@
                     </div>
                 </div>
 
-                <!-- Botão Principal -->
                 <button onclick="navegarPara('cadastroLead')" class="w-full bg-[#004c99] text-white p-5 rounded-2xl shadow-xl shadow-blue-900/10 font-bold flex items-center justify-between mb-8 active:scale-95 transition group relative overflow-hidden">
                     <div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/5 opacity-0 group-hover:opacity-100 transition"></div>
                     <div class="flex items-center gap-4 relative z-10">
@@ -130,7 +129,6 @@
                     </div>
                 </button>
 
-                <!-- Ferramentas de IA -->
                 <div class="flex items-center gap-2 mb-4">
                     <i class="fas fa-sparkles text-purple-500"></i>
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Inteligência MHNET</h3>
@@ -241,7 +239,7 @@
 
         </main>
 
-        <!-- MENU INFERIOR (Glassmorphism) -->
+        <!-- MENU INFERIOR -->
         <nav class="glass-nav flex justify-around items-center p-2 pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50 shrink-0 absolute bottom-0 w-full rounded-t-3xl h-24">
             <button id="nav-home" onclick="navegarPara('dashboard')" class="nav-item w-16 group flex flex-col items-center gap-1.5 text-[#00aeef] transition">
                 <div class="w-8 h-1 rounded-full bg-[#00aeef] mb-1 opacity-0 group-[.active]:opacity-100 transition-all"></div>
@@ -269,7 +267,7 @@
         <div class="bg-white w-full sm:w-[450px] sm:rounded-3xl rounded-t-[2.5rem] p-6 relative shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
             
             <!-- Botão Editar -->
-            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm active:scale-90 border border-slate-200">
+            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm active:scale-90 border border-slate-200">
                 <i class="fas fa-pen"></i>
             </button>
 
@@ -339,14 +337,14 @@
     </div>
 
     <!-- LOADER -->
-    <div id="loader" class="hidden fixed inset-0 z-[70] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center fade-in">
+    <div id="loader" class="hidden fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex-col items-center justify-center transition-all duration-300">
         <div class="relative">
-            <div class="w-20 h-20 border-4 border-blue-100 border-t-[#00aeef] rounded-full animate-spin"></div>
+            <div class="w-20 h-20 border-4 border-blue-500/30 border-t-[#00aeef] rounded-full animate-spin"></div>
             <div class="absolute inset-0 flex items-center justify-center">
-                <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-6 opacity-50 grayscale invert">
+                <i class="fas fa-bolt text-[#00aeef] animate-pulse"></i>
             </div>
         </div>
-        <p id="loaderText" class="text-slate-400 font-bold text-xs tracking-[0.2em] mt-6 animate-pulse">CARREGANDO</p>
+        <p id="loaderText" class="text-slate-400 font-bold text-xs tracking-[0.2em] mt-6 animate-pulse whitespace-nowrap">PROCESSANDO</p>
     </div>
 
     <script src="app.js"></script>
