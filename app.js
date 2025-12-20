@@ -11,7 +11,7 @@
 
 // CONFIGURAÇÃO
 // ⚠️ IMPORTANTE: Certifique-se de implantar o Backend como "Web App" -> "Quem pode acessar: Qualquer pessoa"
-const DEPLOY_ID = 'AKfycbxM6ipi27wCrednaOwho1N5pwuJv1QkIbRAlsuALqnKS1LarxjLAeAgTgTRC8Hwdxr2'; 
+const DEPLOY_ID = 'AKfycbyEnIQig8W3Zger-JtEL7mg-wYeS2JwhS8lkx_1Ed5u7q0MqTP8b-b4IMohidRCprlQ'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 let loggedUser = localStorage.getItem('loggedUser');
