@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MHNET Gestor</title>
+    <title>MHNET Gestão de Leadsr</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
@@ -64,7 +64,7 @@
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
         <!-- HEADER COMPACTO E HARMONIOSO (DATA + NOME) -->
-        <header class="bg-[#004c99] text-white pt-10 pb-4 px-5 shadow-lg flex justify-between items-end z-20 shrink-0 rounded-b-3xl">
+        <header class="bg-[#004c99] text-white pt-10 pb-4 px-5 shadow-lg flex justify-between items-end z-20 shrink-0 rounded-b-2xl">
             <!-- Esquerda: Info -->
             <div class="flex flex-col">
                 <div class="flex items-center gap-1.5 text-blue-200/80 text-[10px] font-bold uppercase tracking-wider mb-0.5">
@@ -239,7 +239,7 @@
 
         </main>
 
-        <!-- MENU INFERIOR -->
+        <!-- MENU INFERIOR (Glassmorphism) -->
         <nav class="glass-nav flex justify-around items-center p-2 pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50 shrink-0 absolute bottom-0 w-full rounded-t-3xl h-24">
             <button id="nav-home" onclick="navegarPara('dashboard')" class="nav-item w-16 group flex flex-col items-center gap-1.5 text-[#00aeef] transition">
                 <div class="w-8 h-1 rounded-full bg-[#00aeef] mb-1 opacity-0 group-[.active]:opacity-100 transition-all"></div>
@@ -267,7 +267,7 @@
         <div class="bg-white w-full sm:w-[450px] sm:rounded-3xl rounded-t-[2.5rem] p-6 relative shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
             
             <!-- Botão Editar -->
-            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm active:scale-90 border border-slate-200">
+            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm active:scale-90 border border-slate-200">
                 <i class="fas fa-pen"></i>
             </button>
 
@@ -295,7 +295,7 @@
                 </button>
             </div>
 
-            <!-- Agendamento -->
+            <!-- Agendamento (AZUL) -->
             <div class="mb-6 bg-blue-50 p-5 rounded-2xl border border-blue-100">
                 <label class="label-padrao flex items-center gap-2 mb-3 text-blue-800">
                     <div class="bg-blue-200 p-1.5 rounded-md"><i class="fas fa-calendar-alt text-blue-600"></i></div>
