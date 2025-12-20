@@ -1,11 +1,12 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V46 (FIX MATERIAIS)
+ * MHNET VENDAS - LÓGICA FRONTEND V47 (DEBUG MATERIAIS)
  * ============================================================
  * 📝 CORREÇÕES:
- * - Fix: Erro 'searchMateriais' null ao voltar (agora verifica se o campo existe).
- * - Fix: Navegação de pastas mais robusta.
- * - Mantém toda a lógica de PWA, Login e Leads.
+ * - Logs detalhados para debug de materiais
+ * - Timeout na navegação para garantir renderização
+ * - Botão "Tentar Novamente" em caso de erro
+ * - Mantém toda a lógica de PWA, Login e Leads
  * ============================================================
  */
 
@@ -21,7 +22,7 @@ let currentFolderId = null; // 🆕 Controla em qual pasta estamos
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v46 - Materials Fix");
+  console.log("🚀 MHNET App v47 - Debug Materiais");
   carregarVendedores();
   
   const saved = localStorage.getItem('mhnet_leads_cache');
@@ -130,7 +131,7 @@ function navegarPara(pageId) {
   // 🆕 Lógica de Entrada em Materiais
   if (pageId === 'materiais') { 
       currentFolderId = null; // Reseta para a raiz (Menu Principal)
-      carregarMateriais(); 
+      setTimeout(() => carregarMateriais(), 100); // Delay para garantir renderização
   }
   
   if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
@@ -155,6 +156,8 @@ function verificarAgendamentosHoje() {
 // 3. COMUNICAÇÃO API
 
 async function apiCall(route, payload, show=true) {
+  console.log('🌐 API Call:', route, payload);
+  
   if(show) showLoading(true);
   try {
     const res = await fetch(API_URL, { 
@@ -163,14 +166,23 @@ async function apiCall(route, payload, show=true) {
         body: JSON.stringify({ route: route, payload: payload }) 
     });
     
+    console.log('📡 Status HTTP:', res.status);
+    
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
+    
+    console.log('📄 Resposta raw:', text.substring(0, 500));
+    
     let json;
-    try { json = JSON.parse(text); } catch(e) { throw new Error("Erro formato JSON."); }
+    try { json = JSON.parse(text); } catch(e) { 
+        console.error('❌ Erro ao parsear JSON:', e);
+        throw new Error("Erro formato JSON."); 
+    }
     
     if(show) showLoading(false);
     return json;
   } catch(e) {
+    console.error('❌ Erro na chamada API:', e);
     if(show) showLoading(false);
     // Fallback para não travar
     if(['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) {
@@ -181,27 +193,40 @@ async function apiCall(route, payload, show=true) {
 }
 
 // ============================================================
-// 🖼️ MATERIAIS & PORTFÓLIOS (CORRIGIDO)
+// 🖼️ MATERIAIS & PORTFÓLIOS (COM DEBUG)
 // ============================================================
 
 async function carregarMateriais(folderId = null, search = "") {
+    console.log('📂 Carregando materiais:', { folderId, search });
+    
     const div = document.getElementById('materiaisGrid');
-    if (!div) return;
+    if (!div) {
+        console.error('❌ Elemento materiaisGrid não encontrado');
+        return;
+    }
     
     currentFolderId = folderId; // Atualiza estado atual
 
     // Loader Visual
     div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10 fade-in"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Carregando...</div>';
 
-    // Chama Backend
-    const res = await apiCall('getImages', { folderId: folderId, search: search }, false);
-    
-    if (res && res.status === 'success' && res.data) {
-        // Atualiza UI de Navegação (Botão Voltar)
-        atualizarNavegacaoMateriais(res.isRoot);
-        renderMateriais(res.data);
-    } else {
-        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10">Erro ao carregar.<br>Tente novamente.</div>';
+    try {
+        // Chama Backend
+        const res = await apiCall('getImages', { folderId: folderId, search: search }, false);
+        
+        console.log('📦 Resposta do backend:', res);
+        
+        if (res && res.status === 'success' && res.data) {
+            // Atualiza UI de Navegação (Botão Voltar)
+            atualizarNavegacaoMateriais(res.isRoot);
+            renderMateriais(res.data);
+        } else {
+            console.error('❌ Erro na resposta:', res);
+            div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10"><i class="fas fa-exclamation-triangle mb-2"></i><br>Erro ao carregar.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar materiais:', error);
+        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10"><i class="fas fa-exclamation-triangle mb-2"></i><br>Erro de conexão.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
     }
 }
 
@@ -548,56 +573,4 @@ function atualizarDashboard() {
 
 function setLoggedUser() {
   const v = document.getElementById('userSelect').value;
-  if (v) { loggedUser = v; localStorage.setItem('loggedUser', v); initApp(); } else alert('Selecione!');
-}
-
-function logout() { if(confirm("Sair?")) { localStorage.removeItem('loggedUser'); location.reload(); } }
-
-function showLoading(show, txt) { 
-    const l = document.getElementById('loader'); 
-    const t = document.getElementById('loaderText');
-    if(l) {
-        if(show) { l.classList.remove('hidden'); l.classList.add('flex'); } else { l.classList.add('hidden'); l.classList.remove('flex'); }
-    }
-    if(t && txt) t.innerText = txt;
-}
-
-// GPS & Voz
-async function buscarEnderecoGPS() {
-    if (!navigator.geolocation) return alert("GPS Off");
-    showLoading(true, "LOCALIZANDO...");
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-            const data = await res.json();
-            if (data && data.address) {
-                const elEnd = document.getElementById('leadEndereco');
-                const elBairro = document.getElementById('leadBairro');
-                const elCidade = document.getElementById('leadCidade');
-                if(elEnd) elEnd.value = data.address.road || '';
-                if(elBairro) elBairro.value = data.address.suburb || data.address.neighbourhood || '';
-                if(elCidade) elCidade.value = data.address.city || data.address.town || '';
-                alert(`✅ Localizado: ${data.address.road}`);
-            }
-        } catch (e) {}
-        showLoading(false);
-    }, () => { showLoading(false); alert("Erro GPS"); }, { enableHighAccuracy: true });
-}
-
-function iniciarDitado(t, b) { 
-    const R = window.SpeechRecognition || window.webkitSpeechRecognition; 
-    if(!R) return alert("Navegador sem voz"); 
-    const r = new R(); r.lang='pt-BR'; r.start(); 
-    r.onresult = e => { document.getElementById(t).value += " " + e.results[0][0].transcript; }; 
-}
-
-// ============================================================
-// 🚀 REGISTRO DO PWA
-// ============================================================
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('✅ Service Worker:', reg.scope))
-      .catch(err => console.log('❌ Service Worker Fail:', err));
-  });
-}
+  if (v) { loggedUser = v; localStorage.setItem('loggedUser', v); initApp(); } else alert('Selec
