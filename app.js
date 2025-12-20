@@ -1,16 +1,15 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V44 (FIX FINAL)
+ * MHNET VENDAS - LÓGICA FRONTEND V45 (MATERIAIS + PORTFÓLIOS)
  * ============================================================
- * 📝 CORREÇÕES:
- * - Restaurada função 'verificarAgendamentosHoje' (evita ReferenceError).
- * - Proteção extra no carregamento de Leads.
- * - Ajuste na chamada de API para evitar travamento em CORS.
+ * 📝 NOVIDADES:
+ * - Suporte a navegação por PASTAS (Portfólios) e ARQUIVOS.
+ * - Integração com Backend V68.
+ * - Mantém Login Robusto, PWA e IA.
  * ============================================================
  */
 
 // CONFIGURAÇÃO
-// ⚠️ IMPORTANTE: Certifique-se de implantar o Backend como "Web App" -> "Quem pode acessar: Qualquer pessoa"
 const DEPLOY_ID = 'AKfycbyEnIQig8W3Zger-JtEL7mg-wYeS2JwhS8lkx_1Ed5u7q0MqTP8b-b4IMohidRCprlQ'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -18,22 +17,18 @@ let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let leadAtualParaAgendar = null; 
 let chatHistoryData = []; 
-let materialsCache = null; 
+let currentFolderId = null; // 🆕 Controla em qual pasta estamos
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v44 - System Check");
-  
-  // 1. Carrega Vendedores (com fallback para não travar se API falhar)
+  console.log("🚀 MHNET App v45 - Materials System");
   carregarVendedores();
   
-  // 2. Carrega Cache Local de Leads (para exibir algo imediatamente)
   const saved = localStorage.getItem('mhnet_leads_cache');
   if(saved) {
       try { leadsCache = JSON.parse(saved); } catch(e) {}
   }
   
-  // 3. Verifica Login
   if (loggedUser) {
       initApp();
   } else {
@@ -47,43 +42,28 @@ async function carregarVendedores() {
     const select = document.getElementById('userSelect');
     if(!select) return;
     
-    // Lista de Backup (Offline)
     const VENDEDORES_OFFLINE = [
-        "Ana Paula Rodrigues", 
-        "Vitoria Caroline Baldez Rosales", 
-        "João Vithor Sader",
-        "João Paulo da Silva Santos", 
-        "Claudia Maria Semmler", 
-        "Diulia Vitoria Machado Borges",
-        "Elton da Silva Rodrigo Gonçalves",
-        "Bruno Garcia Queiroz"
+        "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
+        "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
+        "Elton da Silva Rodrigo Gonçalves", "Bruno Garcia Queiroz"
     ];
 
     select.innerHTML = '<option value="">Carregando equipe...</option>';
 
     try {
         const res = await apiCall('getVendors', {}, false);
-        
         if (res && res.status === 'success' && res.data && res.data.length > 0) {
             select.innerHTML = '<option value="">Toque para selecionar...</option>';
             res.data.forEach(v => {
                 const opt = document.createElement('option');
-                opt.value = v.nome;
-                opt.innerText = v.nome;
-                select.appendChild(opt);
+                opt.value = v.nome; opt.innerText = v.nome; select.appendChild(opt);
             });
-            console.log("✅ Vendedores carregados da Nuvem");
-        } else {
-            throw new Error("Lista vazia");
-        }
+        } else { throw new Error("Lista vazia"); }
     } catch (e) {
-        console.warn("⚠️ Usando lista offline (API Error):", e.message);
         select.innerHTML = '<option value="">Modo Offline (Lista Fixa)</option>';
         VENDEDORES_OFFLINE.forEach(nome => {
             const opt = document.createElement('option');
-            opt.value = nome;
-            opt.innerText = nome;
-            select.appendChild(opt);
+            opt.value = nome; opt.innerText = nome; select.appendChild(opt);
         });
     }
 }
@@ -102,16 +82,13 @@ function initApp() {
 
   atualizarDataCabecalho();
   
-  // Renderiza o que tem no cache primeiro
   if(leadsCache.length > 0) {
     renderLeads();
     atualizarDashboard();
-    verificarAgendamentosHoje(); // Esta função foi restaurada abaixo
+    verificarAgendamentosHoje();
   }
-   
-  navegarPara('dashboard');
   
-  // Busca dados frescos
+  navegarPara('dashboard');
   carregarLeads(false); 
 }
 
@@ -140,6 +117,7 @@ function navegarPara(pageId) {
   const scroller = document.getElementById('main-scroll');
   if(scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
 
+  // Reset de Filtros da Lista de Leads
   if (pageId === 'gestaoLeads') {
       const busca = document.getElementById('searchLead');
       if(busca && busca.placeholder.includes("Retornos")) {
@@ -149,15 +127,15 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
-  if (pageId === 'materiais') { carregarMateriais(); }
-  
-  if (pageId === 'dashboard') { 
-      atualizarDashboard(); 
-      verificarAgendamentosHoje(); 
+  // 🆕 Lógica de Entrada em Materiais
+  if (pageId === 'materiais') { 
+      currentFolderId = null; // Reseta para a raiz (Menu Principal)
+      carregarMateriais(); 
   }
+  
+  if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
 }
 
-// 🔥 FUNÇÃO RESTAURADA (Causa do erro ReferenceError)
 function verificarAgendamentosHoje() {
   try {
       const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
@@ -186,7 +164,6 @@ async function apiCall(route, payload, show=true) {
     });
     
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    
     const text = await res.text();
     let json;
     try { json = JSON.parse(text); } catch(e) { throw new Error("Erro formato JSON."); }
@@ -194,10 +171,8 @@ async function apiCall(route, payload, show=true) {
     if(show) showLoading(false);
     return json;
   } catch(e) {
-    console.error(`Erro API (${route}):`, e);
     if(show) showLoading(false);
-    
-    // Fallback para operações de escrita para não travar o usuário
+    // Fallback para não travar
     if(['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) {
         return {status:'success', local: true};
     }
@@ -206,75 +181,110 @@ async function apiCall(route, payload, show=true) {
 }
 
 // ============================================================
-// 🖼️ MATERIAIS DE MARKETING
+// 🖼️ MATERIAIS & PORTFÓLIOS (NOVA LÓGICA V45)
 // ============================================================
 
-async function carregarMateriais() {
+// Carrega pastas ou imagens (Navegação)
+async function carregarMateriais(folderId = null, search = "") {
     const div = document.getElementById('materiaisGrid');
     if (!div) return;
+    
+    currentFolderId = folderId; // Atualiza estado atual
 
-    if (materialsCache) { renderMateriais(materialsCache); return; }
+    // Loader Visual
+    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10 fade-in"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Carregando...</div>';
 
-    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Buscando imagens...</div>';
-
-    const res = await apiCall('getImages', {}, false);
+    // Chama Backend
+    const res = await apiCall('getImages', { folderId: folderId, search: search }, false);
     
     if (res && res.status === 'success' && res.data) {
-        materialsCache = res.data;
-        renderMateriais(materialsCache);
+        // Atualiza UI de Navegação (Botão Voltar)
+        atualizarNavegacaoMateriais(res.isRoot);
+        renderMateriais(res.data);
     } else {
-        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10 text-xs">Erro ao carregar.<br>Verifique conexão/permissões.</div>';
+        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10">Erro ao carregar.<br>Tente novamente.</div>';
     }
 }
 
-function renderMateriais(imagens) {
+function atualizarNavegacaoMateriais(isRoot) {
+    // Se não estiver na raiz, o botão de voltar (que está no HTML chamando navegarPara('dashboard'))
+    // deve ser sobrescrito temporariamente para voltar para a raiz dos materiais
+    const btnVoltar = document.querySelector('#materiais button'); // Pega o botão de voltar do header
+    
+    if(btnVoltar) {
+        if(isRoot) {
+            // Se está na raiz, voltar vai para o Dashboard
+            btnVoltar.onclick = () => navegarPara('dashboard');
+            document.querySelector('#materiais h2').innerText = "Marketing";
+        } else {
+            // Se está em uma subpasta, voltar vai para a raiz
+            btnVoltar.onclick = () => {
+                document.getElementById('searchMateriais').value = ""; // Limpa busca
+                carregarMateriais(null);
+            };
+            document.querySelector('#materiais h2').innerText = "Voltar";
+        }
+    }
+}
+
+function buscarMateriais() {
+    const termo = document.getElementById('searchMateriais')?.value;
+    carregarMateriais(currentFolderId, termo);
+}
+
+function renderMateriais(items) {
     const div = document.getElementById('materiaisGrid');
     if(!div) return;
     
-    if(imagens.length === 0) {
-        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Nenhuma imagem encontrada.</div>';
+    if(items.length === 0) {
+        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Nenhum item encontrado.</div>';
         return;
     }
 
-    div.innerHTML = imagens.map(img => `
-        <div class="bg-white p-2 rounded-xl shadow-sm border border-slate-100 flex flex-col h-48 relative overflow-hidden group">
-            <img src="${img.thumbnail}" class="w-full h-32 object-cover rounded-lg bg-gray-50" alt="${img.name}" loading="lazy">
-            <div class="flex-1 flex items-center justify-between mt-2 px-1">
-                <span class="text-[10px] text-gray-500 font-bold truncate w-20">${img.name}</span>
-                <button onclick="compartilharImagem('${img.viewUrl}')" class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition hover:bg-green-600">
-                    <i class="fab fa-whatsapp"></i>
-                </button>
-            </div>
-            <a href="${img.viewUrl}" target="_blank" class="absolute top-3 right-3 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition">
-                <i class="fas fa-expand"></i>
-            </a>
-        </div>
-    `).join('');
+    div.innerHTML = items.map(item => {
+        // 📁 RENDERIZAÇÃO DE PASTA
+        if (item.type === 'folder') {
+            return `
+            <div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 transition h-36 hover:bg-blue-50 group">
+                <i class="fas fa-folder text-5xl text-[#00aeef] group-hover:scale-110 transition drop-shadow-sm"></i>
+                <span class="text-xs font-bold text-slate-600 text-center leading-tight line-clamp-2">${item.name}</span>
+            </div>`;
+        } 
+        // 🖼️ RENDERIZAÇÃO DE IMAGEM
+        else {
+            return `
+            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-48 relative overflow-hidden group">
+                <img src="${item.thumbnail}" class="w-full h-32 object-cover rounded-xl bg-gray-50" alt="${item.name}" loading="lazy">
+                <div class="flex-1 flex items-center justify-between mt-2 px-1">
+                    <span class="text-[10px] text-gray-500 font-bold truncate w-20">${item.name}</span>
+                    <button onclick="compartilharImagem('${item.viewUrl}')" class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition hover:bg-green-600">
+                        <i class="fab fa-whatsapp"></i>
+                    </button>
+                </div>
+                <a href="${item.viewUrl}" target="_blank" class="absolute top-3 right-3 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition">
+                    <i class="fas fa-expand"></i>
+                </a>
+            </div>`;
+        }
+    }).join('');
 }
 
 function compartilharImagem(url) {
-    const texto = `Olá! Segue o material da MHNET que combinamos: ${url}`;
+    const texto = `Olá! Segue o material da MHNET: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
 }
 
 // 4. GESTÃO DE LEADS
 
 async function carregarLeads(showLoader = true) {
-  // Passa o vendedor logado para filtrar no backend se necessário
   const res = await apiCall('getLeads', { vendedor: loggedUser }, showLoader);
-  
   if (res && res.status === 'success') {
       leadsCache = res.data || [];
-      // Ordena por data (mais recente primeiro)
       leadsCache.sort((a, b) => b._linha - a._linha);
-      
       localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
       
-      // Atualiza UI se estiver na tela
       const elLista = document.getElementById('listaLeadsGestao');
-      if(elLista && elLista.offsetParent !== null) { // Verifica se está visível
-        renderLeads();
-      }
+      if(elLista && elLista.offsetParent !== null) renderLeads();
       
       atualizarDashboard();
       verificarAgendamentosHoje();
@@ -296,7 +306,7 @@ function renderLeads() {
       div.innerHTML = '<div class="flex flex-col items-center mt-10 text-slate-300"><i class="fas fa-search text-4xl mb-2"></i><p class="text-sm font-bold">Nenhum cliente encontrado.</p></div>'; 
       return; 
   }
-  
+
   div.innerHTML = lista.map((l, i) => {
       const realIndex = leadsCache.indexOf(l);
       return criarCardLead(l, realIndex);
