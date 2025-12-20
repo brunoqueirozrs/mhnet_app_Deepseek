@@ -1,11 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V45 (MATERIAIS + PORTFÓLIOS)
+ * MHNET VENDAS - LÓGICA FRONTEND V46 (FIX MATERIAIS)
  * ============================================================
- * 📝 NOVIDADES:
- * - Suporte a navegação por PASTAS (Portfólios) e ARQUIVOS.
- * - Integração com Backend V68.
- * - Mantém Login Robusto, PWA e IA.
+ * 📝 CORREÇÕES:
+ * - Fix: Erro 'searchMateriais' null ao voltar (agora verifica se o campo existe).
+ * - Fix: Navegação de pastas mais robusta.
+ * - Mantém toda a lógica de PWA, Login e Leads.
  * ============================================================
  */
 
@@ -21,7 +21,7 @@ let currentFolderId = null; // 🆕 Controla em qual pasta estamos
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v45 - Materials System");
+  console.log("🚀 MHNET App v46 - Materials Fix");
   carregarVendedores();
   
   const saved = localStorage.getItem('mhnet_leads_cache');
@@ -181,10 +181,9 @@ async function apiCall(route, payload, show=true) {
 }
 
 // ============================================================
-// 🖼️ MATERIAIS & PORTFÓLIOS (NOVA LÓGICA V45)
+// 🖼️ MATERIAIS & PORTFÓLIOS (CORRIGIDO)
 // ============================================================
 
-// Carrega pastas ou imagens (Navegação)
 async function carregarMateriais(folderId = null, search = "") {
     const div = document.getElementById('materiaisGrid');
     if (!div) return;
@@ -207,29 +206,31 @@ async function carregarMateriais(folderId = null, search = "") {
 }
 
 function atualizarNavegacaoMateriais(isRoot) {
-    // Se não estiver na raiz, o botão de voltar (que está no HTML chamando navegarPara('dashboard'))
-    // deve ser sobrescrito temporariamente para voltar para a raiz dos materiais
     const btnVoltar = document.querySelector('#materiais button'); // Pega o botão de voltar do header
+    const titleEl = document.querySelector('#materiais h2');
     
     if(btnVoltar) {
         if(isRoot) {
             // Se está na raiz, voltar vai para o Dashboard
             btnVoltar.onclick = () => navegarPara('dashboard');
-            document.querySelector('#materiais h2').innerText = "Marketing";
+            if(titleEl) titleEl.innerText = "Marketing";
         } else {
             // Se está em uma subpasta, voltar vai para a raiz
             btnVoltar.onclick = () => {
-                document.getElementById('searchMateriais').value = ""; // Limpa busca
+                const searchInput = document.getElementById('searchMateriais');
+                if (searchInput) searchInput.value = ""; // Limpa busca se existir
                 carregarMateriais(null);
             };
-            document.querySelector('#materiais h2').innerText = "Voltar";
+            if(titleEl) titleEl.innerText = "Voltar";
         }
     }
 }
 
 function buscarMateriais() {
-    const termo = document.getElementById('searchMateriais')?.value;
-    carregarMateriais(currentFolderId, termo);
+    const input = document.getElementById('searchMateriais');
+    if (input) {
+        carregarMateriais(currentFolderId, input.value);
+    }
 }
 
 function renderMateriais(items) {
@@ -237,7 +238,7 @@ function renderMateriais(items) {
     if(!div) return;
     
     if(items.length === 0) {
-        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Nenhum item encontrado.</div>';
+        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Esta pasta está vazia.</div>';
         return;
     }
 
@@ -270,7 +271,7 @@ function renderMateriais(items) {
 }
 
 function compartilharImagem(url) {
-    const texto = `Olá! Segue o material da MHNET: ${url}`;
+    const texto = `Olá! Segue o material da MHNET que combinamos: ${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
 }
 
