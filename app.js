@@ -1,11 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V56 (IA BATTLE CARDS + DASHBOARD ATIVO)
+ * MHNET VENDAS - LÓGICA FRONTEND V57 (IA BATTLE CARDS CONTEXTUAL)
  * ============================================================
  * 📝 NOVIDADES:
- * - Raio-X Concorrência: IA gera argumentos contra o provedor atual.
- * - Refinamento de Obs: IA organiza anotações bagunçadas.
- * - Dashboard Ativo: Lista de retornos aparece direto na tela inicial.
+ * - Raio-X Concorrência: Agora funciona dentro dos Detalhes do Lead.
+ * - Auto-Preenchimento: Argumentos da IA vão direto para o campo Observação.
+ * - Injeção Dinâmica: Botão de Raio-X aparece automaticamente no modal.
  * ============================================================
  */
 
@@ -21,7 +21,7 @@ let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v56 - Sales Power");
+  console.log("🚀 MHNET App v57 - Sales Power");
   carregarVendedores();
   const saved = localStorage.getItem('mhnet_leads_cache');
   if(saved) { try { leadsCache = JSON.parse(saved); } catch(e) {} }
@@ -104,16 +104,55 @@ function navegarPara(pageId) {
 // 3. NOVAS FUNÇÕES DE IA (RAIO-X e REFINAMENTO)
 
 async function raioXConcorrencia() {
-    const provedor = document.getElementById('leadProvedor').value || document.getElementById('modalLeadProvedor').innerText;
-    if(!provedor || provedor.length < 2 || provedor.includes("--")) return alert("Informe o provedor atual primeiro (ex: Vivo, Claro).");
+    let provedor = "";
+    let targetOutput = null;
+
+    // Detecta contexto: Modal (Detalhes) ou Cadastro (Novo)
+    const modalAberto = document.getElementById('leadModal') && !document.getElementById('leadModal').classList.contains('hidden');
+
+    if (modalAberto && leadAtualParaAgendar) {
+        // Estamos nos Detalhes
+        provedor = leadAtualParaAgendar.provedor;
+        targetOutput = document.getElementById('modalLeadObs');
+    } else {
+        // Estamos no Cadastro
+        provedor = document.getElementById('leadProvedor')?.value;
+        targetOutput = document.getElementById('leadObs');
+    }
+
+    // Validação
+    if (!provedor || provedor.length < 2 || provedor.includes("--")) {
+        return alert("⚠️ Informe o provedor do cliente (ex: Vivo, Claro) para gerar a comparação.");
+    }
     
-    showLoading(true, "ANALISANDO CONCORRENTE...");
-    const prompt = `O cliente usa ${provedor}. Com base no manual da MHNET, liste 3 pontos fracos desse concorrente e 3 argumentos para eu vencer a venda. Seja curto e agressivo (vendas).`;
+    showLoading(true, "🆚 ANALISANDO CONCORRENTE...");
+    
+    // Prompt Otimizado para Vendas
+    const prompt = `Atue como Especialista em Vendas de Internet.
+    O cliente usa o provedor: ${provedor}.
+    Com base no manual da MHNET, liste:
+    1. Três pontos fracos comuns desse concorrente.
+    2. Três argumentos matadores da MHNET para vencer essa venda.
+    Seja curto, agressivo (vendas) e use emojis.`;
     
     const resposta = await perguntarIABackend(prompt);
     showLoading(false);
     
-    if(resposta) alert(`🆚 VS ${provedor.toUpperCase()}:\n\n${resposta.replace(/\*\*/g, '')}`);
+    if(resposta && targetOutput) {
+        // Formatação para leitura fácil
+        const textoFormatado = `\n\n--- 🆚 RAIO-X (${provedor.toUpperCase()}) ---\n${resposta.replace(/\*\*/g, '')}`;
+        
+        // Adiciona ao campo automaticamente
+        targetOutput.value = (targetOutput.value ? targetOutput.value : "") + textoFormatado;
+        
+        // Feedback visual
+        targetOutput.classList.add("bg-yellow-50");
+        setTimeout(() => targetOutput.classList.remove("bg-yellow-50"), 1000);
+        
+        alert("✅ Argumentos gerados e adicionados nas Observações!");
+    } else {
+        alert("Erro ao gerar análise.");
+    }
 }
 
 async function refinarObsIA() {
@@ -201,7 +240,36 @@ function compartilharImagem(u) { window.open(`https://wa.me/?text=${encodeURICom
 async function carregarLeads(s=true) { /* Mantido */ }
 function renderLeads() { /* Mantido */ }
 function criarCardLead(l,i,d) { /* Mantido */ }
-function abrirLeadDetalhes(i) { /* Mantido */ }
+
+function abrirLeadDetalhes(i) { 
+    const l = leadsCache[i]; if(!l) return;
+    leadAtualParaAgendar = l;
+    
+    // Preenche campos
+    const setText = (id, t) => { const el = document.getElementById(id); if(el) el.innerText = t; };
+    setText('modalLeadNome', l.nomeLead);
+    setText('modalLeadInfo', `${l.bairro || '-'} • ${l.telefone}`);
+    setText('modalLeadProvedor', l.provedor || '--');
+    document.getElementById('modalLeadObs').value = l.observacao || "";
+    
+    // Injeção Dinâmica do Botão Raio-X se não existir
+    const containerProv = document.getElementById('modalLeadProvedor')?.parentElement;
+    if(containerProv && !document.getElementById('btnRaioXModal')) {
+        const btn = document.createElement('button');
+        btn.id = 'btnRaioXModal';
+        btn.className = "ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] font-bold shadow hover:bg-slate-700 transition flex items-center gap-1";
+        btn.innerHTML = '<i class="fas fa-bolt text-yellow-400"></i> Raio-X';
+        btn.onclick = (e) => { e.stopPropagation(); raioXConcorrencia(); };
+        containerProv.appendChild(btn);
+    }
+    
+    const btnWhats = document.getElementById('btnModalWhats');
+    if (btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
+
+    const m = document.getElementById('leadModal');
+    if (m) { m.classList.remove('hidden'); const c = m.querySelector('div.slide-up'); if(c) { c.classList.remove('slide-up'); void c.offsetWidth; c.classList.add('slide-up'); } }
+}
+
 function fecharLeadModal() { document.getElementById('leadModal').classList.add('hidden'); leadAtualParaAgendar = null; }
 window.editarLeadAtual = function() { /* Mantido */ };
 async function enviarLead() { /* Mantido */ }
