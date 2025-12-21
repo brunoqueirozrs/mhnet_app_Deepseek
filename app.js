@@ -10,7 +10,7 @@
  */
 
 // CONFIGURAÇÃO
-const DEPLOY_ID = 'AKfycbylurMjqIEgQZjx9LArwHnBcpF6OVRLceoQ8YV-v9B9dBg-7EG-fNC2thJwuPf4jSlQ'; 
+const DEPLOY_ID = 'AKfycbx3ZFBSY-io3kFcISj_IDu8NqxFpeCAg8xVARDGweanwKrd4sR5TpmFYGmaGAa0QUHS'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 let loggedUser = localStorage.getItem('loggedUser');
