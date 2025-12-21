@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET Gestor</title>
     
-    <!-- PWA Config -->
+    <!-- CONFIGURAÇÃO PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
-    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MHNET">
 
     <!-- Tailwind & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -22,11 +20,13 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .slide-up { animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
         body { height: 100dvh; overscroll-behavior-y: none; background-color: #f8fafc; }
         
+        /* Inputs Elegantes */
         .input-padrao {
             width: 100%; padding: 1rem; background-color: #ffffff;
             border: 1px solid #e2e8f0; border-radius: 1rem; outline: none;
@@ -37,10 +37,6 @@
         .label-padrao { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem; margin-left: 0.25rem; display: block; letter-spacing: 0.05em; }
         
         .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.5); }
-        
-        /* Fallback imagem */
-        .img-fallback { display: none; font-weight: bold; font-style: italic; }
-        img[onerror] + .img-fallback { display: block; }
     </style>
 </head>
 <body class="text-slate-800 font-sans flex flex-col overflow-hidden select-none">
@@ -58,7 +54,7 @@
             <div class="relative mb-6">
                 <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none"></i>
                 <select id="userSelect" class="w-full p-4 pl-12 bg-slate-50 rounded-xl border border-gray-200 text-lg outline-none focus:ring-2 focus:ring-[#00aeef] appearance-none text-slate-700 font-medium">
-                    <option value="">Carregando...</option>
+                    <option value="">Carregando equipe...</option>
                 </select>
                 <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10"></i>
             </div>
@@ -67,23 +63,31 @@
                 ACESSAR SISTEMA <i class="fas fa-arrow-right"></i>
             </button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão 53.0</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão 56.0</p>
     </div>
 
     <!-- APP PRINCIPAL -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- HEADER CURVO -->
-        <header class="bg-[#004c99] text-white pt-8 pb-8 px-6 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[2.5rem]">
-            <div>
-                <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-7 opacity-90 object-contain" onerror="this.style.display='none'">
-                <div class="flex items-center gap-2 mt-2 bg-white/10 px-3 py-1 rounded-full w-fit backdrop-blur-sm">
-                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
-                    <div id="userInfo" class="text-xs font-bold text-white/90 truncate max-w-[150px]">Vendedor</div>
+        <!-- HEADER AJUSTADO (V56) -->
+        <header class="bg-[#004c99] text-white pt-10 pb-5 px-6 shadow-lg flex justify-between items-start z-20 shrink-0 rounded-b-[2rem]">
+            <div class="flex flex-col justify-center">
+                <!-- Logo e Data -->
+                <div class="flex items-center gap-3 mb-1">
+                    <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-5 opacity-90 object-contain" onerror="this.style.display='none'">
+                    <!-- Elemento da Data Restaurado -->
+                    <div id="headerDate" class="text-[10px] text-blue-200 font-bold uppercase tracking-wider border-l border-blue-400 pl-3"></div>
+                </div>
+                
+                <!-- Nome Vendedor Maior -->
+                <div class="flex items-center gap-2">
+                    <div id="userInfo" class="text-lg font-bold text-white leading-tight truncate max-w-[220px]">Vendedor</div>
+                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_5px_rgba(74,222,128,0.8)]"></div>
                 </div>
             </div>
-            <button onclick="logout()" class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition border border-white/10 shadow-sm">
-                <i class="fas fa-power-off text-sm"></i>
+            
+            <button onclick="logout()" class="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition border border-white/10 shadow-sm mt-1">
+                <i class="fas fa-power-off text-xs"></i>
             </button>
         </header>
 
@@ -152,18 +156,22 @@
                         <span class="text-xs font-bold text-slate-600">Coach IA</span>
                     </button>
                 </div>
-                
-                 <!-- Chat Full Width -->
-                <button onclick="consultarPlanosIA()" class="w-full bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between gap-3 active:bg-blue-50 transition group">
-                     <div class="flex items-center gap-3">
-                         <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-comments"></i></div>
-                         <span class="text-xs font-bold text-slate-600">Chat IA & Planos</span>
-                     </div>
-                     <i class="fas fa-chevron-right text-xs text-slate-300"></i>
-                </button>
+
+                <div class="grid grid-cols-2 gap-3">
+                     <!-- Chat Full Width (Agora metade) -->
+                    <button onclick="consultarPlanosIA()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-blue-50 transition group">
+                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-comments"></i></div>
+                         <span class="text-xs font-bold text-slate-600">Chat IA</span>
+                    </button>
+                     <!-- NOVO BOTÃO SIMULADOR -->
+                    <button onclick="toggleSimulador()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-pink-50 transition group">
+                         <div class="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-user-graduate"></i></div>
+                         <span class="text-xs font-bold text-slate-600">Simulador ✨</span>
+                    </button>
+                </div>
             </div>
             
-            <!-- TELA MATERIAIS (NOVA) -->
+            <!-- TELA MATERIAIS -->
             <div id="materiais" class="page hidden fade-in">
                 <div class="flex items-center gap-4 mb-6">
                     <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
@@ -246,11 +254,15 @@
                             <label class="label-padrao mb-0">Observações</label>
                             <!-- BOTÕES MICROFONE E IA AQUI -->
                             <div class="flex gap-2">
-                                <button onclick="iniciarDitado('leadObs', 'btnMicObs')" id="btnMicObs" class="bg-slate-100 text-slate-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:bg-red-50 active:text-red-500 transition">
+                                <button id="btnMicNome" class="bg-slate-100 text-slate-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:bg-red-50 active:text-red-500 transition">
                                     <i class="fas fa-microphone"></i>
                                 </button>
                                 <button onclick="gerarAbordagemIA()" class="bg-purple-100 text-purple-600 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95 transition hover:bg-purple-200">
                                     <i class="fas fa-magic"></i> IA Pitch
+                                </button>
+                                <!-- Novo botão de refinar texto -->
+                                <button onclick="refinarObsIA()" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95 transition hover:bg-blue-200">
+                                    <i class="fas fa-pen-fancy"></i> Refinar ✨
                                 </button>
                             </div>
                         </div>
@@ -323,7 +335,10 @@
             </div>
 
             <!-- Dados Extras -->
-            <div class="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100">
+            <div class="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100 relative">
+                 <button onclick="analiseEstrategicaIA()" class="absolute -top-3 right-5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-lg flex items-center gap-1 active:scale-95 transition">
+                    <i class="fas fa-chess-knight"></i> Análise IA ✨
+                </button>
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Provedor Atual</span>
                     <span id="modalLeadProvedor" class="text-sm font-bold text-slate-700 bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">--</span>
@@ -373,6 +388,31 @@
             <div class="p-4 border-t bg-white flex gap-3 items-center">
                 <input type="text" id="chatInput" class="flex-1 bg-slate-100 p-4 pl-5 rounded-full outline-none text-sm focus:ring-2 focus:ring-blue-100 transition text-slate-700" placeholder="Pergunte à IA...">
                 <button onclick="enviarMensagemChat()" class="bg-[#00aeef] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition hover:bg-blue-500"><i class="fas fa-paper-plane text-sm"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SIMULADOR (ROLEPLAY) -->
+    <div id="simuladorModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4">
+        <div onclick="toggleSimulador()" class="absolute inset-0"></div>
+        <div class="bg-white w-full max-w-md h-[80vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative fade-in scale-up">
+            <div class="bg-pink-600 p-5 text-white font-bold flex justify-between items-center shadow-md z-10">
+                <span class="flex items-center gap-3"><i class="fas fa-user-graduate text-pink-200 text-xl"></i> Simulador de Vendas</span>
+                <button onclick="toggleSimulador()" class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition"><i class="fas fa-times text-sm"></i></button>
+            </div>
+            <div id="simuladorHistory" class="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50 flex flex-col justify-end">
+                 <!-- Mensagens do simulador aparecerão aqui -->
+            </div>
+             <!-- Seleção de Cenário Inicial -->
+            <div id="simuladorStart" class="p-5 bg-white border-t border-slate-100 grid grid-cols-2 gap-3">
+                 <button onclick="iniciarRoleplay('objecao_preco')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">💰 "Tá Caro"</button>
+                 <button onclick="iniciarRoleplay('objecao_fidelidade')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">🔒 "Tenho Fidelidade"</button>
+                 <button onclick="iniciarRoleplay('objecao_concorrente')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">📡 "Gosto da Vivo/Claro"</button>
+                 <button onclick="iniciarRoleplay('objecao_indeciso')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">🤔 "Vou pensar"</button>
+            </div>
+            <div id="simuladorInputArea" class="hidden p-4 border-t bg-white flex gap-3 items-center">
+                <input type="text" id="simuladorInput" class="flex-1 bg-slate-100 p-4 pl-5 rounded-full outline-none text-sm focus:ring-2 focus:ring-pink-400 transition text-slate-700" placeholder="Responda ao cliente...">
+                <button onclick="enviarMensagemSimulador()" class="bg-pink-600 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition hover:bg-pink-500"><i class="fas fa-paper-plane text-sm"></i></button>
             </div>
         </div>
     </div>
