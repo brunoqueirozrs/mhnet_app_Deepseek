@@ -657,11 +657,23 @@ async function enviarMensagemChat() {
 // 7. UTILITÁRIOS
 
 function atualizarDashboard() {
-  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
+  const hoje = new Date().toLocaleDateString('pt-BR');
   const count = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
+  
+  const statLeadsEl = document.getElementById('statLeads');
+  if (statLeadsEl) {
+    statLeadsEl.innerText = count;
+  }
 }
 
 function setLoggedUser() {
   const v = document.getElementById('userSelect').value;
-  if (v) { loggedUser = v; localStorage.setItem('loggedUser', v); initApp(); } else alert('Selec
+  
+  if (v) {
+    loggedUser = v;
+    localStorage.setItem('loggedUser', v);
+    initApp();
+  } else {
+    alert('Selecione um usuário');
+  }
+}
