@@ -1,17 +1,16 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V49 (FIX LOGIN LIMPO)
+ * MHNET VENDAS - LÓGICA FRONTEND V50 (FIX IMAGENS & CACHE)
  * ============================================================
  * 📝 CORREÇÕES:
- * - Código limpo (removido lixo HTML que quebrava o script).
- * - Carregamento de vendedores com timeout (se demorar, usa offline).
- * - Integração completa com Backend V61 (Materiais + Leads + Zap).
+ * - Força atualização de imagens com 'onerror' (Fallback).
+ * - Log detalhado para identificar URLs quebradas.
+ * - Versão incrementada para tentar furar o cache do Service Worker.
  * ============================================================
  */
 
 // CONFIGURAÇÃO
-// ⚠️ CONFIRA SE ESTE ID BATE COM SUA ÚLTIMA IMPLANTAÇÃO NO APPS SCRIPT
-const DEPLOY_ID = 'AKfycbx3ZFBSY-io3kFcISj_IDu8NqxFpeCAg8xVARDGweanwKrd4sR5TpmFYGmaGAa0QUHS'; 
+const DEPLOY_ID = 'AKfycbylurMjqIEgQZjx9LArwHnBcpF6OVRLceoQ8YV-v9B9dBg-7EG-fNC2thJwuPf4jSlQ'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 let loggedUser = localStorage.getItem('loggedUser');
@@ -22,18 +21,17 @@ let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v49 - Init");
+  console.log("🚀 MHNET App v50 - Limpeza de Cache");
   
-  // Tenta carregar vendedores imediatamente
+  // Tenta carregar vendedores
   carregarVendedores();
   
-  // Carrega cache local
+  // Carrega cache local de leads
   const saved = localStorage.getItem('mhnet_leads_cache');
   if(saved) {
       try { leadsCache = JSON.parse(saved); } catch(e) {}
   }
   
-  // Verifica Login
   if (loggedUser) {
       initApp();
   } else {
@@ -42,12 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// --- CARREGAMENTO DE VENDEDORES (COM FAILSAFE) ---
+// --- CARREGAMENTO DE VENDEDORES ---
 async function carregarVendedores() {
     const select = document.getElementById('userSelect');
     if(!select) return;
     
-    // Lista de segurança (Offline)
     const VENDEDORES_OFFLINE = [
         "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
         "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
@@ -56,32 +53,25 @@ async function carregarVendedores() {
 
     select.innerHTML = '<option value="">Conectando...</option>';
 
-    // Promessa com timeout: Se a API demorar > 3s, usa lista offline
-    const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 3000));
+    // Timeout de 4s para não travar no login
+    const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 4000));
     
     try {
-        // Tenta buscar no Backend vs Timeout
         const res = await Promise.race([apiCall('getVendors', {}, false), timeout]);
         
         if (res && res.status === 'success' && res.data && res.data.length > 0) {
             select.innerHTML = '<option value="">Toque para selecionar...</option>';
             res.data.forEach(v => {
                 const opt = document.createElement('option');
-                opt.value = v.nome; 
-                opt.innerText = v.nome; 
-                select.appendChild(opt);
+                opt.value = v.nome; opt.innerText = v.nome; select.appendChild(opt);
             });
-        } else {
-            throw new Error("Lista vazia ou erro API");
-        }
+        } else { throw new Error("Vazio"); }
     } catch (e) {
-        console.warn("⚠️ Usando lista offline (Erro/Timeout):", e);
-        select.innerHTML = '<option value="">Modo Offline (Lista Fixa)</option>';
+        console.warn("⚠️ Usando lista offline:", e);
+        select.innerHTML = '<option value="">Modo Offline</option>';
         VENDEDORES_OFFLINE.forEach(nome => {
             const opt = document.createElement('option');
-            opt.value = nome; 
-            opt.innerText = nome; 
-            select.appendChild(opt);
+            opt.value = nome; opt.innerText = nome; select.appendChild(opt);
         });
     }
 }
@@ -135,7 +125,6 @@ function navegarPara(pageId) {
   const scroller = document.getElementById('main-scroll');
   if(scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Reset Filtros
   if (pageId === 'gestaoLeads') {
       const busca = document.getElementById('searchLead');
       if(busca && busca.placeholder.includes("Retornos")) {
@@ -145,10 +134,11 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
-  // Materiais (Reset)
   if (pageId === 'materiais') { 
-      currentFolderId = null; 
-      setTimeout(() => carregarMateriais(), 100); 
+      // Se já estiver em uma pasta, mantem, se não, vai pra raiz
+      if(!currentFolderId) {
+          setTimeout(() => carregarMateriais(null), 100); 
+      }
   }
   
   if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
@@ -192,7 +182,6 @@ async function apiCall(route, payload, show=true) {
   } catch(e) {
     console.error('Erro API:', e);
     if(show) showLoading(false);
-    // Modo Offline para cadastros
     if(['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) {
         return {status:'success', local: true};
     }
@@ -201,25 +190,31 @@ async function apiCall(route, payload, show=true) {
 }
 
 // ============================================================
-// 🖼️ MATERIAIS & PORTFÓLIOS
+// 🖼️ MATERIAIS & PORTFÓLIOS (CORREÇÃO DE IMAGENS)
 // ============================================================
 
 async function carregarMateriais(folderId = null, search = "") {
     const div = document.getElementById('materiaisGrid');
     if (!div) return;
     currentFolderId = folderId; 
-    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10 fade-in"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Carregando...</div>';
+    
+    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10 fade-in"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Buscando materiais...</div>';
 
     try {
         const res = await apiCall('getImages', { folderId: folderId, search: search }, false);
+        
         if (res && res.status === 'success' && res.data) {
             atualizarNavegacaoMateriais(res.isRoot);
             renderMateriais(res.data);
         } else {
-            div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10">Erro ao carregar.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
+            throw new Error(res?.message || "Erro desconhecido");
         }
     } catch (error) {
-        div.innerHTML = '<div class="col-span-2 text-center text-red-400 py-10">Erro de conexão.<br><button onclick="carregarMateriais()" class="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">Tentar Novamente</button></div>';
+        console.error("Erro Materiais:", error);
+        div.innerHTML = `<div class="col-span-2 text-center text-red-400 py-10">
+            <i class="fas fa-wifi mb-2"></i><br>Falha na conexão.<br>
+            <button onclick="carregarMateriais('${folderId || ''}')" class="mt-3 bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Tentar Novamente</button>
+        </div>`;
     }
 }
 
@@ -249,7 +244,11 @@ function buscarMateriais() {
 function renderMateriais(items) {
     const div = document.getElementById('materiaisGrid');
     if(!div) return;
-    if(items.length === 0) { div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Pasta vazia.</div>'; return; }
+    
+    if(items.length === 0) { 
+        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Pasta vazia.</div>'; 
+        return; 
+    }
 
     div.innerHTML = items.map(item => {
         if (item.type === 'folder') {
@@ -259,9 +258,17 @@ function renderMateriais(items) {
                 <span class="text-xs font-bold text-slate-600 text-center leading-tight line-clamp-2">${item.name}</span>
             </div>`;
         } else {
+            // IMAGEM COM TRATAMENTO DE ERRO (ONERROR)
+            // Se a imagem falhar, mostra um ícone genérico de imagem
             return `
             <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-48 relative overflow-hidden group">
-                <img src="${item.thumbnail}" class="w-full h-32 object-cover rounded-xl bg-gray-50" alt="${item.name}" loading="lazy">
+                <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden relative">
+                     <img src="${item.thumbnail}" 
+                          class="w-full h-full object-cover transition transform group-hover:scale-105" 
+                          alt="${item.name}" 
+                          loading="lazy"
+                          onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png'; this.className='w-12 h-12 m-auto mt-8 opacity-50';">
+                </div>
                 <div class="flex-1 flex items-center justify-between mt-2 px-1">
                     <span class="text-[10px] text-gray-500 font-bold truncate w-20">${item.name}</span>
                     <button onclick="compartilharImagem('${item.viewUrl}')" class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition hover:bg-green-600">
