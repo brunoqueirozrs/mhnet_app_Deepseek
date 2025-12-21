@@ -1,21 +1,22 @@
 {
   "name": "MHNET Gestor de Vendas",
   "short_name": "MHNET",
-  "start_url": "./index.html",
+  "description": "Sistema de gestão de leads e vendas para equipe MHNET",
+  "start_url": "./",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#004c99",
   "theme_color": "#004c99",
-  "description": "Sistema de Gestão de Vendas Externas",
+  "orientation": "portrait",
+  "scope": "./",
   "icons": [
     {
-      "src": "https://mhnet.com.br/assets/img/logo_branca.png",
+      "src": "https://via.placeholder.com/192/004c99/FFFFFF?text=M",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://mhnet.com.br/assets/img/logo_branca.png",
+      "src": "https://via.placeholder.com/512/004c99/FFFFFF?text=M",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
