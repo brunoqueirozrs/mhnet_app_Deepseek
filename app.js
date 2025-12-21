@@ -1,15 +1,15 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V52 (ID ATUALIZADO)
+ * MHNET VENDAS - LÓGICA FRONTEND V53 (FIX MICROFONE POS)
  * ============================================================
  * 📝 CORREÇÕES:
- * - Atualização do DEPLOY_ID para a nova versão implantada.
- * - Mantém correções de microfone e debug de materiais.
+ * - Microfone posicionado acima da observação (Lógica limpa).
+ * - Função ajustarMicrofone removida (controle via HTML).
+ * - Integração completa com Materiais e Leads.
  * ============================================================
  */
 
 // CONFIGURAÇÃO
-// ✅ NOVO ID APLICADO:
 const DEPLOY_ID = 'AKfycbx3ZFBSY-io3kFcISj_IDu8NqxFpeCAg8xVARDGweanwKrd4sR5TpmFYGmaGAa0QUHS'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -21,7 +21,7 @@ let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v52 - Conectando ao novo ID...");
+  console.log("🚀 MHNET App v53 - Microfone Fix");
   
   carregarVendedores();
   
@@ -132,11 +132,6 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
-  // Configuração Específica da Tela de Cadastro
-  if (pageId === 'cadastroLead') {
-      ajustarMicrofone(); // 🔥 Configura o microfone para Obs
-  }
-
   // Materiais
   if (pageId === 'materiais') { 
       // Se não tiver pasta selecionada, carrega a raiz
@@ -146,17 +141,6 @@ function navegarPara(pageId) {
   }
   
   if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
-}
-
-// 🔥 FIX MICROFONE: Redireciona para o campo de Observação
-function ajustarMicrofone() {
-    const btnMic = document.getElementById('btnMicNome');
-    if (btnMic) {
-        btnMic.removeAttribute('onclick');
-        btnMic.onclick = function() {
-            iniciarDitado('leadObs', 'btnMicNome');
-        };
-    }
 }
 
 function verificarAgendamentosHoje() {
