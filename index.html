@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET Gestor</title>
-    
-    <!-- CONFIGURAÇÃO PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
-    <!-- Tailwind & Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -20,22 +16,12 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .slide-up { animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
         body { height: 100dvh; overscroll-behavior-y: none; background-color: #f8fafc; }
-        
-        /* Inputs Elegantes */
-        .input-padrao {
-            width: 100%; padding: 1rem; background-color: #ffffff;
-            border: 1px solid #e2e8f0; border-radius: 1rem; outline: none;
-            color: #1e293b; font-size: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s;
-            -webkit-appearance: none;
-        }
+        .input-padrao { width: 100%; padding: 1rem; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem; outline: none; color: #1e293b; font-size: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); transition: all 0.2s; -webkit-appearance: none; }
         .input-padrao:focus { border-color: #00aeef; box-shadow: 0 0 0 4px rgba(0, 174, 239, 0.1); }
         .label-padrao { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem; margin-left: 0.25rem; display: block; letter-spacing: 0.05em; }
-        
         .glass-nav { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.5); }
     </style>
 </head>
@@ -49,43 +35,32 @@
         <div class="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-[#00aeef]"></div>
             <h2 class="text-center text-2xl font-bold text-slate-800 mb-2">Bem-vindo</h2>
-            <p class="text-center text-slate-400 text-sm mb-8">Selecione seu perfil para acessar</p>
-            
-            <div class="relative mb-6">
-                <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none"></i>
-                <select id="userSelect" class="w-full p-4 pl-12 bg-slate-50 rounded-xl border border-gray-200 text-lg outline-none focus:ring-2 focus:ring-[#00aeef] appearance-none text-slate-700 font-medium">
+            <div class="relative mb-6 mt-4">
+                <select id="userSelect" class="w-full p-4 pl-12 bg-slate-50 rounded-xl border border-gray-200 text-lg outline-none focus:ring-2 focus:ring-[#00aeef] text-slate-700 font-medium">
                     <option value="">Carregando equipe...</option>
                 </select>
-                <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10"></i>
+                <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none"></i>
             </div>
-            
-            <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 active:scale-95 transition flex items-center justify-center gap-3">
-                ACESSAR SISTEMA <i class="fas fa-arrow-right"></i>
-            </button>
+            <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 active:scale-95 transition">ACESSAR SISTEMA</button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão 57.0 (Clean)</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão 57.0 (Smart)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- HEADER MAIS FINO E AJUSTADO -->
+        <!-- HEADER -->
         <header class="bg-[#004c99] text-white pt-8 pb-4 px-5 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[1.5rem]">
             <div class="flex flex-col justify-center">
-                <!-- Logo e Data -->
                 <div class="flex items-center gap-3 mb-1">
                     <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-5 opacity-90 object-contain" onerror="this.style.display='none'">
-                    <!-- Elemento da Data -->
                     <div id="headerDate" class="text-[10px] text-blue-200 font-bold uppercase tracking-wider border-l border-blue-400 pl-3"></div>
                 </div>
-                
-                <!-- Nome Vendedor (Ping Verde Antes) -->
                 <div class="flex items-center gap-2">
                     <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_5px_rgba(74,222,128,0.8)]"></div>
                     <div id="userInfo" class="text-lg font-bold text-white leading-tight truncate max-w-[220px]">Vendedor</div>
                 </div>
             </div>
-            
             <button onclick="logout()" class="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition border border-white/10 shadow-sm">
                 <i class="fas fa-power-off text-xs"></i>
             </button>
@@ -97,15 +72,9 @@
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
                 
-                <!-- Banner Lembrete -->
-                <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-2xl shadow-sm flex items-start gap-4 animate-bounce cursor-pointer active:scale-95 transition" onclick="filtrarRetornos()">
-                    <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center text-orange-500 shrink-0">
-                        <i class="fas fa-bell"></i>
-                    </div>
-                    <div>
-                        <p class="font-bold text-orange-800 text-sm">Atenção!</p>
-                        <p id="lembreteTexto" class="text-xs text-orange-600 mt-1 leading-tight">Você tem retornos pendentes.</p>
-                    </div>
+                <!-- LISTA DE ATAQUE (Prioridades do dia) -->
+                <div id="listaAtaqueDashboard" class="mb-6 hidden animate-in slide-in-from-top-2">
+                    <!-- Cards de retorno inseridos via JS -->
                 </div>
 
                 <!-- KPIs -->
@@ -115,7 +84,6 @@
                         <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Leads Hoje</div>
                     </div>
                     <div onclick="navegarPara('gestaoLeads')" class="bg-gradient-to-br from-[#00aeef] to-blue-500 p-5 rounded-2xl shadow-lg shadow-blue-200 text-white flex flex-col items-center justify-center gap-2 active:scale-95 transition cursor-pointer relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 blur-xl"></div>
                         <i class="fas fa-list-ul text-2xl drop-shadow-md"></i>
                         <div class="text-[10px] uppercase font-bold tracking-wider drop-shadow-md">Minha Carteira</div>
                     </div>
@@ -123,7 +91,6 @@
 
                 <!-- Botão Principal -->
                 <button onclick="navegarPara('cadastroLead')" class="w-full bg-[#004c99] text-white p-5 rounded-2xl shadow-xl shadow-blue-900/10 font-bold flex items-center justify-between mb-8 active:scale-95 transition group relative overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/5 opacity-0 group-hover:opacity-100 transition"></div>
                     <div class="flex items-center gap-4 relative z-10">
                         <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
                             <i class="fas fa-user-plus text-2xl"></i>
@@ -143,51 +110,26 @@
                     <i class="fas fa-sparkles text-purple-500"></i>
                     <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Inteligência MHNET</h3>
                 </div>
-                
                 <div class="grid grid-cols-2 gap-3 mb-3">
-                    <!-- BOTÃO MATERIAIS -->
-                    <button onclick="navegarPara('materiais')" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-orange-50 transition group">
-                        <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-images"></i></div>
+                    <button onclick="navegarPara('materiais')" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-orange-50 transition">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fas fa-images"></i></div>
                         <span class="text-xs font-bold text-slate-600">Materiais</span>
                     </button>
-                    <!-- BOTÃO COACH -->
-                    <button onclick="gerarCoachIA()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-purple-50 transition group">
-                        <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-brain"></i></div>
+                    <button onclick="gerarCoachIA()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-purple-50 transition">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-brain"></i></div>
                         <span class="text-xs font-bold text-slate-600">Coach IA</span>
                     </button>
                 </div>
-                
-                 <!-- Chat Full Width (Restaurado) -->
-                <button onclick="consultarPlanosIA()" class="w-full bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between gap-3 active:bg-blue-50 transition group">
+                <button onclick="consultarPlanosIA()" class="w-full bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between gap-3 active:bg-blue-50 transition mb-3">
                      <div class="flex items-center gap-3">
-                         <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-comments"></i></div>
+                         <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-comments"></i></div>
                          <span class="text-xs font-bold text-slate-600">Chat IA & Planos</span>
                      </div>
                      <i class="fas fa-chevron-right text-xs text-slate-300"></i>
                 </button>
             </div>
             
-            <!-- TELA MATERIAIS -->
-            <div id="materiais" class="page hidden fade-in">
-                <div class="flex items-center gap-4 mb-6">
-                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
-                    <h2 class="text-xl font-bold text-[#004c99]">Marketing</h2>
-                </div>
-                
-                <div class="bg-white p-3 rounded-2xl shadow-sm mb-6 flex gap-3 border border-slate-100 sticky top-0 z-10">
-                    <div class="pl-2 flex items-center justify-center text-slate-400"><i class="fas fa-search"></i></div>
-                    <input type="text" id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-slate-600 bg-transparent text-sm" placeholder="Buscar artes...">
-                </div>
-
-                <!-- GRID DE IMAGENS -->
-                <div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20">
-                    <div class="col-span-2 text-center text-gray-400 py-10">
-                        <i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Carregando imagens...
-                    </div>
-                </div>
-            </div>
-
-            <!-- CADASTRO LEAD -->
+            <!-- CADASTRO LEAD (Com Battle Cards) -->
             <div id="cadastroLead" class="page hidden fade-in">
                 <div class="flex items-center gap-4 mb-6">
                     <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
@@ -195,70 +137,46 @@
                 </div>
                 
                 <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 space-y-5">
-                    
                     <button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-700 border border-blue-200 p-4 rounded-xl font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 active:bg-blue-100 transition shadow-sm mb-2">
                         <i class="fas fa-location-crosshairs text-lg animate-pulse"></i> Usar Localização Atual (GPS)
                     </button>
 
-                    <div>
-                        <label class="label-padrao">Nome do Cliente *</label>
-                        <input type="text" id="leadNome" class="input-padrao" placeholder="Nome completo">
-                    </div>
-
-                    <div>
-                        <label class="label-padrao">WhatsApp *</label>
-                        <input type="tel" id="leadTelefone" class="input-padrao" placeholder="(00) 00000-0000">
-                    </div>
-
-                    <div>
-                        <label class="label-padrao">Endereço</label>
-                        <input type="text" id="leadEndereco" class="input-padrao" placeholder="Rua, Número">
-                    </div>
-
+                    <div><label class="label-padrao">Nome do Cliente *</label><input type="text" id="leadNome" class="input-padrao" placeholder="Nome completo"></div>
+                    <div><label class="label-padrao">WhatsApp *</label><input type="tel" id="leadTelefone" class="input-padrao" placeholder="(00) 00000-0000"></div>
+                    <div><label class="label-padrao">Endereço</label><input type="text" id="leadEndereco" class="input-padrao" placeholder="Rua, Número"></div>
+                    
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="label-padrao">Bairro</label>
-                            <input type="text" id="leadBairro" class="input-padrao" placeholder="Bairro">
-                        </div>
-                        <div>
-                            <label class="label-padrao">Cidade</label>
-                            <input type="text" id="leadCidade" class="input-padrao" placeholder="Cidade">
-                        </div>
+                        <div><label class="label-padrao">Bairro</label><input type="text" id="leadBairro" class="input-padrao" placeholder="Bairro"></div>
+                        <div><label class="label-padrao">Cidade</label><input type="text" id="leadCidade" class="input-padrao" placeholder="Cidade"></div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                          <div>
-                            <label class="label-padrao">Provedor Atual</label>
-                            <input type="text" id="leadProvedor" class="input-padrao" placeholder="Ex: Vivo">
+                            <label class="label-padrao flex justify-between">Provedor <i class="fas fa-bolt text-yellow-500" onclick="alert('Dica: Preencha para comparar!')"></i></label>
+                            <div class="relative">
+                                <input type="text" id="leadProvedor" class="input-padrao pr-10" placeholder="Ex: Vivo">
+                                <button onclick="raioXConcorrencia()" class="absolute right-2 top-2 w-8 h-8 bg-slate-800 text-white rounded-lg flex items-center justify-center text-xs shadow-md active:scale-90 transition" title="Raio-X Concorrência">🆚</button>
+                            </div>
                         </div>
                         <div>
-                            <label class="label-padrao">Nível Interesse</label>
+                            <label class="label-padrao">Interesse</label>
                             <select id="leadInteresse" class="input-padrao bg-white appearance-none">
-                                <option value="Alto">🔥 Alto</option>
-                                <option value="Médio" selected>🤔 Médio</option>
-                                <option value="Baixo">❄️ Baixo</option>
+                                <option value="Alto">🔥 Alto</option><option value="Médio" selected>🤔 Médio</option><option value="Baixo">❄️ Baixo</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- Hidden Inputs -->
                     <input type="hidden" id="leadLat"><input type="hidden" id="leadLon">
 
-                    <!-- OBSERVAÇÃO COM BARRA DE FERRAMENTAS -->
                     <div>
                         <div class="flex justify-between items-end mb-1">
                             <label class="label-padrao mb-0">Observações</label>
-                            <!-- BOTÕES MICROFONE E IA AQUI -->
                             <div class="flex gap-2">
-                                <button id="btnMicNome" class="bg-slate-100 text-slate-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:bg-red-50 active:text-red-500 transition">
-                                    <i class="fas fa-microphone"></i>
-                                </button>
-                                <button onclick="gerarAbordagemIA()" class="bg-purple-100 text-purple-600 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95 transition hover:bg-purple-200">
-                                    <i class="fas fa-magic"></i> IA Pitch
-                                </button>
+                                <button id="btnMicNome" class="bg-slate-100 text-slate-500 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm active:bg-red-50 active:text-red-500 transition"><i class="fas fa-microphone"></i></button>
+                                <button onclick="refinarObsIA()" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95 transition hover:bg-blue-200"><i class="fas fa-magic"></i> Organizar</button>
                             </div>
                         </div>
-                        <textarea id="leadObs" rows="3" class="input-padrao min-h-[100px]" placeholder="Detalhes importantes..."></textarea>
+                        <textarea id="leadObs" rows="3" class="input-padrao min-h-[100px]" placeholder="Dite ou escreva bagunçado, a IA arruma..."></textarea>
                     </div>
 
                     <button onclick="enviarLead()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl shadow-blue-400/30 mt-4 active:scale-95 transition flex items-center justify-center gap-2">
@@ -267,41 +185,42 @@
                 </div>
             </div>
 
-            <!-- LISTA DE LEADS -->
+            <!-- OUTRAS PÁGINAS MANTIDAS (MATERIAIS, LISTA, ETC) -->
+            <div id="materiais" class="page hidden fade-in">
+                <div class="flex items-center gap-4 mb-6">
+                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-[#004c99]">Marketing</h2>
+                </div>
+                <div class="bg-white p-3 rounded-2xl shadow-sm mb-6 flex gap-3 border border-slate-100 sticky top-0 z-10">
+                    <div class="pl-2 flex items-center justify-center text-slate-400"><i class="fas fa-search"></i></div>
+                    <input type="text" id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-slate-600 bg-transparent text-sm" placeholder="Buscar artes...">
+                </div>
+                <div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20"></div>
+            </div>
+
             <div id="gestaoLeads" class="page hidden fade-in">
                 <div class="flex items-center justify-between mb-6 pl-1">
                     <h2 class="text-2xl font-bold text-[#004c99]">Carteira</h2>
                     <button onclick="carregarLeads()" class="w-10 h-10 bg-white border border-slate-200 text-blue-600 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition hover:bg-blue-50"><i class="fas fa-sync text-sm"></i></button>
                 </div>
-                
                 <div class="bg-white p-3 rounded-2xl shadow-sm mb-6 flex gap-3 border border-slate-100 sticky top-0 z-10">
                     <div class="pl-2 flex items-center justify-center text-slate-400"><i class="fas fa-search"></i></div>
                     <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full outline-none text-slate-600 bg-transparent text-sm" placeholder="Buscar por nome, bairro...">
                 </div>
-
                 <div id="listaLeadsGestao" class="space-y-3 pb-20"></div>
             </div>
-
         </main>
 
-        <!-- MENU INFERIOR (Glassmorphism) -->
+        <!-- MENU INFERIOR -->
         <nav class="glass-nav flex justify-around items-center p-2 pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] z-50 shrink-0 absolute bottom-0 w-full rounded-t-3xl h-24">
             <button id="nav-home" onclick="navegarPara('dashboard')" class="nav-item w-16 group flex flex-col items-center gap-1.5 text-[#00aeef] transition">
-                <div class="w-8 h-1 rounded-full bg-[#00aeef] mb-1 opacity-0 group-[.active]:opacity-100 transition-all"></div>
-                <i class="fas fa-home text-xl group-[.active]:scale-110 transition"></i>
-                <span class="text-[10px] font-bold opacity-60 group-[.active]:opacity-100">Início</span>
+                <i class="fas fa-home text-xl group-[.active]:scale-110"></i><span class="text-[10px] font-bold">Início</span>
             </button>
-            
             <button id="nav-novo" onclick="navegarPara('cadastroLead')" class="nav-item relative -top-8 group">
-                <div class="w-16 h-16 bg-[#00aeef] rounded-full shadow-lg shadow-blue-400/40 flex items-center justify-center text-white border-4 border-slate-50 active:scale-90 transition transform hover:-translate-y-1">
-                    <i class="fas fa-plus text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 bg-[#00aeef] rounded-full shadow-lg shadow-blue-400/40 flex items-center justify-center text-white border-4 border-slate-50 active:scale-90"><i class="fas fa-plus text-2xl"></i></div>
             </button>
-
             <button id="nav-lista" onclick="navegarPara('gestaoLeads')" class="nav-item w-16 group flex flex-col items-center gap-1.5 text-slate-400 transition">
-                <div class="w-8 h-1 rounded-full bg-[#00aeef] mb-1 opacity-0 group-[.active]:opacity-100 transition-all"></div>
-                <i class="fas fa-users text-xl group-[.active]:scale-110 group-[.active]:text-[#00aeef] transition"></i>
-                <span class="text-[10px] font-bold opacity-60 group-[.active]:opacity-100 group-[.active]:text-[#00aeef]">Leads</span>
+                <i class="fas fa-users text-xl group-[.active]:scale-110 group-[.active]:text-[#00aeef]"></i><span class="text-[10px] font-bold group-[.active]:text-[#00aeef]">Leads</span>
             </button>
         </nav>
     </div>
@@ -310,62 +229,41 @@
     <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center">
         <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
         <div class="bg-white w-full sm:w-[450px] sm:rounded-3xl rounded-t-[2.5rem] p-6 relative shadow-2xl slide-up max-h-[90vh] overflow-y-auto">
-            
-            <!-- Botão Editar -->
-            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] hover:bg-blue-50 transition shadow-sm active:scale-90 border border-slate-200">
-                <i class="fas fa-pen"></i>
-            </button>
-
+            <button onclick="editarLeadAtual()" class="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:text-[#00aeef] active:scale-90 border border-slate-200"><i class="fas fa-pen"></i></button>
             <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
-            
             <div class="mb-8 pr-10">
                 <h3 id="modalLeadNome" class="text-2xl font-bold text-slate-800 leading-tight">Nome do Lead</h3>
-                <p id="modalLeadInfo" class="text-slate-400 text-xs font-bold uppercase tracking-wider mt-2 flex items-center gap-2">
-                    <i class="fas fa-map-marker-alt"></i> Detalhes
-                </p>
+                <p id="modalLeadInfo" class="text-slate-400 text-xs font-bold uppercase tracking-wider mt-2 flex items-center gap-2"><i class="fas fa-map-marker-alt"></i> Detalhes</p>
                 <div id="modalLeadFlag" class="mt-3"></div>
             </div>
-
-            <!-- Dados Extras -->
+            
             <div class="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100">
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Provedor Atual</span>
                     <span id="modalLeadProvedor" class="text-sm font-bold text-slate-700 bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">--</span>
                 </div>
-                <hr class="border-slate-200 my-3">
-                <div class="text-xs text-slate-400 font-bold uppercase mb-2">Observações</div>
                 <textarea id="modalLeadObs" rows="3" class="w-full bg-white text-sm text-slate-600 outline-none resize-none border border-slate-200 rounded-xl p-3 shadow-sm focus:border-blue-300 transition" placeholder="Adicionar nota..."></textarea>
-                <button onclick="salvarObservacaoModal()" class="text-[10px] font-bold text-blue-500 mt-3 uppercase w-full text-right hover:text-blue-700 flex items-center justify-end gap-1">
-                    <i class="fas fa-save"></i> Salvar Obs
-                </button>
+                <button onclick="salvarObservacaoModal()" class="text-[10px] font-bold text-blue-500 mt-3 uppercase w-full text-right hover:text-blue-700 flex items-center justify-end gap-1"><i class="fas fa-save"></i> Salvar Obs</button>
             </div>
-
+            
             <!-- Agendamento (AZUL) -->
             <div class="mb-6 bg-blue-50 p-5 rounded-2xl border border-blue-100">
-                <label class="label-padrao flex items-center gap-2 mb-3 text-blue-800">
-                    <div class="bg-blue-200 p-1.5 rounded-md"><i class="fas fa-calendar-alt text-blue-600"></i></div>
-                    Agendar Retorno
-                </label>
+                <label class="label-padrao flex items-center gap-2 mb-3 text-blue-800"><div class="bg-blue-200 p-1.5 rounded-md"><i class="fas fa-calendar-alt text-blue-600"></i></div>Agendar Retorno</label>
                 <div class="flex gap-3">
-                    <input type="date" id="agendarData" class="flex-1 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-300">
-                    <input type="time" id="agendarHora" class="w-28 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-300">
+                    <input type="date" id="agendarData" class="flex-1 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-slate-600 outline-none">
+                    <input type="time" id="agendarHora" class="w-28 p-3 bg-white border border-blue-200 rounded-xl text-sm font-bold text-slate-600 outline-none">
                 </div>
-                <button onclick="salvarAgendamento()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition mt-4 hover:bg-blue-700 flex items-center justify-center gap-2">
-                    CONFIRMAR <i class="fas fa-check-circle"></i>
-                </button>
+                <button onclick="salvarAgendamento()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition mt-4 hover:bg-blue-700 flex items-center justify-center gap-2">CONFIRMAR <i class="fas fa-check-circle"></i></button>
             </div>
-
-            <!-- Ações -->
+            
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="fecharLeadModal()" class="p-4 rounded-xl border border-slate-200 font-bold text-slate-500 text-sm active:bg-slate-50 transition">Fechar</button>
-                <button id="btnModalWhats" class="p-4 rounded-xl bg-green-500 text-white font-bold shadow-md flex items-center justify-center gap-2 text-sm active:scale-95 transition hover:bg-green-600">
-                    <i class="fab fa-whatsapp text-xl"></i> Chamar
-                </button>
+                <button id="btnModalWhats" class="p-4 rounded-xl bg-green-500 text-white font-bold shadow-md flex items-center justify-center gap-2 text-sm active:scale-95 transition hover:bg-green-600"><i class="fab fa-whatsapp text-xl"></i> Chamar</button>
             </div>
         </div>
     </div>
 
-    <!-- CHAT IA -->
+    <!-- CHAT IA (MODAL) -->
     <div id="chatModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4">
         <div onclick="toggleChat()" class="absolute inset-0"></div>
         <div class="bg-white w-full max-w-md h-[70vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative fade-in scale-up">
