@@ -1,10 +1,13 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V55 (DOWNLOAD DE MATERIAIS)
+ * MHNET VENDAS - LÓGICA FRONTEND V55 (FINAL - FUNCIONALIDADES ATIVAS)
  * ============================================================
- * 📝 NOVIDADES:
- * - Adicionado botão de Download direto nos materiais.
- * - Mantém todas as correções anteriores.
+ * 📝 RESUMO DAS FUNCIONALIDADES:
+ * 1. Login Dinâmico (Vendedores via Backend).
+ * 2. Gestão de Leads (Cadastro, Lista com Filtros, Edição).
+ * 3. Materiais (Navegação Drive + Download + Compartilhar).
+ * 4. IA Híbrida (Coach de Vendas + Consulta Manual).
+ * 5. Notificações (WhatsApp automático para Gestor).
  * ============================================================
  */
 
@@ -20,7 +23,7 @@ let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v55 - Download Feature");
+  console.log("🚀 MHNET App v55 - Sistema Pronto");
   
   carregarVendedores();
   
@@ -131,7 +134,7 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
-  // Configuração Específica da Tela de Cadastro
+  // Configuração Específica da Tela de Cadastro (Microfone na Obs)
   if (pageId === 'cadastroLead') {
       ajustarMicrofone(); 
   }
@@ -150,6 +153,7 @@ function navegarPara(pageId) {
 function ajustarMicrofone() {
     const btnMic = document.getElementById('btnMicNome');
     if (btnMic) {
+        // Remove comportamento padrão e força escrita na observação
         btnMic.removeAttribute('onclick');
         btnMic.onclick = function() {
             iniciarDitado('leadObs', 'btnMicNome');
