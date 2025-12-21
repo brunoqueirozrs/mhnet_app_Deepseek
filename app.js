@@ -1,15 +1,15 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V50 (FIX IMAGENS & CACHE)
+ * MHNET VENDAS - LÓGICA FRONTEND V52 (ID ATUALIZADO)
  * ============================================================
  * 📝 CORREÇÕES:
- * - Força atualização de imagens com 'onerror' (Fallback).
- * - Log detalhado para identificar URLs quebradas.
- * - Versão incrementada para tentar furar o cache do Service Worker.
+ * - Atualização do DEPLOY_ID para a nova versão implantada.
+ * - Mantém correções de microfone e debug de materiais.
  * ============================================================
  */
 
 // CONFIGURAÇÃO
+// ✅ NOVO ID APLICADO:
 const DEPLOY_ID = 'AKfycbx3ZFBSY-io3kFcISj_IDu8NqxFpeCAg8xVARDGweanwKrd4sR5TpmFYGmaGAa0QUHS'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -21,12 +21,10 @@ let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v50 - Limpeza de Cache");
+  console.log("🚀 MHNET App v52 - Conectando ao novo ID...");
   
-  // Tenta carregar vendedores
   carregarVendedores();
   
-  // Carrega cache local de leads
   const saved = localStorage.getItem('mhnet_leads_cache');
   if(saved) {
       try { leadsCache = JSON.parse(saved); } catch(e) {}
@@ -53,7 +51,6 @@ async function carregarVendedores() {
 
     select.innerHTML = '<option value="">Conectando...</option>';
 
-    // Timeout de 4s para não travar no login
     const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 4000));
     
     try {
@@ -125,6 +122,7 @@ function navegarPara(pageId) {
   const scroller = document.getElementById('main-scroll');
   if(scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
 
+  // Reset de Filtros
   if (pageId === 'gestaoLeads') {
       const busca = document.getElementById('searchLead');
       if(busca && busca.placeholder.includes("Retornos")) {
@@ -134,14 +132,31 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
+  // Configuração Específica da Tela de Cadastro
+  if (pageId === 'cadastroLead') {
+      ajustarMicrofone(); // 🔥 Configura o microfone para Obs
+  }
+
+  // Materiais
   if (pageId === 'materiais') { 
-      // Se já estiver em uma pasta, mantem, se não, vai pra raiz
+      // Se não tiver pasta selecionada, carrega a raiz
       if(!currentFolderId) {
           setTimeout(() => carregarMateriais(null), 100); 
       }
   }
   
   if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
+}
+
+// 🔥 FIX MICROFONE: Redireciona para o campo de Observação
+function ajustarMicrofone() {
+    const btnMic = document.getElementById('btnMicNome');
+    if (btnMic) {
+        btnMic.removeAttribute('onclick');
+        btnMic.onclick = function() {
+            iniciarDitado('leadObs', 'btnMicNome');
+        };
+    }
 }
 
 function verificarAgendamentosHoje() {
@@ -190,7 +205,7 @@ async function apiCall(route, payload, show=true) {
 }
 
 // ============================================================
-// 🖼️ MATERIAIS & PORTFÓLIOS (CORREÇÃO DE IMAGENS)
+// 🖼️ MATERIAIS & PORTFÓLIOS
 // ============================================================
 
 async function carregarMateriais(folderId = null, search = "") {
@@ -204,13 +219,16 @@ async function carregarMateriais(folderId = null, search = "") {
         const res = await apiCall('getImages', { folderId: folderId, search: search }, false);
         
         if (res && res.status === 'success' && res.data) {
+            if (res.data.length === 0) {
+                console.warn('⚠️ A pasta está vazia ou os arquivos não são imagens.');
+            }
             atualizarNavegacaoMateriais(res.isRoot);
             renderMateriais(res.data);
         } else {
-            throw new Error(res?.message || "Erro desconhecido");
+            throw new Error(res?.message || "Erro desconhecido na API");
         }
     } catch (error) {
-        console.error("Erro Materiais:", error);
+        console.error("❌ Erro Materiais:", error);
         div.innerHTML = `<div class="col-span-2 text-center text-red-400 py-10">
             <i class="fas fa-wifi mb-2"></i><br>Falha na conexão.<br>
             <button onclick="carregarMateriais('${folderId || ''}')" class="mt-3 bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Tentar Novamente</button>
@@ -246,7 +264,7 @@ function renderMateriais(items) {
     if(!div) return;
     
     if(items.length === 0) { 
-        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Pasta vazia.</div>'; 
+        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Pasta vazia.<br><small class="text-xs">Verifique se há imagens na pasta.</small></div>'; 
         return; 
     }
 
@@ -258,8 +276,6 @@ function renderMateriais(items) {
                 <span class="text-xs font-bold text-slate-600 text-center leading-tight line-clamp-2">${item.name}</span>
             </div>`;
         } else {
-            // IMAGEM COM TRATAMENTO DE ERRO (ONERROR)
-            // Se a imagem falhar, mostra um ícone genérico de imagem
             return `
             <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-48 relative overflow-hidden group">
                 <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden relative">
@@ -325,6 +341,7 @@ function criarCardLead(l, index, destaque = false) {
     let badge = "bg-slate-100 text-slate-500";
     if (l.interesse === 'Alto') badge = "bg-green-100 text-green-700 ring-1 ring-green-200";
     if (l.interesse === 'Baixo') badge = "bg-blue-50 text-blue-400";
+
     const borda = destaque ? "border-l-4 border-l-orange-500 shadow-md bg-orange-50/50" : "border border-slate-100 shadow-sm bg-white";
 
     return `
