@@ -11,7 +11,7 @@
  */
 
 // CONFIGURAÇÃO
-const DEPLOY_ID = 'AKfycbylurMjqIEgQZjx9LArwHnBcpF6OVRLceoQ8YV-v9B9dBg-7EG-fNC2thJwuPf4jSlQ'; 
+const DEPLOY_ID = 'AKfycbz7mO6N4xg59EuGjZItCZcf2ldznlTPALfIU8ROGkShtjnrwjL9y0ONdnzyjqNAmn_C'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 // Validação inicial
