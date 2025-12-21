@@ -1,11 +1,10 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V53 (FIX MICROFONE POS)
+ * MHNET VENDAS - LÓGICA FRONTEND V55 (DOWNLOAD DE MATERIAIS)
  * ============================================================
- * 📝 CORREÇÕES:
- * - Microfone posicionado acima da observação (Lógica limpa).
- * - Função ajustarMicrofone removida (controle via HTML).
- * - Integração completa com Materiais e Leads.
+ * 📝 NOVIDADES:
+ * - Adicionado botão de Download direto nos materiais.
+ * - Mantém todas as correções anteriores.
  * ============================================================
  */
 
@@ -21,7 +20,7 @@ let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v53 - Microfone Fix");
+  console.log("🚀 MHNET App v55 - Download Feature");
   
   carregarVendedores();
   
@@ -132,6 +131,11 @@ function navegarPara(pageId) {
       renderLeads();
   }
 
+  // Configuração Específica da Tela de Cadastro
+  if (pageId === 'cadastroLead') {
+      ajustarMicrofone(); 
+  }
+
   // Materiais
   if (pageId === 'materiais') { 
       // Se não tiver pasta selecionada, carrega a raiz
@@ -141,6 +145,16 @@ function navegarPara(pageId) {
   }
   
   if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
+}
+
+function ajustarMicrofone() {
+    const btnMic = document.getElementById('btnMicNome');
+    if (btnMic) {
+        btnMic.removeAttribute('onclick');
+        btnMic.onclick = function() {
+            iniciarDitado('leadObs', 'btnMicNome');
+        };
+    }
 }
 
 function verificarAgendamentosHoje() {
@@ -260,6 +274,7 @@ function renderMateriais(items) {
                 <span class="text-xs font-bold text-slate-600 text-center leading-tight line-clamp-2">${item.name}</span>
             </div>`;
         } else {
+            // Imagem com Botão de Download + WhatsApp
             return `
             <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-48 relative overflow-hidden group">
                 <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden relative">
@@ -269,8 +284,15 @@ function renderMateriais(items) {
                           loading="lazy"
                           onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png'; this.className='w-12 h-12 m-auto mt-8 opacity-50';">
                 </div>
-                <div class="flex-1 flex items-center justify-between mt-2 px-1">
-                    <span class="text-[10px] text-gray-500 font-bold truncate w-20">${item.name}</span>
+                <div class="flex-1 flex items-center justify-between mt-2 px-1 gap-2">
+                    <span class="text-[10px] text-gray-500 font-bold truncate flex-1">${item.name}</span>
+                    
+                    <!-- Botão Download -->
+                    <a href="${item.downloadUrl || '#'}" download target="_blank" class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition hover:bg-blue-200">
+                        <i class="fas fa-download text-xs"></i>
+                    </a>
+
+                    <!-- Botão WhatsApp -->
                     <button onclick="compartilharImagem('${item.viewUrl}')" class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition hover:bg-green-600">
                         <i class="fab fa-whatsapp"></i>
                     </button>
