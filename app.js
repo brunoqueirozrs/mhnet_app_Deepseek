@@ -11,8 +11,11 @@
  */
 
 // CONFIGURAÇÃO
-const DEPLOY_ID = 'AKfycbx4nZPyV8Fg6gJ8DV9xe9ggqY-l3qNjTQq-9IyMRSbufGaMiN1SVfsGxOprmcafvh47; 
+const DEPLOY_ID = 'AKfycbx3ZFBSY-io3kFcISj_IDu8NqxFpeCAg8xVARDGweanwKrd4sR5TpmFYGmaGAa0QUHS'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
+
+console.log('🔧 DEPLOY_ID configurado:', DEPLOY_ID);
+console.log('🌐 API_URL:', API_URL);
 
 // Validação inicial
 if (!DEPLOY_ID || DEPLOY_ID.length < 20) {
@@ -26,17 +29,32 @@ let chatHistoryData = [];
 let currentFolderId = null;
 
 // 1. INICIALIZAÇÃO
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   console.log("🚀 MHNET App v47 - Debug Materiais");
   console.log("📍 URL da API:", API_URL);
   
+  // Teste de conectividade da API
+  console.log("🔌 Testando conectividade da API...");
+  try {
+      const testRes = await fetch(API_URL + '?route=getVendors', {
+          method: 'GET',
+          mode: 'cors'
+      });
+      console.log("✅ API respondeu com status:", testRes.status);
+  } catch (err) {
+      console.error("❌ API não está acessível:", err.message);
+      console.warn("⚠️ Modo offline será usado automaticamente");
+  }
+  
   // Carrega vendedores com timeout de segurança
-  carregarVendedores().catch(err => {
+  try {
+      await carregarVendedores();
+  } catch (err) {
       console.error('❌ Erro crítico ao carregar vendedores:', err);
       // Força carregar lista offline em caso de erro crítico
       const select = document.getElementById('userSelect');
       if(select && select.options.length <= 1) {
-          console.log('🔄 Forçando lista offline...');
+          console.log('🔄 Forçando lista offline de emergência...');
           const VENDEDORES = [
               "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
               "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
@@ -49,8 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
               opt.innerText = nome; 
               select.appendChild(opt);
           });
+          console.log('✅ Lista offline de emergência carregada');
       }
-  });
+  }
   
   const saved = localStorage.getItem('mhnet_leads_cache');
   if(saved) {
@@ -63,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   if (loggedUser) {
-      console.log('👤 Usuário logado:', loggedUser);
+      console.log('👤 Usuário já logado:', loggedUser);
       initApp();
   } else {
       console.log('🔐 Aguardando login...');
