@@ -63,30 +63,30 @@
                 ACESSAR SISTEMA <i class="fas fa-arrow-right"></i>
             </button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão 56.0</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão 57.0 (Clean)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- HEADER AJUSTADO (V56) -->
-        <header class="bg-[#004c99] text-white pt-10 pb-5 px-6 shadow-lg flex justify-between items-start z-20 shrink-0 rounded-b-[2rem]">
+        <!-- HEADER MAIS FINO E AJUSTADO -->
+        <header class="bg-[#004c99] text-white pt-8 pb-4 px-5 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[1.5rem]">
             <div class="flex flex-col justify-center">
                 <!-- Logo e Data -->
                 <div class="flex items-center gap-3 mb-1">
                     <img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-5 opacity-90 object-contain" onerror="this.style.display='none'">
-                    <!-- Elemento da Data Restaurado -->
+                    <!-- Elemento da Data -->
                     <div id="headerDate" class="text-[10px] text-blue-200 font-bold uppercase tracking-wider border-l border-blue-400 pl-3"></div>
                 </div>
                 
-                <!-- Nome Vendedor Maior -->
+                <!-- Nome Vendedor (Ping Verde Antes) -->
                 <div class="flex items-center gap-2">
-                    <div id="userInfo" class="text-lg font-bold text-white leading-tight truncate max-w-[220px]">Vendedor</div>
                     <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_5px_rgba(74,222,128,0.8)]"></div>
+                    <div id="userInfo" class="text-lg font-bold text-white leading-tight truncate max-w-[220px]">Vendedor</div>
                 </div>
             </div>
             
-            <button onclick="logout()" class="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition border border-white/10 shadow-sm mt-1">
+            <button onclick="logout()" class="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-90 transition border border-white/10 shadow-sm">
                 <i class="fas fa-power-off text-xs"></i>
             </button>
         </header>
@@ -156,19 +156,15 @@
                         <span class="text-xs font-bold text-slate-600">Coach IA</span>
                     </button>
                 </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                     <!-- Chat Full Width (Agora metade) -->
-                    <button onclick="consultarPlanosIA()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-blue-50 transition group">
-                         <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-comments"></i></div>
-                         <span class="text-xs font-bold text-slate-600">Chat IA</span>
-                    </button>
-                     <!-- NOVO BOTÃO SIMULADOR -->
-                    <button onclick="toggleSimulador()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-pink-50 transition group">
-                         <div class="w-10 h-10 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-user-graduate"></i></div>
-                         <span class="text-xs font-bold text-slate-600">Simulador ✨</span>
-                    </button>
-                </div>
+                
+                 <!-- Chat Full Width (Restaurado) -->
+                <button onclick="consultarPlanosIA()" class="w-full bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex items-center justify-between gap-3 active:bg-blue-50 transition group">
+                     <div class="flex items-center gap-3">
+                         <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition"><i class="fas fa-comments"></i></div>
+                         <span class="text-xs font-bold text-slate-600">Chat IA & Planos</span>
+                     </div>
+                     <i class="fas fa-chevron-right text-xs text-slate-300"></i>
+                </button>
             </div>
             
             <!-- TELA MATERIAIS -->
@@ -260,10 +256,6 @@
                                 <button onclick="gerarAbordagemIA()" class="bg-purple-100 text-purple-600 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95 transition hover:bg-purple-200">
                                     <i class="fas fa-magic"></i> IA Pitch
                                 </button>
-                                <!-- Novo botão de refinar texto -->
-                                <button onclick="refinarObsIA()" class="bg-blue-100 text-blue-600 px-3 py-1 rounded-lg text-[10px] font-bold shadow-sm flex items-center gap-1 active:scale-95 transition hover:bg-blue-200">
-                                    <i class="fas fa-pen-fancy"></i> Refinar ✨
-                                </button>
                             </div>
                         </div>
                         <textarea id="leadObs" rows="3" class="input-padrao min-h-[100px]" placeholder="Detalhes importantes..."></textarea>
@@ -335,10 +327,7 @@
             </div>
 
             <!-- Dados Extras -->
-            <div class="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100 relative">
-                 <button onclick="analiseEstrategicaIA()" class="absolute -top-3 right-5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-lg flex items-center gap-1 active:scale-95 transition">
-                    <i class="fas fa-chess-knight"></i> Análise IA ✨
-                </button>
+            <div class="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100">
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Provedor Atual</span>
                     <span id="modalLeadProvedor" class="text-sm font-bold text-slate-700 bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">--</span>
@@ -388,31 +377,6 @@
             <div class="p-4 border-t bg-white flex gap-3 items-center">
                 <input type="text" id="chatInput" class="flex-1 bg-slate-100 p-4 pl-5 rounded-full outline-none text-sm focus:ring-2 focus:ring-blue-100 transition text-slate-700" placeholder="Pergunte à IA...">
                 <button onclick="enviarMensagemChat()" class="bg-[#00aeef] text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition hover:bg-blue-500"><i class="fas fa-paper-plane text-sm"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL SIMULADOR (ROLEPLAY) -->
-    <div id="simuladorModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4">
-        <div onclick="toggleSimulador()" class="absolute inset-0"></div>
-        <div class="bg-white w-full max-w-md h-[80vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative fade-in scale-up">
-            <div class="bg-pink-600 p-5 text-white font-bold flex justify-between items-center shadow-md z-10">
-                <span class="flex items-center gap-3"><i class="fas fa-user-graduate text-pink-200 text-xl"></i> Simulador de Vendas</span>
-                <button onclick="toggleSimulador()" class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition"><i class="fas fa-times text-sm"></i></button>
-            </div>
-            <div id="simuladorHistory" class="flex-1 p-5 overflow-y-auto space-y-4 bg-slate-50 flex flex-col justify-end">
-                 <!-- Mensagens do simulador aparecerão aqui -->
-            </div>
-             <!-- Seleção de Cenário Inicial -->
-            <div id="simuladorStart" class="p-5 bg-white border-t border-slate-100 grid grid-cols-2 gap-3">
-                 <button onclick="iniciarRoleplay('objecao_preco')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">💰 "Tá Caro"</button>
-                 <button onclick="iniciarRoleplay('objecao_fidelidade')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">🔒 "Tenho Fidelidade"</button>
-                 <button onclick="iniciarRoleplay('objecao_concorrente')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">📡 "Gosto da Vivo/Claro"</button>
-                 <button onclick="iniciarRoleplay('objecao_indeciso')" class="bg-slate-100 p-3 rounded-xl text-xs font-bold text-slate-600 hover:bg-pink-50 hover:text-pink-600 transition">🤔 "Vou pensar"</button>
-            </div>
-            <div id="simuladorInputArea" class="hidden p-4 border-t bg-white flex gap-3 items-center">
-                <input type="text" id="simuladorInput" class="flex-1 bg-slate-100 p-4 pl-5 rounded-full outline-none text-sm focus:ring-2 focus:ring-pink-400 transition text-slate-700" placeholder="Responda ao cliente...">
-                <button onclick="enviarMensagemSimulador()" class="bg-pink-600 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-90 transition hover:bg-pink-500"><i class="fas fa-paper-plane text-sm"></i></button>
             </div>
         </div>
     </div>
