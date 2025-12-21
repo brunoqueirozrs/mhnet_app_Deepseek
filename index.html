@@ -53,7 +53,7 @@
                 </select>
                 <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10"></i>
             </div>
-            <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 active:scale-95 transition flex items-center justify-center gap-3">
+            <button onclick="setLoggedUser()" id="btnLogin" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-400 active:scale-95 transition flex items-center justify-center gap-3">
                 ACESSAR SISTEMA <i class="fas fa-arrow-right"></i>
             </button>
         </div>
@@ -362,4 +362,47 @@
     <div id="loader" class="hidden fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm flex-col items-center justify-center transition-all duration-300">
         <div class="relative">
             <div class="w-20 h-20 border-4 border-blue-500/30 border-t-[#00aeef] rounded-full animate-spin"></div>
-            <div class="absolute inset-0
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i class="fas fa-bolt text-[#00aeef] animate-pulse"></i>
+            </div>
+        </div>
+        <p id="loaderText" class="text-slate-400 font-bold text-xs tracking-[0.2em] mt-6 animate-pulse whitespace-nowrap">PROCESSANDO</p>
+    </div>
+
+    <!-- Script de inicialização INLINE -->
+    <script>
+        console.log('📦 Carregando funções básicas...');
+        
+        // Função setLoggedUser inline como fallback
+        window.setLoggedUser = function() {
+            console.log('🔐 setLoggedUser (inline) chamado');
+            const v = document.getElementById('userSelect').value;
+            console.log('👤 Vendedor selecionado:', v);
+            
+            if (v) {
+                localStorage.setItem('loggedUser', v);
+                console.log('✅ Login salvo, recarregando...');
+                location.reload();
+            } else {
+                alert('Selecione um vendedor!');
+            }
+        };
+        
+        console.log('✅ setLoggedUser disponível');
+    </script>
+
+    <script src="app.js" defer></script>
+    
+    <!-- Fallback caso o app.js não carregue -->
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (typeof setLoggedUser === 'undefined') {
+                    console.error('❌ app.js não foi carregado! Recarregue a página.');
+                    alert('Erro ao carregar o sistema. Por favor, recarregue a página.');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
