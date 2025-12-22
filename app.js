@@ -1,617 +1,279 @@
 /**
- * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V55 (FINAL - FUNCIONALIDADES ATIVAS)
- * ============================================================
- * 📝 RESUMO DAS FUNCIONALIDADES:
- * 1. Login Dinâmico (Vendedores via Backend).
- * 2. Gestão de Leads (Cadastro, Lista com Filtros, Edição).
- * 3. Materiais (Navegação Drive + Download + Compartilhar).
- * 4. IA Híbrida (Coach de Vendas + Consulta Manual).
- * 5. Notificações (WhatsApp automático para Gestor).
- * ============================================================
+ * ============================================================================
+ * MHNET VENDAS - BACKEND V79 (INDICADORES & DIAS ÚTEIS)
+ * ============================================================================
+ * 📝 NOVIDADES:
+ * 1. Rota 'getIndicators': Calcula vendas do período comercial (25 a 24).
+ * 2. Cálculo de Dias Úteis: Para dar noção de urgência.
+ * 3. IA Analista: Analisa a meta vs dias restantes.
+ * ============================================================================
  */
 
-// CONFIGURAÇÃO
-const DEPLOY_ID = 'AKfycbx3ZFBSY-io3kFcISj_IDu8NqxFpeCAg8xVARDGweanwKrd4sR5TpmFYGmaGAa0QUHS'; 
-const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-
-let loggedUser = localStorage.getItem('loggedUser');
-let leadsCache = [];
-let leadAtualParaAgendar = null; 
-let chatHistoryData = []; 
-let currentFolderId = null;
-
-// 1. INICIALIZAÇÃO
-document.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 MHNET App v55 - Sistema Pronto");
+const CONFIG = {
+  PLANILHA_ID: "19U8KDUFQUhMOLPIniKCkUfGXZCBY7i3uFyjOQYU003w", 
+  KNOWLEDGE_DOC_ID: "1j3AKQhU1w2OTkWEVO7x_MFKcXioRAJWV3fwfq_vPpOs", 
   
-  carregarVendedores();
+  MATERIAIS_DRIVE_ID: "15DamfOElAjWe6cnhehdv2TlUusYL9NZW", 
+  PORTFOLIOS: [
+    { name: "Fibra + Móvel", id: "15DamfOElAjWe6cnhehdv2TlUusYL9NZW" },
+    { name: "Plano Kids", id: "1-6FHjXqV5r5LeD8UnEikjhwoHMNYTBXK" },
+    { name: "Câmeras", id: "1-_oMBZJ91F64amddRmIolz1FA8rJroiK" },
+    { name: "Fibra Pura", id: "1hxIddEZi3MSaJOSJV3V7QsGeGVsiSLin" },
+    { name: "Móvel + Starbem", id: "10sp1FBFAbkBVubeSs55DiC4FOkoOU4nJ" },
+    { name: "Globoplay", id: "11WehgsyJUPsHJKw-feZGHUdS2c0QAwVc" },
+    { name: "MHPlay", id: "170T6YExVLzIiTs3fKziKPn7k5jusMclg" },
+    { name: "MHPlay + Fibra", id: "1YE8HpMVnW-V1eaV6l83AY3R_ZVQFHcj5" },
+    { name: "Plano Gamer", id: "15O45cRsN24zmjbdFRWBbI5NDrjnjO8iH" },
+    { name: "IP Negócios", id: "1-860wKXpC8HRmZiJyrDuCehTH1NxR5m1" },
+    { name: "Telefone Fixo", id: "17xR_76Xm8aPAK3hZ2YId4t8j5wqXk9Wl" },
+    { name: "Guias Rápidos", id: "11u320opPf2iEpJ3LY0wPoQv_8RKvZacV" }
+  ],
+
+  GEMINI_API_KEY: "AIzaSyDsSx-m5bZxZWKZqPjIVSIHbVaZHMD6AdY", 
+  GEMINI_MODEL: "gemini-2.5-flash", 
+  GESTOR_WHATSAPP: "+555184487818", 
+  API_KEY_WHATS: "4345895",
+
+  ABA_LEADS: "Acompanhamento de Lead | Abordagens",
+  ABA_LOGS_IA: "Logs_IA",
+  ABA_VENDEDORES: "Vendedores",
+  ABA_OBJECOES: "Matriz Objeções"
+};
+
+// --- ROTEAMENTO ---
+function doGet(e) { return handleRequest(e); }
+function doPost(e) { return handleRequest(e); }
+
+function handleRequest(e) {
+  const output = ContentService.createTextOutput();
+  output.setMimeType(ContentService.MimeType.JSON);
   
-  const saved = localStorage.getItem('mhnet_leads_cache');
-  if(saved) {
-      try { leadsCache = JSON.parse(saved); } catch(e) {}
-  }
-  
-  if (loggedUser) {
-      initApp();
-  } else {
-      document.getElementById('userMenu').style.display = 'flex';
-      document.getElementById('mainContent').style.display = 'none';
-  }
-});
-
-// --- CARREGAMENTO DE VENDEDORES ---
-async function carregarVendedores() {
-    const select = document.getElementById('userSelect');
-    if(!select) return;
-    
-    const VENDEDORES_OFFLINE = [
-        "Ana Paula Rodrigues", "Vitoria Caroline Baldez Rosales", "João Vithor Sader",
-        "João Paulo da Silva Santos", "Claudia Maria Semmler", "Diulia Vitoria Machado Borges",
-        "Elton da Silva Rodrigo Gonçalves", "Bruno Garcia Queiroz"
-    ];
-
-    select.innerHTML = '<option value="">Conectando...</option>';
-
-    const timeout = new Promise((_, reject) => setTimeout(() => reject("Timeout"), 4000));
-    
-    try {
-        const res = await Promise.race([apiCall('getVendors', {}, false), timeout]);
-        
-        if (res && res.status === 'success' && res.data && res.data.length > 0) {
-            select.innerHTML = '<option value="">Toque para selecionar...</option>';
-            res.data.forEach(v => {
-                const opt = document.createElement('option');
-                opt.value = v.nome; opt.innerText = v.nome; select.appendChild(opt);
-            });
-        } else { throw new Error("Vazio"); }
-    } catch (e) {
-        console.warn("⚠️ Usando lista offline:", e);
-        select.innerHTML = '<option value="">Modo Offline</option>';
-        VENDEDORES_OFFLINE.forEach(nome => {
-            const opt = document.createElement('option');
-            opt.value = nome; opt.innerText = nome; select.appendChild(opt);
-        });
-    }
-}
-
-// 2. CORE SYSTEM
-
-function initApp() {
-  document.getElementById('userMenu').style.display = 'none';
-  document.getElementById('mainContent').style.display = 'flex'; 
-  
-  const elUser = document.getElementById('userInfo');
-  if(elUser) {
-      elUser.innerText = loggedUser;
-      elUser.classList.remove('truncate', 'max-w-[150px]'); 
-  }
-
-  atualizarDataCabecalho();
-  
-  if(leadsCache.length > 0) {
-    renderLeads();
-    atualizarDashboard();
-    verificarAgendamentosHoje();
-  }
-  
-  navegarPara('dashboard');
-  carregarLeads(false); 
-}
-
-function atualizarDataCabecalho() {
-    const elData = document.getElementById('headerDate');
-    if(!elData) return;
-    const dias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
-    const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-    const agora = new Date();
-    elData.innerText = `${dias[agora.getDay()]}, ${agora.getDate()} ${meses[agora.getMonth()]}`;
-}
-
-function navegarPara(pageId) {
-  document.querySelectorAll('.page').forEach(el => {
-      el.style.display = 'none';
-      el.classList.remove('fade-in');
-  });
-
-  const target = document.getElementById(pageId);
-  if(target) {
-      target.style.display = 'block';
-      void target.offsetWidth; 
-      target.classList.add('fade-in');
-  }
-  
-  const scroller = document.getElementById('main-scroll');
-  if(scroller) scroller.scrollTo({ top: 0, behavior: 'smooth' });
-
-  // Reset de Filtros
-  if (pageId === 'gestaoLeads') {
-      const busca = document.getElementById('searchLead');
-      if(busca && busca.placeholder.includes("Retornos")) {
-          busca.value = "";
-          busca.placeholder = "Buscar por nome, bairro...";
-      }
-      renderLeads();
-  }
-
-  // Configuração Específica da Tela de Cadastro (Microfone na Obs)
-  if (pageId === 'cadastroLead') {
-      ajustarMicrofone(); 
-  }
-
-  // Materiais
-  if (pageId === 'materiais') { 
-      // Se não tiver pasta selecionada, carrega a raiz
-      if(!currentFolderId) {
-          setTimeout(() => carregarMateriais(null), 100); 
-      }
-  }
-  
-  if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
-}
-
-function ajustarMicrofone() {
-    const btnMic = document.getElementById('btnMicNome');
-    if (btnMic) {
-        // Remove comportamento padrão e força escrita na observação
-        btnMic.removeAttribute('onclick');
-        btnMic.onclick = function() {
-            iniciarDitado('leadObs', 'btnMicNome');
-        };
-    }
-}
-
-function verificarAgendamentosHoje() {
   try {
-      const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
-      const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
-      const banner = document.getElementById('lembreteBanner');
-      const txt = document.getElementById('lembreteTexto');
+    let route = "desconhecida";
+    let data = {};
+
+    if (e.postData && e.postData.contents) {
+      try {
+        const body = JSON.parse(e.postData.contents);
+        route = body.route;
+        data = body.payload || {};
+      } catch (err) {}
+    } else if (e.parameter) {
+      route = e.parameter.route;
+      data = e.parameter;
+    }
+
+    let result = { status: 'error', message: 'Rota não encontrada' };
+
+    switch(route) {
+      // --- INDICADORES (NOVO) ---
+      case 'getIndicators': result = getSalesIndicators(data); break;
+      case 'analyzeIndicators': result = analyzeIndicatorsAI(data); break;
+
+      // --- LEADS ---
+      case 'getLeads': result = getLeads(data); break;
+      case 'addLead': result = addLead(data); break; 
+      case 'deleteLead': result = deleteLead(data); break;
+      case 'updateStatus': result = updateLeadStatus(data); break;
+      case 'updateAgendamento': result = updateAgendamento(data); break; 
+      case 'updateObservacao': result = updateObservacao(data); break;
+      case 'getNotifications': result = getNotifications(data); break;
+      case 'saveObjectionLead': result = saveObjectionLead(data); break;
       
-      if (retornos.length > 0) {
-        if(banner) banner.classList.remove('hidden');
-        if(txt) txt.innerText = `Você tem ${retornos.length} retornos hoje.`;
-      } else {
-        if(banner) banner.classList.add('hidden');
-      }
-  } catch (e) { console.error("Erro verificarAgendamentos:", e); }
-}
-
-// 3. COMUNICAÇÃO API
-
-async function apiCall(route, payload, show=true) {
-  if(show) showLoading(true);
-  try {
-    const res = await fetch(API_URL, { 
-        method: 'POST', 
-        headers: {'Content-Type': 'text/plain;charset=utf-8'}, 
-        body: JSON.stringify({ route: route, payload: payload }) 
-    });
-    
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    
-    let json;
-    try { json = JSON.parse(text); } catch(e) { throw new Error("Erro formato JSON."); }
-    
-    if(show) showLoading(false);
-    return json;
-  } catch(e) {
-    console.error('Erro API:', e);
-    if(show) showLoading(false);
-    if(['addLead', 'updateAgendamento', 'updateObservacao'].includes(route)) {
-        return {status:'success', local: true};
+      // --- OUTROS ---
+      case 'getImages': 
+      case 'getMaterials': result = getMaterials(data); break;
+      case 'solveObjection': result = solveObjectionWithAI(data); break;
+      case 'testPortfolios': result = testPortfolios(); break;
+      case 'askAI': result = askInternalAI(data); break;
+      case 'testKnowledge': result = testKnowledgeBase(); break;
+      case 'testAI': result = testHybridAI(); break;
+      case 'checkStalled': result = verificarLeadsParados(); break;
+      case 'testWhatsapp': result = testCallMeBot(); break;
+      case 'validateKey': result = validateGeminiKey(); break;
+      case 'addVendor': result = addVendor(data); break;
+      case 'delVendor': result = deleteVendor(data); break;
+      case 'getVendors': result = getVendors(data); break;
+      case 'testPermissions': result = testAllPermissions(); break;
     }
-    return {status: 'error', message: e.message};
+
+    output.setContent(JSON.stringify(result));
+    return output;
+
+  } catch (error) {
+    output.setContent(JSON.stringify({ status: 'error', message: error.toString() }));
+    return output;
   }
 }
 
-// ============================================================
-// 🖼️ MATERIAIS & PORTFÓLIOS
-// ============================================================
+// ============================================================================
+// 📊 INDICADORES E METAS (LÓGICA COMERCIAL)
+// ============================================================================
 
-async function carregarMateriais(folderId = null, search = "") {
-    const div = document.getElementById('materiaisGrid');
-    if (!div) return;
-    currentFolderId = folderId; 
+function getSalesIndicators(d) {
+  try {
+    const vendedor = d.vendedor;
+    if (!vendedor) return { status: 'error', message: 'Vendedor não informado' };
+
+    // 1. Calcular Período Comercial (25 a 24)
+    const hoje = new Date();
+    let inicio, fim, mesReferencia;
+
+    // Se hoje é >= 25, o mês comercial é o próximo
+    if (hoje.getDate() >= 25) {
+      inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 25);
+      fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 24);
+      mesReferencia = Utilities.formatDate(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1), "GMT-3", "MMMM/yyyy");
+    } else {
+      inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 25);
+      fim = new Date(hoje.getFullYear(), hoje.getMonth(), 24);
+      mesReferencia = Utilities.formatDate(hoje, "GMT-3", "MMMM/yyyy");
+    }
     
-    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10 fade-in"><i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-[#00aeef]"></i><br>Buscando materiais...</div>';
+    // Ajuste hora para comparação precisa
+    inicio.setHours(0,0,0,0);
+    fim.setHours(23,59,59,999);
 
-    try {
-        const res = await apiCall('getImages', { folderId: folderId, search: search }, false);
+    // 2. Calcular Dias Úteis Restantes
+    const diasUteisInfo = calcularDiasUteis(new Date(), fim); // De hoje até o fim do ciclo
+
+    // 3. Buscar Dados na Planilha (Aba Leads)
+    // Estamos filtrando a aba GERAL por data, o que equivale a uma aba "Mês Atual" dinâmica
+    const s = SpreadsheetApp.openById(CONFIG.PLANILHA_ID).getSheetByName(CONFIG.ABA_LEADS);
+    const data = s.getRange(2, 1, s.getLastRow()-1, 15).getValues(); // Até coluna O
+
+    let totalLeads = 0;
+    let vendasFechadas = 0;
+
+    data.forEach(row => {
+      // Filtra por vendedor (case insensitive)
+      if (String(row[2]).toLowerCase().trim() === vendedor.toLowerCase().trim()) {
+        const dataLead = parseDate(row[0]); // Coluna A (Timestamp)
         
-        if (res && res.status === 'success' && res.data) {
-            if (res.data.length === 0) {
-                console.warn('⚠️ A pasta está vazia ou os arquivos não são imagens.');
-            }
-            atualizarNavegacaoMateriais(res.isRoot);
-            renderMateriais(res.data);
-        } else {
-            throw new Error(res?.message || "Erro desconhecido na API");
+        // Verifica se está dentro do mês comercial
+        if (dataLead >= inicio && dataLead <= fim) {
+          totalLeads++;
+          
+          // Verifica Venda Fechada (Status na Coluna L ou Interesse na K)
+          const status = String(row[11]); // Coluna L
+          const interesse = String(row[10]); // Coluna K
+          
+          if (status === "Venda Fechada" || interesse === "VENDIDO") {
+            vendasFechadas++;
+          }
         }
-    } catch (error) {
-        console.error("❌ Erro Materiais:", error);
-        div.innerHTML = `<div class="col-span-2 text-center text-red-400 py-10">
-            <i class="fas fa-wifi mb-2"></i><br>Falha na conexão.<br>
-            <button onclick="carregarMateriais('${folderId || ''}')" class="mt-3 bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-sm font-bold">Tentar Novamente</button>
-        </div>`;
-    }
-}
+      }
+    });
 
-function atualizarNavegacaoMateriais(isRoot) {
-    const btnVoltar = document.querySelector('#materiais button'); 
-    const titleEl = document.querySelector('#materiais h2');
-    if(btnVoltar) {
-        if(isRoot) {
-            btnVoltar.onclick = () => navegarPara('dashboard');
-            if(titleEl) titleEl.innerText = "Marketing";
-        } else {
-            btnVoltar.onclick = () => {
-                const searchInput = document.getElementById('searchMateriais');
-                if (searchInput) searchInput.value = ""; 
-                carregarMateriais(null);
-            };
-            if(titleEl) titleEl.innerText = "Voltar";
-        }
-    }
-}
+    // Meta fixa (Idealmente viria da aba Vendedores, mas vamos fixar em 30 por enquanto)
+    const metaIndividual = 30; 
+    const porcentagem = Math.round((vendasFechadas / metaIndividual) * 100);
 
-function buscarMateriais() {
-    const input = document.getElementById('searchMateriais');
-    if (input) carregarMateriais(currentFolderId, input.value);
-}
+    return {
+      status: 'success',
+      data: {
+        mes: mesReferencia.toUpperCase(),
+        ciclo: `${Utilities.formatDate(inicio, "GMT-3", "dd/MM")} a ${Utilities.formatDate(fim, "GMT-3", "dd/MM")}`,
+        totalLeads: totalLeads,
+        vendas: vendasFechadas,
+        meta: metaIndividual,
+        porcentagem: porcentagem,
+        diasUteisRestantes: diasUteisInfo.trabalhados // Dias úteis que faltam
+      }
+    };
 
-function renderMateriais(items) {
-    const div = document.getElementById('materiaisGrid');
-    if(!div) return;
-    
-    if(items.length === 0) { 
-        div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Pasta vazia.<br><small class="text-xs">Verifique se há imagens na pasta.</small></div>'; 
-        return; 
-    }
-
-    div.innerHTML = items.map(item => {
-        if (item.type === 'folder') {
-            return `
-            <div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer active:scale-95 transition h-36 hover:bg-blue-50 group">
-                <i class="fas fa-folder text-5xl text-[#00aeef] group-hover:scale-110 transition drop-shadow-sm"></i>
-                <span class="text-xs font-bold text-slate-600 text-center leading-tight line-clamp-2">${item.name}</span>
-            </div>`;
-        } else {
-            // Imagem com Botão de Download + WhatsApp
-            return `
-            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-48 relative overflow-hidden group">
-                <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden relative">
-                     <img src="${item.thumbnail}" 
-                          class="w-full h-full object-cover transition transform group-hover:scale-105" 
-                          alt="${item.name}" 
-                          loading="lazy"
-                          onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png'; this.className='w-12 h-12 m-auto mt-8 opacity-50';">
-                </div>
-                <div class="flex-1 flex items-center justify-between mt-2 px-1 gap-2">
-                    <span class="text-[10px] text-gray-500 font-bold truncate flex-1">${item.name}</span>
-                    
-                    <!-- Botão Download -->
-                    <a href="${item.downloadUrl || '#'}" download target="_blank" class="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center shadow-sm active:scale-90 transition hover:bg-blue-200">
-                        <i class="fas fa-download text-xs"></i>
-                    </a>
-
-                    <!-- Botão WhatsApp -->
-                    <button onclick="compartilharImagem('${item.viewUrl}')" class="bg-green-500 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md active:scale-90 transition hover:bg-green-600">
-                        <i class="fab fa-whatsapp"></i>
-                    </button>
-                </div>
-                <a href="${item.viewUrl}" target="_blank" class="absolute top-3 right-3 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm opacity-0 group-hover:opacity-100 transition">
-                    <i class="fas fa-expand"></i>
-                </a>
-            </div>`;
-        }
-    }).join('');
-}
-
-function compartilharImagem(url) {
-    const texto = `Olá! Segue o material da MHNET: ${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
-}
-
-// 4. GESTÃO DE LEADS
-
-async function carregarLeads(showLoader = true) {
-  const res = await apiCall('getLeads', { vendedor: loggedUser }, showLoader);
-  if (res && res.status === 'success') {
-      leadsCache = res.data || [];
-      leadsCache.sort((a, b) => b._linha - a._linha);
-      localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-      if(document.getElementById('listaLeadsGestao')) renderLeads();
-      atualizarDashboard();
-      verificarAgendamentosHoje();
+  } catch (e) {
+    return { status: 'error', message: e.message };
   }
 }
 
-function renderLeads() {
-  const div = document.getElementById('listaLeadsGestao');
-  if (!div) return;
-  const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
-  
-  const lista = leadsCache.filter(l => 
-    (l.nomeLead||'').toLowerCase().includes(term) || 
-    (l.bairro||'').toLowerCase().includes(term) ||
-    (l.provedor||'').toLowerCase().includes(term)
-  );
-  
-  if (!lista.length) { div.innerHTML = '<div class="text-center mt-10 text-gray-400">Nada encontrado.</div>'; return; }
-
-  div.innerHTML = lista.map((l, i) => {
-      const realIndex = leadsCache.indexOf(l);
-      return criarCardLead(l, realIndex);
-  }).join('');
-}
-
-function criarCardLead(l, index, destaque = false) {
-    let badge = "bg-slate-100 text-slate-500";
-    if (l.interesse === 'Alto') badge = "bg-green-100 text-green-700 ring-1 ring-green-200";
-    if (l.interesse === 'Baixo') badge = "bg-blue-50 text-blue-400";
-
-    const borda = destaque ? "border-l-4 border-l-orange-500 shadow-md bg-orange-50/50" : "border border-slate-100 shadow-sm bg-white";
-
-    return `
-    <div onclick="abrirLeadDetalhes(${index})" class="${borda} p-5 rounded-2xl mb-3 cursor-pointer active:scale-[0.98] transition-all duration-200 relative overflow-hidden group">
-      <div class="flex justify-between items-start relative z-10">
-        <div class="flex-1 min-w-0 pr-3">
-            <div class="font-bold text-slate-800 text-lg leading-tight mb-2 truncate">${l.nomeLead}</div>
-            <div class="flex flex-wrap gap-2">
-                ${l.bairro ? `<span class="text-[10px] bg-slate-50 text-slate-500 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider flex items-center border border-slate-200"><i class="fas fa-map-pin mr-1.5 text-slate-400"></i>${l.bairro}</span>` : ''}
-                ${l.provedor ? `<span class="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg font-bold uppercase tracking-wider flex items-center border border-indigo-100"><i class="fas fa-wifi mr-1.5"></i>${l.provedor}</span>` : ''}
-            </div>
-        </div>
-        <div class="flex flex-col items-end gap-2 shrink-0">
-            <span class="text-[10px] font-bold px-3 py-1 rounded-full ${badge}">${l.interesse || 'Médio'}</span>
-            ${l.agendamento ? `<span class="text-[10px] text-orange-600 font-bold bg-white px-2 py-1 rounded-lg border border-orange-100 shadow-sm flex items-center"><i class="fas fa-clock mr-1"></i> ${l.agendamento.split(' ')[0]}</span>` : ''}
-        </div>
-      </div>
-    </div>`;
-}
-
-// 5. MODAIS & AÇÕES
-
-function abrirLeadDetalhes(index) {
-    const l = leadsCache[index];
-    if(!l) return;
-    leadAtualParaAgendar = l;
-    
-    const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
-    setText('modalLeadNome', l.nomeLead);
-    setText('modalLeadInfo', `${l.bairro || 'Sem bairro'} • ${l.telefone}`);
-    setText('modalLeadCidade', l.cidade || 'Cidade não informada');
-    setText('modalLeadProvedor', l.provedor || 'Não informado');
-    
-    const obsEl = document.getElementById('modalLeadObs');
-    if(obsEl) obsEl.value = l.observacao || "";
-    
-    const btnWhats = document.getElementById('btnModalWhats');
-    if (btnWhats) {
-        const num = l.telefone.replace(/\D/g,'');
-        btnWhats.onclick = () => window.open(`https://wa.me/55${num}`, '_blank');
-    }
-
-    const m = document.getElementById('leadModal');
-    if (m) { 
-        m.classList.remove('hidden'); 
-        const c = m.querySelector('div.slide-up'); 
-        if(c) { c.classList.remove('slide-up'); void c.offsetWidth; c.classList.add('slide-up'); } 
-    }
-}
-
-function fecharLeadModal() { 
-    document.getElementById('leadModal').classList.add('hidden'); 
-    leadAtualParaAgendar = null; 
-}
-
-window.editarLeadAtual = function() {
-    if (!leadAtualParaAgendar) { alert("Selecione um lead."); return; }
-    if(!confirm(`Editar cadastro de ${leadAtualParaAgendar.nomeLead}?`)) return;
-
-    const lead = leadAtualParaAgendar;
-    
-    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ""; };
-    setVal('leadNome', lead.nomeLead);
-    setVal('leadTelefone', lead.telefone);
-    setVal('leadProvedor', lead.provedor);
-    setVal('leadObs', lead.observacao);
-    setVal('leadEndereco', lead.endereco);
-    setVal('leadBairro', lead.bairro);
-    setVal('leadCidade', lead.cidade);
-    
-    const selInt = document.getElementById('leadInteresse');
-    if(selInt) selInt.value = lead.interesse || "Médio";
-
-    fecharLeadModal();
-    navegarPara('cadastroLead');
-};
-
-async function enviarLead() {
-  const nome = document.getElementById('leadNome').value.trim();
-  const tel = document.getElementById('leadTelefone').value.trim();
-  if (!nome || !tel) return alert("Preencha Nome e WhatsApp");
-  
-  const novoLead = {
-    vendedor: loggedUser, nomeLead: nome, telefone: tel,
-    endereco: document.getElementById('leadEndereco').value,
-    cidade: document.getElementById('leadCidade').value,
-    bairro: document.getElementById('leadBairro').value,
-    interesse: document.getElementById('leadInteresse').value,
-    provedor: document.getElementById('leadProvedor').value,
-    observacao: document.getElementById('leadObs').value,
-    agendamento: ""
-  };
-   
-  const res = await apiCall('addLead', novoLead);
-  
-  if (res && (res.status === 'success' || res.local)) {
-      alert('✅ Cadastro Salvo!');
-      leadsCache.unshift(novoLead); 
-      localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-      ['leadNome', 'leadTelefone', 'leadObs', 'leadEndereco', 'leadBairro', 'leadProvedor'].forEach(id => document.getElementById(id).value = '');
-      navegarPara('gestaoLeads');
-  } else {
-      alert('Erro ao salvar.');
-  }
-}
-
-async function salvarAgendamento() {
-  if (!leadAtualParaAgendar) return;
-  const dt = document.getElementById('agendarData').value;
-  const hr = document.getElementById('agendarHora').value;
-  if (!dt) return alert("Informe a data!");
-  
-  const [a, m, d] = dt.split('-');
-  const ag = `${d}/${m}/${a} ${hr || '09:00'}`;
-  
-  const res = await apiCall('updateAgendamento', {
-      vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, agendamento: ag
-  });
-  
-  if(res && (res.status === 'success' || res.local)) {
-      alert("✅ Agendado! O Gestor será notificado.");
-      leadAtualParaAgendar.agendamento = ag;
-      localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-      fecharLeadModal();
-      verificarAgendamentosHoje();
-      renderLeads();
-  }
-}
-
-async function salvarObservacaoModal() {
-    if (!leadAtualParaAgendar) return;
-    const obs = document.getElementById('modalLeadObs').value;
-    const res = await apiCall('updateObservacao', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, observacao: obs });
-    if(res) {
-        alert("Salvo!");
-        leadAtualParaAgendar.observacao = obs;
-        localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-    }
-}
-
-window.filtrarRetornos = function() {
-    const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
-    navegarPara('gestaoLeads');
-    const input = document.getElementById('searchLead');
-    if(input) { input.value = ""; input.placeholder = `📅 Retornos de Hoje (${hoje})`; }
-    const div = document.getElementById('listaLeadsGestao');
-    const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
-    if(!retornos.length) { div.innerHTML = '<div class="text-center mt-10 font-bold text-slate-400">Nenhum retorno hoje! 😴</div>'; return; }
-    div.innerHTML = retornos.map(l => {
-        const idx = leadsCache.indexOf(l);
-        return criarCardLead(l, idx, true);
-    }).join('');
-};
-
-// 6. IA HÍBRIDA
-
-async function perguntarIABackend(pergunta) {
-  chatHistoryData.push(`User: ${pergunta}`);
-  const contexto = chatHistoryData.slice(-6);
+function analyzeIndicatorsAI(d) {
   try {
-    const res = await apiCall('askAI', { question: pergunta, history: contexto }, false);
-    if (res && res.status === 'success') {
-      const resp = res.answer;
-      chatHistoryData.push(`IA: ${resp}`);
-      return resp;
-    } else return "⚠️ IA indisponível.";
-  } catch (e) { return "Erro de conexão."; }
+    const { vendas, meta, diasUteisRestantes } = d;
+    const faltam = meta - vendas;
+    
+    const prompt = `
+      Atue como Gerente Comercial da MHNET.
+      Analise os dados do vendedor:
+      - Meta: ${meta}
+      - Vendas Fechadas: ${vendas}
+      - Faltam para meta: ${faltam > 0 ? faltam : 0}
+      - Dias úteis restantes para dia 24: ${diasUteisRestantes}
+      
+      Crie uma mensagem curta (max 35 palavras).
+      Se estiver longe da meta, dê um "choque de realidade" motivador, dizendo quantas vendas por dia ele precisa fazer.
+      Se estiver perto ou bateu, parabenize com entusiasmo.
+      Use emojis.
+    `;
+
+    const resposta = callGeminiWithRetry({ contents: [{ parts: [{ text: prompt }] }] });
+    return { status: 'success', message: resposta || "Foco total na meta! 🚀" };
+
+  } catch (e) {
+    return { status: 'error', message: e.message };
+  }
 }
 
-async function gerarAbordagemIA() {
-  const nome = document.getElementById('leadNome').value;
-  if(!nome) return alert("Preencha o nome!");
-  showLoading(true, "CRIANDO PITCH...");
-  const txt = await perguntarIABackend(`Crie pitch curto WhatsApp para ${nome}.`);
-  showLoading(false);
-  if(txt) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
-}
+// --- HELPER DATAS ---
 
-async function gerarCoachIA() {
-  showLoading(true, "COACH...");
-  const txt = await perguntarIABackend(`Frase motivacional vendas curta.`);
-  showLoading(false);
-  if(txt) alert(`🚀 ${txt.replace(/\*\*/g,'')}`);
-}
+function calcularDiasUteis(inicio, fim) {
+  let trabalhados = 0;
+  const cursor = new Date(inicio);
+  cursor.setHours(0,0,0,0);
+  
+  const fimData = new Date(fim);
+  fimData.setHours(23,59,59,999);
 
-async function consultarPlanosIA() {
-    toggleChat();
-    if(document.getElementById('chatHistory').innerHTML === "") {
-        document.getElementById('chatHistory').innerHTML = `<div class="flex gap-3 fade-in"><div class="w-8 h-8 bg-blue-100 rounded-full flex-shrink-0 flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm">Olá! Pergunte sobre planos.</div></div>`;
+  while (cursor <= fimData) {
+    const diaSemana = cursor.getDay();
+    if (diaSemana !== 0 && diaSemana !== 6) { // 0=Dom, 6=Sab
+      trabalhados++;
     }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return { trabalhados };
 }
 
-function toggleChat() {
-    const el = document.getElementById('chatModal');
-    if(el.classList.contains('hidden')) {
-        el.classList.remove('hidden');
-        setTimeout(() => document.getElementById('chatInput')?.focus(), 300);
-    } else { el.classList.add('hidden'); }
+function parseDate(dateStr) {
+  if (dateStr instanceof Date) return dateStr;
+  if (!dateStr) return new Date(0); 
+  // Tenta parsear formato DD/MM/YYYY
+  try {
+    const parts = dateStr.split(' ')[0].split('/');
+    if(parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
+  } catch(e) {}
+  return new Date(0);
 }
 
-async function enviarMensagemChat() {
-    const input = document.getElementById('chatInput');
-    const hist = document.getElementById('chatHistory');
-    const msg = input.value.trim();
-    if(!msg) return;
-    hist.innerHTML += `<div class="flex gap-3 justify-end fade-in mb-3"><div class="bg-[#004c99] p-3 rounded-2xl rounded-tr-none text-sm text-white shadow-sm max-w-[85%]">${msg}</div></div>`;
-    input.value = '';
-    const loadId = 'load-' + Date.now();
-    hist.innerHTML += `<div id="${loadId}" class="flex gap-3 fade-in mb-3"><div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-xs"><i class="fas fa-spinner fa-spin"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-400 italic">...</div></div>`;
-    hist.scrollTop = hist.scrollHeight;
-    const resp = await perguntarIABackend(msg);
-    document.getElementById(loadId)?.remove();
-    if(resp) {
-          const cleanResp = resp.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-          hist.innerHTML += `<div class="flex gap-3 fade-in mb-3"><div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${cleanResp}</div></div>`;
-          hist.scrollTop = hist.scrollHeight;
-    }
-}
-
-// 7. UTILITÁRIOS
-
-function atualizarDashboard() {
-  const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
-  const count = leadsCache.filter(l => (l.timestamp || '').includes(hoje)).length;
-  if(document.getElementById('statLeads')) document.getElementById('statLeads').innerText = count;
-}
-
-function setLoggedUser() {
-  const v = document.getElementById('userSelect').value;
-  if (v) { loggedUser = v; localStorage.setItem('loggedUser', v); initApp(); } else alert('Selecione!');
-}
-
-function logout() { if(confirm("Sair?")) { localStorage.removeItem('loggedUser'); location.reload(); } }
-
-function showLoading(show, txt) { const l = document.getElementById('loader'); if(l) l.style.display = show ? 'flex' : 'none'; }
-
-async function buscarEnderecoGPS() {
-    if (!navigator.geolocation) return alert("GPS desligado.");
-    showLoading(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-            const data = await res.json();
-            if (data && data.address) {
-                const elEnd = document.getElementById('leadEndereco');
-                const elBairro = document.getElementById('leadBairro');
-                const elCidade = document.getElementById('leadCidade');
-                if(elEnd) elEnd.value = data.address.road || '';
-                if(elBairro) elBairro.value = data.address.suburb || data.address.neighbourhood || '';
-                if(elCidade) elCidade.value = data.address.city || data.address.town || '';
-                alert(`✅ Localizado: ${data.address.road}`);
-            }
-        } catch (e) { alert("Erro ao obter endereço."); }
-        showLoading(false);
-    }, () => { showLoading(false); alert("Erro no GPS."); }, { enableHighAccuracy: true });
-}
-
-function iniciarDitado(t, b) { 
-    const R = window.SpeechRecognition || window.webkitSpeechRecognition; 
-    if(!R) return alert("Navegador sem voz"); 
-    const r = new R(); r.lang='pt-BR'; r.start(); 
-    r.onresult = e => { document.getElementById(t).value += " " + e.results[0][0].transcript; }; 
-}
+// ... (MANTENHA TODAS AS OUTRAS FUNÇÕES EXISTENTES ABAIXO) ...
+// (Copiar aqui: callGeminiWithRetry, deleteLead, saveObjectionLead, solveObjectionWithAI, etc...)
+function callGeminiWithRetry(payload) { const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:generateContent?key=${CONFIG.GEMINI_API_KEY}`; const options = { method: "post", contentType: "application/json", payload: JSON.stringify(payload), muteHttpExceptions: true }; let tentativas = 0; while (tentativas < 3) { try { const response = UrlFetchApp.fetch(url, options); if (response.getResponseCode() === 429) throw new Error("QUOTA"); const json = JSON.parse(response.getContentText()); return json?.candidates?.[0]?.content?.parts?.[0]?.text; } catch (e) { tentativas++; Utilities.sleep(2000 * tentativas); } } }
+function deleteLead(d){try{const s=SpreadsheetApp.openById(CONFIG.PLANILHA_ID).getSheetByName(CONFIG.ABA_LEADS);if(!s)return{status:'error',message:'Aba não encontrada'};const v=s.getRange(2,1,s.getLastRow()-1,4).getValues();for(let i=0;i<v.length;i++){if(String(v[i][2]).toLowerCase()===d.vendedor.toLowerCase()&&String(v[i][3]).toLowerCase()===d.nomeLead.toLowerCase()){s.deleteRow(i+2);return{status:'success',message:'Lead excluído com sucesso.'}}}return{status:'error',message:'Lead não encontrado para exclusão.'}}catch(e){return{status:'error',message:e.message}}}
+function saveObjectionLead(d){try{const s=SpreadsheetApp.openById(CONFIG.PLANILHA_ID).getSheetByName(CONFIG.ABA_LEADS);const v=s.getRange(2,1,s.getLastRow()-1,4).getValues();for(let i=0;i<v.length;i++){if(String(v[i][2]).toLowerCase().includes(d.vendedor.toLowerCase())&&String(v[i][3]).toLowerCase().includes(d.nomeLead.toLowerCase())){s.getRange(i+2,18).setValue(d.objection);s.getRange(i+2,19).setValue(d.answer);return{status:'success',message:'Objeção salva!'}}}return{status:'error',message:'Lead não encontrado'}}catch(e){return{status:'error',message:e.message}}}
+function solveObjectionWithAI(d){try{const o=d.objection||"";if(!o)return{status:'error',message:'Vazio'};const m=getObjectionMatrixContent();const p=`Atue como Especialista MHNET.\nMatriz:\n${m}\n\nCliente disse: "${o}"\nCrie script curto para combater.`;const r=callGeminiWithRetry({contents:[{parts:[{text:p}]}]});return{status:'success',answer:r||"Erro IA"};}catch(e){return{status:'error',message:e.message}}}
+function getObjectionMatrixContent(){const c=CacheService.getScriptCache();const k=c.get("matrix_obj");if(k)return k;try{const s=SpreadsheetApp.openById(CONFIG.PLANILHA_ID);let h=s.getSheetByName(CONFIG.ABA_OBJECOES);if(!h){h=s.insertSheet(CONFIG.ABA_OBJECOES);h.appendRow(["Objeção","Argumento"])}const d=h.getDataRange().getValues();let t=d.map(r=>`${r[0]}: ${r[1]}`).join("\n");c.put("matrix_obj",t,600);return t}catch(e){return""}}
+function getMaterials(d){/*Igual V77*/}
+function testPortfolios(){/*Igual V77*/}
+function updateLeadStatus(d){/*Igual V77*/}
+function updateAgendamento(d){/*Igual V77*/}
+function updateObservacao(d){/*Igual V77*/}
+function getNotifications(d){/*Igual V77*/}
+function askInternalAI(d){/*Igual V77*/}
+function testKnowledgeBase(){/*Igual V77*/}
+function testHybridAI(){/*Igual V77*/}
+function verificarLeadsParados(){/*Igual V77*/}
+function testCallMeBot(){/*Igual V77*/}
+function validateGeminiKey(){/*Igual V77*/}
+function addVendor(d){/*Igual V77*/}
+function delVendor(d){/*Igual V77*/}
+function deleteVendor(d){/*Igual V77*/}
+function getVendors(d){/*Igual V77*/}
+function testAllPermissions(){/*Igual V77*/}
+function fd(v){if(!v)return"";if(v instanceof Date)return Utilities.formatDate(v,"GMT-3","dd/MM/yyyy HH:mm:ss");return String(v)}
+function addLead(d){/*Igual V77*/}
+function getLeads(d){/*Igual V77*/}
+function notifyNewLead(d){/*Igual V77*/}
+function notifyGestor(d){/*Igual V77*/}
+function gerarDicaFechamentoIA(d){/*Igual V77*/}
+function enviarWhatsApp(n,m){/*Igual V77*/}
+function enviarWhatsAppCallMeBot(n,m,k,i){/*Igual V77*/}
