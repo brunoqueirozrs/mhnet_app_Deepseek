@@ -250,13 +250,15 @@ async function salvarTarefa() {
     
     if(!desc) return alert("Digite a descrição.");
     
-    showLoading(true, "SALVANDO...");
+    showLoading(true, "SALVANDO TAREFA...");
+    
     const res = await apiCall('addTask', {
         vendedor: loggedUser,
         descricao: desc,
         dataLimite: date,
         nomeLead: leadVal 
     });
+    
     showLoading(false);
     
     if(res && res.status === 'success') {
