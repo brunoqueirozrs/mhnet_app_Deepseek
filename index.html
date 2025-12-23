@@ -56,7 +56,7 @@
             </div>
             <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-blue-500">ACESSAR SISTEMA</button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão V89 (Clean Load)</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão V90 (Loader Fix)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
@@ -164,6 +164,7 @@
                         <h2 class="text-xl font-bold text-[#004c99]">Minhas Tarefas</h2>
                     </div>
                     <div class="flex gap-2">
+                        <!-- Botão Limpar Concluídas -->
                         <button onclick="limparTarefasConcluidas()" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center active:scale-90 shadow-sm" title="Limpar Concluídas"><i class="fas fa-trash-alt"></i></button>
                         <button onclick="abrirModalTarefa()" class="w-10 h-10 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition hover:bg-blue-700"><i class="fas fa-plus"></i></button>
                     </div>
@@ -179,15 +180,54 @@
                     <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
                     <h2 class="text-xl font-bold text-[#004c99]">Justificativa</h2>
                 </div>
+                
                 <div id="formFaltaContainer" class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 space-y-5">
                     <button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 flex items-center justify-center gap-2 mb-2"><i class="fas fa-history"></i> VER HISTÓRICO</button>
-                    <div><label class="label-padrao">Data da Falta/Atraso</label><input type="date" id="faltaData" class="input-padrao"></div>
-                    <div><label class="label-padrao">Motivo</label><select id="faltaMotivo" class="input-padrao bg-white"><option value="">Selecione o tipo...</option><option value="FOLGA PROGRAMADA (BANCO DE HORAS)">FOLGA PROGRAMADA (BANCO DE HORAS)</option><option value="CONSULTA MÉDICA">CONSULTA MÉDICA</option><option value="SOLICITAÇÃO DE SAIDA EMERGENCIA">SOLICITAÇÃO DE SAIDA EMERGENCIA</option><option value="ENCAMINHAMENTO DE ATESTADO">ENCAMINHAMENTO DE ATESTADO</option><option value="ENCAMINHAMENTO DE COMPARECIMENTO">ENCAMINHAMENTO DE COMPARECIMENTO</option><option value="FALTA SEM JUSTIFICATIVA">FALTA SEM JUSTIFICATIVA</option><option value="AJUSTE DE PONTO">AJUSTE DE PONTO</option><option value="BENEFÍCIO - DAY OFF">BENEFÍCIO - DAY OFF</option><option value="PROBLEMAS NO APLICATIVO">PROBLEMAS NO APLICATIVO</option><option value="OUTROS">OUTROS</option></select></div>
-                    <div><label class="label-padrao">Observação / Contexto</label><textarea id="faltaObs" rows="3" class="input-padrao" placeholder="Descreva o ocorrido..."></textarea></div>
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 border-dashed relative"><label class="label-padrao text-blue-700 mb-2 flex items-center gap-2"><i class="fas fa-paperclip"></i> Anexar Atestado (Foto/PDF)</label><input type="file" id="faltaArquivo" accept="image/*,application/pdf" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer"></div>
-                    <button id="btnEnviarFalta" onclick="enviarJustificativa()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl mt-4 active:scale-95 transition flex items-center justify-center gap-2"><i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO</button>
+                    
+                    <div>
+                        <label class="label-padrao">Data da Falta/Atraso</label>
+                        <input type="date" id="faltaData" class="input-padrao">
+                    </div>
+                    
+                    <div>
+                        <label class="label-padrao">Motivo</label>
+                        <select id="faltaMotivo" class="input-padrao bg-white">
+                            <option value="">Selecione o tipo...</option>
+                            <option value="FOLGA PROGRAMADA (BANCO DE HORAS)">FOLGA PROGRAMADA (BANCO DE HORAS)</option>
+                            <option value="CONSULTA MÉDICA">CONSULTA MÉDICA</option>
+                            <option value="SOLICITAÇÃO DE SAIDA EMERGENCIA">SOLICITAÇÃO DE SAIDA EMERGENCIA</option>
+                            <option value="ENCAMINHAMENTO DE ATESTADO">ENCAMINHAMENTO DE ATESTADO</option>
+                            <option value="ENCAMINHAMENTO DE COMPARECIMENTO">ENCAMINHAMENTO DE COMPARECIMENTO</option>
+                            <option value="FALTA SEM JUSTIFICATIVA">FALTA SEM JUSTIFICATIVA</option>
+                            <option value="AJUSTE DE PONTO">AJUSTE DE PONTO</option>
+                            <option value="BENEFÍCIO - DAY OFF">BENEFÍCIO - DAY OFF</option>
+                            <option value="PROBLEMAS NO APLICATIVO">PROBLEMAS NO APLICATIVO</option>
+                            <option value="OUTROS">OUTROS</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="label-padrao">Observação / Contexto</label>
+                        <textarea id="faltaObs" rows="3" class="input-padrao" placeholder="Descreva o ocorrido..."></textarea>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 border-dashed relative">
+                        <label class="label-padrao text-blue-700 mb-2 flex items-center gap-2"><i class="fas fa-paperclip"></i> Anexar Atestado (Foto/PDF)</label>
+                        <input type="file" id="faltaArquivo" accept="image/*,application/pdf" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 cursor-pointer">
+                    </div>
+
+                    <button id="btnEnviarFalta" onclick="enviarJustificativa()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl mt-4 active:scale-95 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO
+                    </button>
                 </div>
-                <div id="historicoFaltasContainer" class="hidden mt-4 space-y-3 pb-20"><div class="flex justify-between items-center mb-2 px-2"><h3 class="text-sm font-bold text-slate-500 uppercase">Histórico</h3><button onclick="ocultarHistoricoFaltas()" class="text-xs text-blue-500 font-bold uppercase">Voltar ao Form</button></div><div id="listaHistoricoFaltas"></div></div>
+
+                <div id="historicoFaltasContainer" class="hidden mt-4 space-y-3 pb-20">
+                    <div class="flex justify-between items-center mb-2 px-2">
+                        <h3 class="text-sm font-bold text-slate-500 uppercase">Histórico</h3>
+                        <button onclick="ocultarHistoricoFaltas()" class="text-xs text-blue-500 font-bold uppercase hover:text-blue-700">Voltar ao Form</button>
+                    </div>
+                    <div id="listaHistoricoFaltas"></div>
+                </div>
             </div>
 
             <!-- TELA INDICADORES -->
