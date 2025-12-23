@@ -1,11 +1,10 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V87 (FIX LOADER & IA)
+ * MHNET VENDAS - LÓGICA FRONTEND V88 (DIAGNÓSTICO IA)
  * ============================================================
  * 📝 UPDATE:
- * - Ícone de loading restaurado para fa-sync fa-spin (setas circulares).
- * - Tratamento de erro da IA melhorado para evitar "IA Indisponível" falso positivo.
- * - Sincronizado com Backend V84.
+ * - Melhoria no retorno de erro da IA para identificar a causa real.
+ * - Ajuste no tratamento de promessas.
  * ============================================================
  */
 
@@ -24,7 +23,7 @@ let editingAbsenceIndex = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App Iniciado - V87");
+    console.log("🚀 MHNET App Iniciado - V88");
     
     // Tenta carregar dados locais para rapidez
     const saved = localStorage.getItem('mhnet_leads_cache');
@@ -624,37 +623,22 @@ function atualizarNavegacaoMateriais(isRoot) {
 }
 function buscarMateriais() { const input = document.getElementById('searchMateriais'); if (input) carregarMateriais(currentFolderId, input.value); }
 
-async function abrirIndicadores() {
-    navegarPara('indicadores');
-    document.getElementById('indMes').innerText = '--/--';
-    document.getElementById('indCiclo').innerText = 'Carregando...';
-    document.getElementById('indVendas').innerText = '...';
-    document.getElementById('indLeads').innerText = '...';
-    document.getElementById('indAnaliseIA').innerText = 'Analisando...';
-    document.getElementById('indProgresso').style.width = '0%';
-    
-    const res = await apiCall('getIndicators', { vendedor: loggedUser }, false);
-    if (res && res.status === 'success') {
-        const d = res.data;
-        document.getElementById('indMes').innerText = d.mes;
-        document.getElementById('indCiclo').innerText = `Ciclo: ${d.ciclo}`;
-        document.getElementById('indVendas').innerText = d.vendas;
-        document.getElementById('indLeads').innerText = d.totalLeads;
-        document.getElementById('indMetaTexto').innerText = `${d.vendas} / ${d.meta}`;
-        const larguraBarra = Math.min(d.porcentagem, 100);
-        document.getElementById('indProgresso').style.width = `${larguraBarra}%`;
-        
-        const barra = document.getElementById('indProgresso');
-        if (d.porcentagem >= 100) barra.className = "bg-green-500 h-4 rounded-full progress-bar";
-        else if (d.porcentagem >= 70) barra.className = "bg-blue-500 h-4 rounded-full progress-bar";
-        else barra.className = "bg-orange-500 h-4 rounded-full progress-bar";
+// --- IA CORRIGIDA ---
 
-        const resIA = await apiCall('analyzeIndicators', { vendas: d.vendas, meta: d.meta, diasUteisRestantes: d.diasUteisRestantes }, false);
-        if (resIA && resIA.status === 'success') document.getElementById('indAnaliseIA').innerText = resIA.message;
-        else document.getElementById('indAnaliseIA').innerText = "Foco na meta!";
-    } else {
-        document.getElementById('indAnaliseIA').innerText = 'Sem dados.';
-    }
+async function perguntarIABackend(p) { 
+    chatHistoryData.push(`User: ${p}`); 
+    const contexto = chatHistoryData.slice(-6); 
+    try { 
+        const res = await apiCall('askAI', { question: p, history: contexto }, false); 
+        if (res && res.status === 'success') { 
+            const resp = res.answer; 
+            chatHistoryData.push(`IA: ${resp}`); 
+            return resp; 
+        } else {
+            // Retorna o erro específico do backend
+            return `⚠️ IA Indisponível: ${res?.message || "Erro desconhecido"}`;
+        }
+    } catch (e) { return "Erro de conexão."; } 
 }
 
 async function combaterObjecaoGeral() {
@@ -663,11 +647,15 @@ async function combaterObjecaoGeral() {
     showLoading(true, "CONSULTANDO MATRIZ...");
     const res = await apiCall('solveObjection', { objection: obj });
     showLoading(false);
+    
     if(res && res.status === 'success') {
         const div = document.getElementById('resultadoObjecaoGeral');
+        // Corrige exibição para remover asteriscos
         div.innerHTML = `<div id="textoResObjGeral"><b>💡 Sugestão:</b><br>${res.answer.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div><div class="flex gap-2 mt-3 justify-end border-t border-blue-200 pt-2"><button onclick="copiarTexto('textoResObjGeral')" class="text-blue-500 text-xs font-bold uppercase"><i class="far fa-copy"></i> Copiar</button><button onclick="enviarZapTexto('textoResObjGeral')" class="text-green-500 text-xs font-bold uppercase"><i class="fab fa-whatsapp"></i> Enviar</button></div>`;
         div.classList.remove('hidden');
-    } else alert("Erro na IA.");
+    } else {
+        alert(`Erro IA: ${res?.message || "Falha na conexão"}`);
+    }
 }
 
 async function combaterObjecaoLead() {
@@ -677,9 +665,12 @@ async function combaterObjecaoLead() {
     showLoading(true, "GERANDO...");
     const res = await apiCall('solveObjection', { objection: obj });
     showLoading(false);
+    
     if(res && res.status === 'success') {
         const cleanText = res.answer.replace(/[\*#]/g, ''); 
         document.getElementById('respostaObjecaoLead').value = cleanText;
+    } else {
+        alert(`Erro IA: ${res?.message || "Falha"}`);
     }
 }
 
@@ -708,10 +699,12 @@ async function analiseEstrategicaIA() {
     const prompt = `Analise este lead: Nome ${l.nomeLead}, Provedor ${l.provedor}, Interesse ${l.interesse}, Bairro ${l.bairro}. Sugira 3 táticas de negociação específicas.`;
     const resp = await perguntarIABackend(prompt);
     showLoading(false);
-    if(resp) {
+    if(resp && !resp.includes("⚠️")) {
         const obsEl = document.getElementById('modalLeadObs');
         obsEl.value = (obsEl.value ? obsEl.value + "\n\n" : "") + `[IA]: ${resp.replace(/\*\*/g, '')}`;
         alert("✅ Análise adicionada às observações! Clique em 'Salvar Obs'.");
+    } else {
+        alert(resp || "Erro na análise.");
     }
 }
 
@@ -722,9 +715,11 @@ async function raioXConcorrencia() {
     const prompt = `Cliente usa ${provedor}. Liste 3 pontos fracos deles e 3 argumentos da MHNET para vencer.`;
     const resp = await perguntarIABackend(prompt);
     showLoading(false);
-    if(resp) {
+    if(resp && !resp.includes("⚠️")) {
         const obs = document.getElementById('leadObs');
         obs.value = (obs.value + "\n\n" + resp.replace(/\*\*/g, '')).trim();
+    } else {
+        alert(resp || "Erro no Raio-X.");
     }
 }
 
@@ -734,20 +729,8 @@ async function refinarObsIA() {
     showLoading(true, "REFINANDO...");
     const resp = await perguntarIABackend(`Reescreva profissionalmente: "${obs.value}"`);
     showLoading(false);
-    if(resp) obs.value = resp.replace(/\*\*/g, '');
-}
-
-async function perguntarIABackend(p) {
-    chatHistoryData.push(`User: ${p}`);
-    const contexto = chatHistoryData.slice(-6);
-    try {
-        const res = await apiCall('askAI', { question: p, history: contexto }, false);
-        if (res && res.status === 'success') {
-            const resp = res.answer;
-            chatHistoryData.push(`IA: ${resp}`);
-            return resp;
-        } else return "⚠️ IA indisponível.";
-    } catch (e) { return "Erro de conexão."; }
+    if(resp && !resp.includes("⚠️")) obs.value = resp.replace(/\*\*/g, '');
+    else alert(resp || "Erro ao refinar.");
 }
 
 async function gerarAbordagemIA() {
@@ -756,14 +739,16 @@ async function gerarAbordagemIA() {
     showLoading(true, "CRIANDO PITCH...");
     const txt = await perguntarIABackend(`Crie pitch curto WhatsApp para ${nome}.`);
     showLoading(false);
-    if(txt) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
+    if(txt && !txt.includes("⚠️")) document.getElementById('leadObs').value = txt.replace(/["*#]/g, '').trim();
+    else alert(txt || "Erro ao gerar pitch.");
 }
 
 async function gerarCoachIA() {
     showLoading(true, "COACH...");
     const txt = await perguntarIABackend(`Frase motivacional vendas curta.`);
     showLoading(false);
-    if(txt) alert(`🚀 ${txt.replace(/\*\*/g,'')}`);
+    if(txt && !txt.includes("⚠️")) alert(`🚀 ${txt.replace(/\*\*/g,'')}`);
+    else alert(txt || "Erro no Coach.");
 }
 
 async function consultarPlanosIA() {
@@ -901,4 +886,39 @@ async function enviarPayloadFalta(route, payload) {
         ocultarHistoricoFaltas();
         navegarPara('dashboard');
     } else alert("Erro ao enviar.");
+}
+
+// 10. INDICADORES
+
+async function abrirIndicadores() {
+    navegarPara('indicadores');
+    document.getElementById('indMes').innerText = '--/--';
+    document.getElementById('indCiclo').innerText = 'Carregando...';
+    document.getElementById('indVendas').innerText = '...';
+    document.getElementById('indLeads').innerText = '...';
+    document.getElementById('indAnaliseIA').innerText = 'Analisando...';
+    document.getElementById('indProgresso').style.width = '0%';
+    
+    const res = await apiCall('getIndicators', { vendedor: loggedUser }, false);
+    if (res && res.status === 'success') {
+        const d = res.data;
+        document.getElementById('indMes').innerText = d.mes;
+        document.getElementById('indCiclo').innerText = `Ciclo: ${d.ciclo}`;
+        document.getElementById('indVendas').innerText = d.vendas;
+        document.getElementById('indLeads').innerText = d.totalLeads;
+        document.getElementById('indMetaTexto').innerText = `${d.vendas} / ${d.meta}`;
+        const larguraBarra = Math.min(d.porcentagem, 100);
+        document.getElementById('indProgresso').style.width = `${larguraBarra}%`;
+        
+        const barra = document.getElementById('indProgresso');
+        if (d.porcentagem >= 100) barra.className = "bg-green-500 h-4 rounded-full progress-bar";
+        else if (d.porcentagem >= 70) barra.className = "bg-blue-500 h-4 rounded-full progress-bar";
+        else barra.className = "bg-orange-500 h-4 rounded-full progress-bar";
+
+        const resIA = await apiCall('analyzeIndicators', { vendas: d.vendas, meta: d.meta, diasUteisRestantes: d.diasUteisRestantes }, false);
+        if (resIA && resIA.status === 'success') document.getElementById('indAnaliseIA').innerText = resIA.message;
+        else document.getElementById('indAnaliseIA').innerText = "Foco na meta!";
+    } else {
+        document.getElementById('indAnaliseIA').innerText = 'Sem dados.';
+    }
 }
