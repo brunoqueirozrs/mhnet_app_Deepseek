@@ -10,7 +10,7 @@
  */
 
 // ⚠️ ID DA IMPLANTAÇÃO V84 DO BACKEND (ATUALIZE SE NECESSÁRIO)
-const DEPLOY_ID = 'AKfycbz1-H8r52Z_j3w8zF5u3L5b2yX9c6v7b4n0m1k2l3p4q5r6s7t8'; 
+const DEPLOY_ID = 'AKfycbydgHNvi0o4tZgqa37nY7-jzZd4g8Qcgo1K297KG6QKj90T2d8eczNEwWatGiXbvere'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
 let loggedUser = localStorage.getItem('loggedUser');
