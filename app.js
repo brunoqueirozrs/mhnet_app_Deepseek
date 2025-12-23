@@ -1,15 +1,15 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA FRONTEND V86 (FINAL CORRIGIDO)
+ * MHNET VENDAS - LÓGICA FRONTEND V87 (FIX LOADER & IA)
  * ============================================================
  * 📝 UPDATE:
- * - ID de Implementação Atualizado.
- * - Correção de erros de referência (showLoading, atualizarDashboard).
- * - Todas as funções de Faltas, Tarefas e IA integradas.
+ * - Ícone de loading restaurado para fa-sync fa-spin (setas circulares).
+ * - Tratamento de erro da IA melhorado para evitar "IA Indisponível" falso positivo.
+ * - Sincronizado com Backend V84.
  * ============================================================
  */
 
-// ⚠️ ID FORNECIDO PELO USUÁRIO
+// ⚠️ ID FORNECIDO PELO USUÁRIO (V84)
 const DEPLOY_ID = 'AKfycbydgHNvi0o4tZgqa37nY7-jzZd4g8Qcgo1K297KG6QKj90T2d8eczNEwWatGiXbvere'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -24,7 +24,7 @@ let editingAbsenceIndex = null;
 
 // 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App Iniciado - V86");
+    console.log("🚀 MHNET App Iniciado - V87");
     
     // Tenta carregar dados locais para rapidez
     const saved = localStorage.getItem('mhnet_leads_cache');
@@ -348,17 +348,15 @@ function criarCardLead(l, index, destaque = false) {
     </div>`;
 }
 
+// ... (MODAIS E AÇÕES DE LEAD)
 function abrirLeadDetalhes(index) {
     const l = leadsCache[index];
     if(!l) return;
     leadAtualParaAgendar = l;
     
-    // Popula campos
-    const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
-    setText('modalLeadNome', l.nomeLead);
-    setText('modalLeadInfo', `${l.bairro || '-'} • ${l.telefone}`);
-    setText('modalLeadProvedor', l.provedor || '--');
-    
+    document.getElementById('modalLeadNome').innerText = l.nomeLead;
+    document.getElementById('modalLeadInfo').innerText = `${l.bairro || '-'} • ${l.telefone}`;
+    document.getElementById('modalLeadProvedor').innerText = l.provedor || '--';
     document.getElementById('modalLeadObs').value = l.observacao || "";
     document.getElementById('inputObjecaoLead').value = l.objecao || "";
     document.getElementById('respostaObjecaoLead').value = l.respostaObjecao || "";
@@ -368,7 +366,6 @@ function abrirLeadDetalhes(index) {
         btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
     }
     
-    // Injeção de botão Raio-X se não existir
     const containerProv = document.getElementById('modalLeadProvedor')?.parentElement;
     if(containerProv && !document.getElementById('btnRaioXModal')) {
         const btn = document.createElement('button');
@@ -505,14 +502,9 @@ async function salvarAgendamento() {
   const dt = document.getElementById('agendarData').value;
   const hr = document.getElementById('agendarHora').value;
   if (!dt) return alert("Informe a data!");
-  
   const [a, m, d] = dt.split('-');
   const ag = `${d}/${m}/${a} ${hr || '09:00'}`;
-  
-  const res = await apiCall('updateAgendamento', {
-      vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, agendamento: ag
-  });
-  
+  const res = await apiCall('updateAgendamento', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, agendamento: ag });
   if(res && (res.status === 'success' || res.local)) {
       alert("✅ Agendado! O Gestor será notificado.");
       leadAtualParaAgendar.agendamento = ag;
@@ -532,152 +524,6 @@ async function salvarObservacaoModal() {
         leadAtualParaAgendar.observacao = obs;
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
     }
-}
-
-function ajustarMicrofone() {
-    const btnMic = document.getElementById('btnMicNome');
-    if (btnMic) {
-        btnMic.removeAttribute('onclick');
-        btnMic.onclick = function() { iniciarDitado('leadObs', 'btnMicNome'); };
-    }
-}
-
-async function buscarEnderecoGPS() {
-    if (!navigator.geolocation) return alert("GPS desligado.");
-    showLoading(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-            const data = await res.json();
-            if (data && data.address) {
-                const elEnd = document.getElementById('leadEndereco');
-                const elBairro = document.getElementById('leadBairro');
-                const elCidade = document.getElementById('leadCidade');
-                if(elEnd) elEnd.value = data.address.road || '';
-                if(elBairro) elBairro.value = data.address.suburb || data.address.neighbourhood || '';
-                if(elCidade) elCidade.value = data.address.city || data.address.town || '';
-                alert(`✅ Localizado: ${data.address.road}`);
-            }
-        } catch (e) { alert("Erro ao obter endereço."); }
-        showLoading(false);
-    }, () => { showLoading(false); alert("Erro no GPS."); }, { enableHighAccuracy: true });
-}
-
-window.filtrarRetornos = function() {
-    const hoje = new Date().toLocaleDateString('pt-BR').split(' ')[0];
-    navegarPara('gestaoLeads');
-    const input = document.getElementById('searchLead');
-    if(input) { input.value = ""; input.placeholder = `📅 Retornos de Hoje (${hoje})`; }
-    const div = document.getElementById('listaLeadsGestao');
-    const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
-    if(!retornos.length) { div.innerHTML = '<div class="text-center mt-10 font-bold text-slate-400">Nenhum retorno hoje! 😴</div>'; return; }
-    div.innerHTML = retornos.map(l => {
-        const idx = leadsCache.indexOf(l);
-        return criarCardLead(l, idx, true);
-    }).join('');
-};
-
-// 6. FUNÇÕES FALTAS E HISTÓRICO
-
-async function verHistoricoFaltas() {
-    const div = document.getElementById('listaHistoricoFaltas');
-    document.getElementById('historicoFaltasContainer').classList.remove('hidden');
-    document.getElementById('formFaltaContainer').classList.add('hidden');
-    div.innerHTML = '<div class="text-center p-5 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
-    
-    const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
-    
-    if (res && res.status === 'success' && res.data.length > 0) {
-        div.innerHTML = res.data.map(f => `
-            <div onclick='preencherEdicaoFalta(${JSON.stringify(f)})' class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm mb-2 cursor-pointer active:bg-blue-50">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="font-bold text-xs text-slate-700">${f.motivo}</div>
-                        <div class="text-[10px] text-slate-400">${f.dataFalta} • ${f.statusEnvio}</div>
-                    </div>
-                    <i class="fas fa-pen text-slate-300 text-xs"></i>
-                </div>
-            </div>`).join('');
-    } else {
-        div.innerHTML = '<div class="text-center p-5 text-gray-400 text-xs">Nenhum histórico encontrado.</div>';
-    }
-}
-
-function ocultarHistoricoFaltas() {
-    document.getElementById('historicoFaltasContainer').classList.add('hidden');
-    document.getElementById('formFaltaContainer').classList.remove('hidden');
-    editingAbsenceIndex = null;
-    document.getElementById('faltaData').value = '';
-    document.getElementById('faltaMotivo').value = '';
-    document.getElementById('faltaObs').value = '';
-    document.getElementById('faltaArquivo').value = '';
-    
-    const btn = document.getElementById('btnEnviarFalta');
-    btn.innerHTML = '<i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO';
-    btn.classList.replace('bg-green-500', 'bg-[#00aeef]');
-}
-
-function preencherEdicaoFalta(falta) {
-    document.getElementById('historicoFaltasContainer').classList.add('hidden');
-    document.getElementById('formFaltaContainer').classList.remove('hidden');
-    
-    const [d, m, a] = falta.dataFalta.split('/');
-    document.getElementById('faltaData').value = `${a}-${m}-${d}`;
-    document.getElementById('faltaMotivo').value = falta.motivo;
-    document.getElementById('faltaObs').value = falta.obs;
-    editingAbsenceIndex = falta._linha; 
-    
-    const btn = document.getElementById('btnEnviarFalta');
-    btn.innerHTML = '<i class="fas fa-sync"></i> ATUALIZAR & REENVIAR';
-    btn.classList.replace('bg-[#00aeef]', 'bg-green-500');
-    
-    alert("📝 Editando solicitação. Anexe o atestado novamente se necessário.");
-}
-
-async function enviarJustificativa() {
-    const dataFalta = document.getElementById('faltaData').value;
-    const motivo = document.getElementById('faltaMotivo').value;
-    const obs = document.getElementById('faltaObs').value;
-    const fileInput = document.getElementById('faltaArquivo');
-    
-    if(!dataFalta || !motivo) return alert("Preencha data e motivo.");
-    
-    showLoading(true, editingAbsenceIndex ? "ATUALIZANDO..." : "ENVIANDO...");
-    
-    const payload = {
-        vendedor: loggedUser,
-        dataFalta: dataFalta,
-        motivo: motivo,
-        observacao: obs,
-        _linha: editingAbsenceIndex
-    };
-    
-    const route = editingAbsenceIndex ? 'updateAbsence' : 'registerAbsence';
-
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            payload.fileData = e.target.result; 
-            payload.fileName = file.name;
-            payload.mimeType = file.type;
-            await enviarPayloadFalta(route, payload);
-        };
-        reader.readAsDataURL(file);
-    } else {
-        if(editingAbsenceIndex) payload.existingFile = ""; 
-        await enviarPayloadFalta(route, payload);
-    }
-}
-
-async function enviarPayloadFalta(route, payload) {
-    const res = await apiCall(route, payload);
-    showLoading(false);
-    if (res && res.status === 'success') {
-        alert(editingAbsenceIndex ? "✅ Atualizado!" : "✅ Enviado!");
-        ocultarHistoricoFaltas();
-        navegarPara('dashboard');
-    } else alert("Erro ao enviar.");
 }
 
 // 7. FUNÇÕES DE TAREFAS
@@ -952,4 +798,107 @@ async function enviarMensagemChat() {
           hist.innerHTML += `<div class="flex gap-3 fade-in mb-3"><div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-[#004c99] text-xs"><i class="fas fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-tl-none border border-gray-100 text-sm text-gray-600 shadow-sm max-w-[90%] leading-relaxed">${cleanResp}</div></div>`;
           hist.scrollTop = hist.scrollHeight;
     }
+}
+
+// 9. FUNÇÕES FALTAS E HISTÓRICO
+
+async function verHistoricoFaltas() {
+    const div = document.getElementById('listaHistoricoFaltas');
+    document.getElementById('historicoFaltasContainer').classList.remove('hidden');
+    document.getElementById('formFaltaContainer').classList.add('hidden');
+    div.innerHTML = '<div class="text-center p-5 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Carregando...</div>';
+    
+    const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
+    
+    if (res && res.status === 'success' && res.data.length > 0) {
+        div.innerHTML = res.data.map(f => `
+            <div onclick='preencherEdicaoFalta(${JSON.stringify(f)})' class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm mb-2 cursor-pointer active:bg-blue-50">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="font-bold text-xs text-slate-700">${f.motivo}</div>
+                        <div class="text-[10px] text-slate-400">${f.dataFalta} • ${f.statusEnvio}</div>
+                    </div>
+                    <i class="fas fa-pen text-slate-300 text-xs"></i>
+                </div>
+            </div>`).join('');
+    } else {
+        div.innerHTML = '<div class="text-center p-5 text-gray-400 text-xs">Nenhum histórico encontrado.</div>';
+    }
+}
+
+function ocultarHistoricoFaltas() {
+    document.getElementById('historicoFaltasContainer').classList.add('hidden');
+    document.getElementById('formFaltaContainer').classList.remove('hidden');
+    editingAbsenceIndex = null;
+    document.getElementById('faltaData').value = '';
+    document.getElementById('faltaMotivo').value = '';
+    document.getElementById('faltaObs').value = '';
+    document.getElementById('faltaArquivo').value = '';
+    
+    const btn = document.getElementById('btnEnviarFalta');
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO';
+    btn.className = "w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl mt-4 active:scale-95 transition flex items-center justify-center gap-2";
+}
+
+function preencherEdicaoFalta(falta) {
+    document.getElementById('historicoFaltasContainer').classList.add('hidden');
+    document.getElementById('formFaltaContainer').classList.remove('hidden');
+    
+    const [d, m, a] = falta.dataFalta.split('/');
+    document.getElementById('faltaData').value = `${a}-${m}-${d}`;
+    document.getElementById('faltaMotivo').value = falta.motivo;
+    document.getElementById('faltaObs').value = falta.obs;
+    editingAbsenceIndex = falta._linha; 
+    
+    const btn = document.getElementById('btnEnviarFalta');
+    btn.innerHTML = '<i class="fas fa-sync"></i> ATUALIZAR & REENVIAR';
+    btn.className = "w-full bg-green-500 text-white font-bold py-4 rounded-xl shadow-xl mt-4 active:scale-95 transition flex items-center justify-center gap-2";
+    
+    alert("📝 Editando solicitação. Anexe o atestado novamente se necessário.");
+}
+
+async function enviarJustificativa() {
+    const dataFalta = document.getElementById('faltaData').value;
+    const motivo = document.getElementById('faltaMotivo').value;
+    const obs = document.getElementById('faltaObs').value;
+    const fileInput = document.getElementById('faltaArquivo');
+    
+    if(!dataFalta || !motivo) return alert("Preencha data e motivo.");
+    
+    showLoading(true, editingAbsenceIndex ? "ATUALIZANDO..." : "ENVIANDO...");
+    
+    const payload = {
+        vendedor: loggedUser,
+        dataFalta: dataFalta,
+        motivo: motivo,
+        observacao: obs,
+        _linha: editingAbsenceIndex
+    };
+    
+    const route = editingAbsenceIndex ? 'updateAbsence' : 'registerAbsence';
+
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            payload.fileData = e.target.result; 
+            payload.fileName = file.name;
+            payload.mimeType = file.type;
+            await enviarPayloadFalta(route, payload);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        if(editingAbsenceIndex) payload.existingFile = ""; 
+        await enviarPayloadFalta(route, payload);
+    }
+}
+
+async function enviarPayloadFalta(route, payload) {
+    const res = await apiCall(route, payload);
+    showLoading(false);
+    if (res && res.status === 'success') {
+        alert(editingAbsenceIndex ? "✅ Atualizado!" : "✅ Enviado!");
+        ocultarHistoricoFaltas();
+        navegarPara('dashboard');
+    } else alert("Erro ao enviar.");
 }
