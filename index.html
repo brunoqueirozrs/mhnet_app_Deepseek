@@ -270,5 +270,13 @@
     <div id="loader" class="hidden fixed inset-0 z-[70] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center fade-in"><div class="relative"><div class="w-20 h-20 border-4 border-blue-100 border-t-[#00aeef] rounded-full animate-spin"></div><div class="absolute inset-0 flex items-center justify-center"><img src="https://mhnet.com.br/assets/img/logo_branca.png" class="h-6 opacity-50 grayscale invert"></div></div><p id="loaderText" class="text-slate-400 font-bold text-xs tracking-[0.2em] mt-6 animate-pulse">CARREGANDO</p></div>
 
     <script src="app.js"></script>
+    <script>
+        // Registro do Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('Service Worker registrado!'))
+                .catch((error) => console.log('Falha ao registrar Service Worker:', error));
+        }
+    </script>
 </body>
 </html>
