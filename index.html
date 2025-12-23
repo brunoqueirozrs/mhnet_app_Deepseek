@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -41,9 +41,7 @@
 
     <!-- LOGIN -->
     <div id="userMenu" class="fixed inset-0 bg-gradient-to-b from-[#004c99] to-[#003366] z-50 flex flex-col items-center justify-center p-6 fade-in">
-        <div class="mb-10 p-6 bg-white/10 rounded-full backdrop-blur-md border border-white/20 shadow-2xl animate-pulse">
-            <i class="fas fa-wifi text-6xl text-white drop-shadow-md"></i>
-        </div>
+        <div class="mb-10 p-6 bg-white/10 rounded-full backdrop-blur-md border border-white/20 shadow-2xl animate-pulse"><i class="fas fa-wifi text-6xl text-white drop-shadow-md"></i></div>
         <div class="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
             <h2 class="text-center text-2xl font-bold text-slate-800 mb-6">Bem-vindo</h2>
             <div class="relative mb-6">
@@ -54,7 +52,7 @@
             </div>
             <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-blue-500">ACESSAR SISTEMA</button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão V85 (Final)</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão V85 (Final PWA)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
@@ -156,7 +154,7 @@
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center gap-4">
                         <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
-                        <h2 class="text-xl font-bold text-[#004c99]">Tarefas</h2>
+                        <h2 class="text-xl font-bold text-[#004c99]">Minhas Tarefas</h2>
                     </div>
                     <div class="flex gap-2">
                         <!-- Botão Limpar Concluídas -->
@@ -190,8 +188,8 @@
                             <option value="">Selecione o tipo...</option>
                             <option value="FOLGA PROGRAMADA (BANCO DE HORAS)">FOLGA PROGRAMADA (BANCO DE HORAS)</option>
                             <option value="CONSULTA MÉDICA">CONSULTA MÉDICA</option>
-                            <option value="SOLICITAÇÃO DE SAIDA EMERGENCIA">SAÍDA EMERGÊNCIA</option>
-                            <option value="ENCAMINHAMENTO DE ATESTADO">ATESTADO MÉDICO</option>
+                            <option value="SOLICITAÇÃO DE SAIDA EMERGENCIA">SOLICITAÇÃO DE SAIDA EMERGENCIA</option>
+                            <option value="ENCAMINHAMENTO DE ATESTADO">ENCAMINHAMENTO DE ATESTADO</option>
                             <option value="ENCAMINHAMENTO DE COMPARECIMENTO">ENCAMINHAMENTO DE COMPARECIMENTO</option>
                             <option value="FALTA SEM JUSTIFICATIVA">FALTA SEM JUSTIFICATIVA</option>
                             <option value="AJUSTE DE PONTO">AJUSTE DE PONTO</option>
@@ -271,11 +269,11 @@
 
     <script src="app.js"></script>
     <script>
-        // Registro do Service Worker
+        // Registro do Service Worker (Essencial para PWA)
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker registrado!'))
-                .catch((error) => console.log('Falha ao registrar Service Worker:', error));
+                .then(() => console.log('SW registrado!'))
+                .catch((e) => console.log('Falha SW:', e));
         }
     </script>
 </body>
