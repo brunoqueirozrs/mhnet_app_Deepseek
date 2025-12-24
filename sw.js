@@ -1,75 +1,58 @@
-const CACHE_NAME = 'mhnet-v47';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/manifest.json',
+const CACHE_NAME = 'mhnet-v90-offline-sync';
+const ASSETS = [
+  './',
+  './index.html',
+  './app.js',
+  './manifest.json',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// Instalação do Service Worker
-self.addEventListener('install', event => {
-  console.log('🔧 Service Worker: Instalando...');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('📦 Service Worker: Cache aberto');
-        return cache.addAll(urlsToCache);
-      })
-      .catch(err => console.error('❌ Erro ao cachear:', err))
-  );
-  self.skipWaiting();
-});
-
-// Ativação do Service Worker
-self.addEventListener('activate', event => {
-  console.log('✅ Service Worker: Ativado');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Service Worker: Removendo cache antigo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
+// 1. Instalação: Baixa e guarda os ficheiros essenciais
+self.addEventListener('install', (e) => {
+  console.log('[SW] A instalar v90...');
+  self.skipWaiting(); // Força o SW a assumir o controlo imediatamente
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Cache criado');
+      return cache.addAll(ASSETS);
     })
   );
-  return self.clients.claim();
 });
 
-// Interceptação de requisições (Network First, depois Cache)
-self.addEventListener('fetch', event => {
-  // Ignora requisições para a API do Google Apps Script (sempre online)
-  if (event.request.url.includes('script.google.com')) {
-    return;
+// 2. Ativação: Limpa versões antigas do cache para libertar espaço
+self.addEventListener('activate', (e) => {
+  console.log('[SW] Ativado');
+  e.waitUntil(
+    caches.keys().then((keyList) => {
+      return Promise.all(keyList.map((key) => {
+        if (key !== CACHE_NAME) {
+          console.log('[SW] A remover cache antigo:', key);
+          return caches.delete(key);
+        }
+      }));
+    })
+  );
+  self.clients.claim();
+});
+
+// 3. Interceptação de Rede (O Coração do Offline)
+self.addEventListener('fetch', (e) => {
+  // Ignora requisições para a API (Google Script/CallMeBot)
+  // Deixamos o app.js lidar com a falta de internet para dados dinâmicos (Fila de Sincronização)
+  if (e.request.url.includes('script.google.com') || e.request.url.includes('api.callmebot')) {
+    return; 
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Se a resposta for válida, clona e adiciona ao cache
-        if (response && response.status === 200) {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Se falhar (offline), busca no cache
-        return caches.match(event.request).then(response => {
-          if (response) {
-            return response;
-          }
-          // Se não tiver no cache, retorna página offline
-          if (event.request.destination === 'document') {
-            return caches.match('/index.html');
-          }
-        });
-      })
+  // Estratégia Cache-First para a Interface (HTML, CSS, JS)
+  // Tenta pegar do cache (rápido). Se não tiver, vai à rede.
+  e.respondWith(
+    caches.match(e.request).then((cachedResponse) => {
+      return cachedResponse || fetch(e.request).catch(() => {
+          // Se falhar (sem net) e não estiver no cache, não faz nada (ou poderia retornar uma página de erro customizada)
+          // Para imagens, poderíamos retornar um placeholder, mas por enquanto deixamos vazio para não quebrar o layout.
+          return new Response('', { status: 408, statusText: 'Offline' });
+      });
+    })
   );
 });
