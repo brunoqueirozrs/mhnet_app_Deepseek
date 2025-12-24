@@ -6,7 +6,7 @@
   "background_color": "#004c99",
   "theme_color": "#004c99",
   "orientation": "portrait",
-  "description": "Gestão de Vendas Externas MHNET",
+  "description": "Gestão de Vendas MHNET - Offline Capable",
   "icons": [
     {
       "src": "https://mhnet.com.br/assets/img/logo_branca.png",
