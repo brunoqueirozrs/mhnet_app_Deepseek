@@ -283,7 +283,8 @@ function renderLeads() {
     
     const lista = leadsCache.filter(l => 
         (l.nomeLead||'').toLowerCase().includes(term) || 
-        (l.bairro||'').toLowerCase().includes(term)
+        (l.bairro||'').toLowerCase().includes(term) ||
+        (l.provedor||'').toLowerCase().includes(term)
     );
     
     if (!lista.length) { div.innerHTML = '<div class="text-center mt-10 text-gray-400">Vazio.</div>'; return; }
@@ -294,7 +295,7 @@ function renderLeads() {
     }).join('');
 }
 
-function criarCardLead(l, index) {
+function criarCardLead(l, index, destaque = false) {
     let badgeColor = "bg-slate-100 text-slate-500";
     if (l.status === 'Venda Fechada') badgeColor = "bg-green-500 text-white font-bold";
     else if (l.status === 'Em Negociação') badgeColor = "bg-blue-100 text-blue-600 font-bold";
@@ -324,7 +325,7 @@ function abrirLeadDetalhes(index) {
     leadAtualParaAgendar = l;
     
     document.getElementById('modalLeadNome').innerText = l.nomeLead;
-    document.getElementById('modalLeadInfo').innerText = `${l.bairro} • ${l.telefone}`;
+    document.getElementById('modalLeadInfo').innerText = `${l.bairro || '-'} • ${l.telefone}`;
     document.getElementById('modalLeadProvedor').innerText = l.provedor || "--";
     
     document.getElementById('modalLeadObs').value = l.observacao || "";
@@ -334,6 +335,7 @@ function abrirLeadDetalhes(index) {
     const btnWhats = document.getElementById('btnModalWhats');
     if (btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
     
+    // Injeção botão Raio-X
     const containerProv = document.getElementById('modalLeadProvedor')?.parentElement;
     if(containerProv && !document.getElementById('btnRaioXModal')) {
         const btn = document.createElement('button');
@@ -517,7 +519,7 @@ async function carregarTarefas() {
         }).join('');
     } else div.innerHTML = '<div class="text-center text-red-400">Erro.</div>';
 }
-function abrirModalTarefa() { document.getElementById('taskModal').classList.remove('hidden'); const sel = document.getElementById('taskLeadSelect'); sel.innerHTML = '<option value="">Nenhum</option>'; leadsCache.forEach(l => { const opt = document.createElement('option'); opt.value = l.nomeLead; opt.innerText = l.nomeLead; sel.appendChild(opt); }); }
+function abrirModalTarefa() { document.getElementById('taskModal').classList.remove('hidden'); const sel = document.getElementById('taskLeadSelect'); sel.innerHTML = '<option value="">Nenhum (Avulso)</option>'; leadsCache.forEach(l => { const opt = document.createElement('option'); opt.value = l.nomeLead; opt.innerText = l.nomeLead; sel.appendChild(opt); }); }
 async function salvarTarefa() { const desc = document.getElementById('taskDesc').value; if(!desc) return; showLoading(true); await apiCall('addTask', { vendedor: loggedUser, descricao: desc, dataLimite: document.getElementById('taskDate').value, nomeLead: document.getElementById('taskLeadSelect').value }); showLoading(false); document.getElementById('taskModal').classList.add('hidden'); carregarTarefas(); }
 async function toggleTask(id, s) { await apiCall('toggleTask', { taskId: id, status: s, vendedor: loggedUser }, false); carregarTarefas(); }
 async function limparTarefasConcluidas() { if(confirm("Limpar concluídas?")) { showLoading(true); await apiCall('archiveTasks', { vendedor: loggedUser }); showLoading(false); carregarTarefas(); } }
@@ -530,14 +532,19 @@ async function verHistoricoFaltas() {
     const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
     if (res.status === 'success' && res.data.length > 0) {
         div.innerHTML = res.data.map(f => `<div onclick='preencherEdicaoFalta(${JSON.stringify(f)})' class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm mb-2 cursor-pointer"><div class="flex justify-between"><div><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px] text-slate-400">${f.dataFalta} • ${f.statusEnvio}</div></div><i class="fas fa-pen text-slate-300"></i></div></div>`).join('');
-    } else div.innerHTML = '<div class="text-center p-5 text-gray-400 text-xs">Sem histórico.</div>';
+    } else div.innerHTML = '<div class="text-center p-5 text-gray-400 text-xs">Nenhum histórico.</div>';
 }
 function ocultarHistoricoFaltas() {
     document.getElementById('historicoFaltasContainer').classList.add('hidden');
     document.getElementById('formFaltaContainer').classList.remove('hidden');
     editingAbsenceIndex = null;
+    document.getElementById('faltaData').value = '';
+    document.getElementById('faltaMotivo').value = '';
     document.getElementById('faltaObs').value = '';
-    const btn = document.getElementById('btnEnviarFalta'); btn.innerHTML = '<i class="fas fa-paper-plane"></i> ENVIAR'; btn.className = "w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl mt-4 active:scale-95 transition flex items-center justify-center gap-2";
+    document.getElementById('faltaArquivo').value = '';
+    const btn = document.getElementById('btnEnviarFalta');
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO';
+    btn.className = "w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-xl mt-4 active:scale-95 transition flex items-center justify-center gap-2";
 }
 function preencherEdicaoFalta(f) {
     document.getElementById('historicoFaltasContainer').classList.add('hidden');
@@ -608,7 +615,7 @@ async function salvarObservacaoModal() { await apiCall('updateObservacao', { ven
 async function combaterObjecaoGeral() { const o=document.getElementById('inputObjecaoGeral').value; showLoading(true); const r=await apiCall('solveObjection',{objection:o}); showLoading(false); if(r.status==='success') { document.getElementById('resultadoObjecaoGeral').innerHTML=r.answer; document.getElementById('resultadoObjecaoGeral').classList.remove('hidden'); } }
 async function combaterObjecaoLead() { const o=document.getElementById('inputObjecaoLead').value; showLoading(true); const r=await apiCall('solveObjection',{objection:o}); showLoading(false); if(r.status==='success') document.getElementById('respostaObjecaoLead').value=r.answer; }
 async function salvarObjecaoLead() { await apiCall('saveObjectionLead',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,objection:document.getElementById('inputObjecaoLead').value,answer:document.getElementById('respostaObjecaoLead').value}); alert("Salvo!"); }
-async function analiseEstrategicaIA() { showLoading(true); const r=await perguntarIABackend(`Analise lead ${leadAtualParaAgendar.nomeLead}`); showLoading(false); if(r) { document.getElementById('modalLeadObs').value += "\n\n[IA]: " + r; alert("Análise adicionada!"); } }
+async function analiseEstrategicaIA() { showLoading(true); const r=await perguntarIABackend(`Analise lead ${leadAtualParaAgendar.nomeLead}`); showLoading(false); if(r) { document.getElementById('modalLeadObs').value += "\n\n[IA]: " + r.replace(/\*\*/g,''); alert("Análise adicionada!"); } }
 async function raioXConcorrencia() { const p = document.getElementById('leadProvedor').value; showLoading(true); const r = await perguntarIABackend(`Cliente usa ${p}. 3 pontos fracos deles e 3 argumentos nossos.`); showLoading(false); if(r) { const o = document.getElementById('leadObs'); o.value += "\n\n" + r; } }
 async function refinarObsIA() { const o = document.getElementById('leadObs'); showLoading(true); const r = await perguntarIABackend(`Reescreva: "${o.value}"`); showLoading(false); if(r) o.value = r; }
 async function gerarCoachIA() { showLoading(true); const r=await perguntarIABackend("Frase motivacional"); showLoading(false); if(r) alert(`🚀 ${r}`); }
