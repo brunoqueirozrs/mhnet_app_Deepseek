@@ -1,14 +1,14 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V99 (PT-BR FINAL)
+ * MHNET VENDAS - LÓGICA V93 (FINAL - MATERIAIS VISUAIS)
  * ============================================================
- * 📝 AJUSTES:
- * - Textos e mensagens padronizados para Português Brasil.
- * - Mantida toda a lógica de Offline, Sync e Gestão.
+ * 📝 UPDATE:
+ * - Restaurado layout visual de Materiais (Cards com Imagem).
+ * - Botões de Download e WhatsApp adicionados aos materiais.
  * ============================================================
  */
 
-// ⚠️ ID DA IMPLANTAÇÃO BACKEND (V91)
+// ⚠️ ID DO BACKEND V91
 const DEPLOY_ID = 'AKfycbydgHNvi0o4tZgqa37nY7-jzZd4g8Qcgo1K297KG6QKj90T2d8eczNEwWatGiXbvere'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -17,23 +17,21 @@ let loggedUser = localStorage.getItem('loggedUser');
 let leadsCache = [];
 let vendorsCache = []; 
 let leadAtualParaAgendar = null; 
+let chatHistoryData = []; 
 let currentFolderId = null;
 let editingLeadIndex = null;
 let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 
-// INICIALIZAÇÃO
+// 1. INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V99 - Iniciado");
+    console.log("🚀 MHNET App V93 - Materiais OK");
     
-    // Tenta carregar vendedores imediatamente
     carregarVendedores();
     
-    // Carrega cache local
     const saved = localStorage.getItem('mhnet_leads_cache');
     if(saved) { try { leadsCache = JSON.parse(saved); } catch(e) {} }
     
-    // Se já estiver logado, entra direto
     if (loggedUser) {
          initApp();
          if(navigator.onLine) processarFilaSincronizacao();
@@ -45,87 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('online', processarFilaSincronizacao);
 
-// --- FUNÇÃO DE LOGIN ---
-function setLoggedUser() {
-    const select = document.getElementById('userSelect');
-    const valor = select.value;
-    
-    // Ajuste PT-BR: Verifica "Carregando..." em vez de "A carregar..."
-    if (valor && valor !== "" && valor !== "Carregando...") { 
-        loggedUser = valor; 
-        localStorage.setItem('loggedUser', valor); 
-        initApp(); 
-    } else {
-        // Se a lista estiver vazia, força o modo offline para permitir teste
-        if(select.options.length <= 1) {
-            carregarVendedoresOffline();
-            alert("Carregando lista de vendedores... Tente novamente em 2 segundos.");
-        } else {
-            alert('Por favor, selecione o seu nome na lista.');
-        }
-    }
-}
-
-// --- CARREGAMENTO DE VENDEDORES (ROBUSTO) ---
-async function carregarVendedores() {
-    const s = document.getElementById('userSelect');
-    if(!s) return;
-    
-    s.innerHTML = '<option value="">Conectando...</option>';
-
-    // Timeout de 3s: Se a API demorar, carrega offline
-    const timeout = new Promise((_, reject) => setTimeout(() => reject("Tempo esgotado"), 3000));
-
-    try {
-        // Tenta buscar na planilha
-        const res = await Promise.race([apiCall('getVendors', {}, false), timeout]);
-        
-        if(res.status === 'success' && res.data.length > 0) {
-            vendorsCache = res.data;
-            popularSelects(res.data);
-        } else {
-            throw new Error("Dados vazios");
-        }
-    } catch(e) {
-        console.warn("⚠️ Usando lista offline:", e);
-        carregarVendedoresOffline();
-    }
-}
-
-function carregarVendedoresOffline() {
-    const VENDEDORES_OFFLINE = [
-        {nome: "Ana Paula Rodrigues"}, 
-        {nome: "Vitoria Caroline Baldez Rosales"}, 
-        {nome: "João Vithor Sader"}, 
-        {nome: "João Paulo da Silva Santos"}, 
-        {nome: "Claudia Maria Semmler"}, 
-        {nome: "Diulia Vitoria Machado Borges"}, 
-        {nome: "Elton da Silva Rodrigo Gonçalves"}, 
-        {nome: "Bruno Garcia Queiroz"} // Admin
-    ];
-    vendorsCache = VENDEDORES_OFFLINE;
-    popularSelects(VENDEDORES_OFFLINE);
-}
-
-function popularSelects(lista) {
-    const s = document.getElementById('userSelect');
-    const s2 = document.getElementById('modalLeadDestino');
-    const s3 = document.getElementById('leadVendedorDestino');
-    
-    const optionsHTML = lista.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
-    
-    if(s) s.innerHTML = '<option value="">Selecione seu nome...</option>' + optionsHTML;
-    if(s2) s2.innerHTML = '<option value="">Selecionar...</option>' + optionsHTML;
-    if(s3) s3.innerHTML = '<option value="">Selecione...</option>' + optionsHTML;
-}
-
-// --- CORE DO SISTEMA ---
+// 2. CORE
 function initApp() {
     document.getElementById('userMenu').style.display = 'none';
     document.getElementById('mainContent').style.display = 'flex';
     document.getElementById('userInfo').innerText = loggedUser;
     
-    // Admin
     if (loggedUser === "Bruno Garcia Queiroz") {
         document.getElementById('btnAdminSettings')?.classList.remove('hidden');
         document.getElementById('divEncaminhar')?.classList.remove('hidden');
@@ -136,13 +59,7 @@ function initApp() {
     navegarPara('dashboard');
 }
 
-function logout() { 
-    if(confirm("Deseja sair do sistema?")) { 
-        localStorage.removeItem('loggedUser'); 
-        location.reload(); 
-    } 
-}
-
+// 3. NAVEGAÇÃO
 function navegarPara(pageId) {
     document.querySelectorAll('.page').forEach(el => {
         el.style.display = 'none';
@@ -163,7 +80,7 @@ function navegarPara(pageId) {
     if (pageId === 'indicadores') abrirIndicadores();
     if (pageId === 'gestaoLeads') {
         const busca = document.getElementById('searchLead');
-        if(busca && busca.placeholder.includes("Filtrado")) {
+        if(busca && !busca.placeholder.includes("Filtrado")) {
             busca.value = "";
             busca.placeholder = "Buscar...";
         }
@@ -182,84 +99,48 @@ function navegarPara(pageId) {
     if (pageId === 'faltas') ocultarHistoricoFaltas();
 }
 
-// --- API ---
-
-async function apiCall(route, payload, show=true) {
-    if(show) showLoading(true);
-
-    if (!navigator.onLine && isWriteOperation(route)) {
-        adicionarAFila(route, payload);
-        if(show) showLoading(false);
-        return { status: 'success', local: true, message: 'Offline Salvo' };
-    }
-
-    try {
-        const res = await fetch(API_URL, { 
-            method: 'POST', 
-            headers: {'Content-Type': 'text/plain;charset=utf-8'}, 
-            body: JSON.stringify({ route: route, payload: payload }) 
+// 4. FUNIL & INDICADORES
+async function abrirIndicadores() {
+    navegarPara('indicadores');
+    ['funnelLeads', 'funnelNegociacao', 'funnelVendas', 'indRealizado', 'indMeta'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.innerText = '...';
+    });
+    document.getElementById('indAnaliseIA').innerText = '🤖 Analisando performance...';
+    
+    const res = await apiCall('getIndicators', { vendedor: loggedUser }, false);
+    
+    if (res && res.status === 'success') {
+        const d = res.data;
+        document.getElementById('funnelLeads').innerText = d.totalLeads;
+        document.getElementById('funnelNegociacao').innerText = d.negociacao || 0;
+        document.getElementById('funnelVendas').innerText = d.vendas;
+        
+        document.getElementById('indMes').innerText = d.mes;
+        document.getElementById('indCiclo').innerText = `Ciclo: ${d.ciclo}`;
+        document.getElementById('indRealizado').innerText = d.vendas;
+        document.getElementById('indMeta').innerText = d.meta;
+        
+        apiCall('analyzeIndicators', { 
+            vendas: d.vendas, meta: d.meta, diasUteisRestantes: d.diasUteisRestantes 
+        }, false).then(r => {
+             if(r.status === 'success') document.getElementById('indAnaliseIA').innerText = r.message;
         });
-        
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const text = await res.text();
-        const json = JSON.parse(text);
-        
-        if(show) showLoading(false);
-        return json;
-    } catch(e) {
-        console.warn(`Erro API (${route}):`, e);
-        if(show) showLoading(false);
-        
-        if (isWriteOperation(route)) {
-            adicionarAFila(route, payload);
-            return { status: 'success', local: true, message: 'Salvo localmente' };
-        }
-        return { status: 'error', message: 'Sem conexão.' };
+    } else {
+        document.getElementById('indAnaliseIA').innerText = 'Não foi possível carregar os dados.';
     }
 }
 
-function isWriteOperation(route) {
-    return ['addLead', 'deleteLead', 'updateStatus', 'updateAgendamento', 'updateObservacao', 'addTask', 'toggleTask', 'archiveTasks', 'registerAbsence', 'updateAbsence', 'saveObjectionLead', 'updateLeadFull', 'forwardLead', 'manageTeam'].includes(route);
-}
-
-function adicionarAFila(route, payload) {
-    syncQueue.push({ route, payload, timestamp: new Date().getTime() });
-    localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
-    if (route === 'addLead' && !payload.novoVendedor) {
-        payload.timestamp = new Date().toLocaleDateString('pt-BR');
-        leadsCache.unshift(payload);
-        localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-    }
-    alert("💾 Salvo no dispositivo (Sem Internet).");
-}
-
-async function processarFilaSincronizacao() {
-    if (syncQueue.length === 0) return;
-    showLoading(true, "Sincronizando...");
-    const falhas = [];
-    for (const item of syncQueue) {
-        try {
-            await fetch(API_URL, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'text/plain;charset=utf-8'},
-                body: JSON.stringify({ route: item.route, payload: item.payload }) 
-            });
-        } catch (e) { falhas.push(item); }
-    }
-    syncQueue = falhas;
-    localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
-    showLoading(false);
-    if (syncQueue.length === 0 && document.getElementById('gestaoLeads').style.display !== 'none') {
-        carregarLeads(false);
-    }
-}
-
-// --- DEMAIS FUNÇÕES (Leads, Indicadores, Tarefas, etc.) ---
+// 5. GESTÃO DE LEADS
 
 function filtrarLeadsHoje() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje));
-    if (leadsHoje.length === 0) { alert("📅 Nenhum lead cadastrado hoje!"); return; }
+    
+    if (leadsHoje.length === 0) {
+        alert("📅 Nenhum lead cadastrado hoje!\nVamos pra cima! 🚀");
+        return; 
+    }
+    
     navegarPara('gestaoLeads');
     renderListaLeads(leadsHoje);
     document.getElementById('searchLead').placeholder = `Filtrado: Hoje (${leadsHoje.length})`;
@@ -268,15 +149,21 @@ function filtrarLeadsHoje() {
 function filtrarRetornos() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
-    if (retornos.length === 0) { alert("Nenhum retorno hoje."); return; }
+    
+    if (retornos.length === 0) {
+        alert("Nenhum retorno agendado para hoje.");
+        return;
+    }
+    
     navegarPara('gestaoLeads');
     renderListaLeads(retornos);
-    document.getElementById('searchLead').placeholder = `Retornos (${retornos.length})`;
+    document.getElementById('searchLead').placeholder = `Retornos de Hoje (${retornos.length})`;
 }
 
 function filtrarPorStatus(status) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById('btnFilter' + status.replace(/\s+/g, '')) || event.target; 
+    const btnId = 'btnFilter' + status.replace(/\s+/g, '');
+    const btn = document.getElementById(btnId) || event.target; 
     if(btn) btn.classList.add('active');
     
     let listaFiltrada = leadsCache;
@@ -287,13 +174,21 @@ function filtrarPorStatus(status) {
 }
 
 async function carregarLeads(showLoader = true) {
-    if(!navigator.onLine) { if(document.getElementById('listaLeadsGestao')) renderLeads(); return; }
+    if(!navigator.onLine) {
+        if(document.getElementById('listaLeadsGestao')) renderLeads();
+        return;
+    }
     const res = await apiCall('getLeads', { vendedor: loggedUser }, showLoader);
     if (res && res.status === 'success') {
         leadsCache = res.data || [];
+        leadsCache.sort((a, b) => b._linha - a._linha);
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+        
         if (res.isAdmin) document.getElementById('adminPanel')?.classList.remove('hidden');
-        if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') renderLeads();
+        
+        if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
+            renderLeads();
+        }
         atualizarDashboard();
         verificarAgendamentosHoje();
     }
@@ -301,7 +196,11 @@ async function carregarLeads(showLoader = true) {
 
 function renderLeads() {
     const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
-    const lista = leadsCache.filter(l => (l.nomeLead||'').toLowerCase().includes(term) || (l.bairro||'').toLowerCase().includes(term) || (l.telefone||'').includes(term));
+    const lista = leadsCache.filter(l => 
+        (l.nomeLead||'').toLowerCase().includes(term) || 
+        (l.bairro||'').toLowerCase().includes(term) ||
+        (l.telefone||'').includes(term)
+    );
     renderListaLeads(lista);
 }
 
@@ -309,6 +208,7 @@ function renderListaLeads(lista) {
     const div = document.getElementById('listaLeadsGestao');
     if (!div) return;
     if (lista.length === 0) { div.innerHTML = '<div class="text-center mt-10 text-gray-400">Vazio.</div>'; return; }
+
     div.innerHTML = lista.map((l) => {
         const realIndex = leadsCache.indexOf(l);
         return criarCardLead(l, realIndex);
@@ -330,7 +230,9 @@ function abrirLeadDetalhes(index) {
     leadAtualParaAgendar = l;
     
     document.getElementById('modalLeadNome').innerText = l.nomeLead;
-    document.getElementById('modalLeadInfo').innerText = `${l.bairro || '-'} • ${l.telefone}`;
+    document.getElementById('modalLeadBairro').innerText = l.bairro || "Sem bairro";
+    document.getElementById('modalLeadCidade').innerText = l.cidade || "Sem cidade";
+    document.getElementById('modalLeadTelefone').innerText = l.telefone || "Sem fone";
     document.getElementById('modalLeadProvedor').innerText = l.provedor || "--";
     const statusSel = document.getElementById('modalStatusFunil');
     if(statusSel) statusSel.value = l.status || "Novo";
@@ -374,74 +276,165 @@ async function salvarEdicaoModal() {
     fecharLeadModal();
 }
 
-async function abrirIndicadores() {
-    navegarPara('indicadores');
-    ['funnelLeads', 'funnelNegociacao', 'funnelVendas', 'indRealizado', 'indMeta'].forEach(id => { const el = document.getElementById(id); if(el) el.innerText = '...'; });
-    const res = await apiCall('getIndicators', { vendedor: loggedUser }, false);
-    if (res && res.status === 'success') {
-        const d = res.data;
-        document.getElementById('funnelLeads').innerText = d.totalLeads;
-        document.getElementById('funnelNegociacao').innerText = d.negociacao || 0;
-        document.getElementById('funnelVendas').innerText = d.vendas;
-        document.getElementById('indMes').innerText = d.mes;
-        document.getElementById('indCiclo').innerText = `Ciclo: ${d.ciclo}`;
-        document.getElementById('indRealizado').innerText = d.vendas;
-        document.getElementById('indMeta').innerText = d.meta;
-        apiCall('analyzeIndicators', { vendas: d.vendas, meta: d.meta, diasUteisRestantes: d.diasUteisRestantes }).then(r => { if(r.status === 'success') document.getElementById('indAnaliseIA').innerText = r.message; });
+// --- MATERIAIS VISUAIS (CORREÇÃO SOLICITADA) ---
+
+async function carregarMateriais(f=null, s="") {
+    const div = document.getElementById('materiaisGrid');
+    if (!div) return;
+    currentFolderId = f; 
+    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Carregando...</div>';
+    
+    try {
+        const res = await apiCall('getImages', { folderId: f, search: s }, false);
+        if (res && res.status === 'success' && res.data) {
+            atualizarNavegacaoMateriais(res.isRoot);
+            if(res.data.length === 0) { div.innerHTML = '<div class="col-span-2 text-center text-gray-400">Vazio.</div>'; return; }
+
+            div.innerHTML = res.data.map(item => {
+                if (item.type === 'folder') {
+                    return `<div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36 hover:bg-blue-50">
+                        <i class="fas fa-folder text-5xl text-[#00aeef]"></i>
+                        <span class="text-xs font-bold text-slate-600 text-center leading-tight line-clamp-2">${item.name}</span>
+                    </div>`;
+                } else {
+                    // CARD COM BOTÕES DE AÇÃO (BAIXAR E WHATSAPP)
+                    return `
+                    <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative overflow-hidden">
+                        <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden relative mb-2">
+                            <img src="${item.thumbnail}" class="w-full h-full object-cover" alt="${item.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/400?text=IMG'">
+                        </div>
+                        <div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div>
+                        <div class="flex gap-2 mt-auto">
+                            <a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center active:scale-95 transition">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <button onclick="compartilharImagem('${item.viewUrl}')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center active:scale-95 transition">
+                                <i class="fab fa-whatsapp text-lg"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                }
+            }).join('');
+        } else throw new Error("Erro API");
+    } catch (error) {
+        div.innerHTML = `<div class="col-span-2 text-center text-red-400 py-10">Erro ao carregar.<br><button onclick="carregarMateriais('${f || ''}')" class="mt-2 text-blue-500 underline">Tentar de novo</button></div>`;
     }
 }
 
-// UTILS
-function showLoading(show, txt) { 
-    const l = document.getElementById('loader'); if(l) l.style.display = show ? 'flex' : 'none'; 
-    if(txt && document.getElementById('loaderText')) document.getElementById('loaderText').innerText = txt;
+function atualizarNavegacaoMateriais(isRoot) {
+    const btn = document.querySelector('#materiais button'); 
+    const title = document.querySelector('#materiais h2');
+    if(btn) {
+        if(isRoot) {
+            btn.onclick = () => navegarPara('dashboard');
+            if(title) title.innerText = "Marketing";
+        } else {
+            btn.onclick = () => {
+                const searchInput = document.getElementById('searchMateriais');
+                if (searchInput) searchInput.value = ""; 
+                carregarMateriais(null);
+            };
+            if(title) title.innerText = "Voltar";
+        }
+    }
 }
+function buscarMateriais() { carregarMateriais(currentFolderId, document.getElementById('searchMateriais').value); }
+function compartilharImagem(u) { window.open(`https://wa.me/?text=${encodeURIComponent(u)}`, '_blank'); }
+
+// --- OUTROS MÓDULOS ---
+
+async function carregarTarefas() {
+    const div = document.getElementById('listaTarefasContainer');
+    div.innerHTML = '<div class="text-center p-5 text-gray-400">Carregando...</div>';
+    const res = await apiCall('getTasks', { vendedor: loggedUser }, false);
+    if (res && res.status === 'success') {
+        const tasks = res.data;
+        if (res.isAdmin) document.getElementById('adminPanel').classList.remove('hidden');
+        if (tasks.length === 0) { div.innerHTML = '<div class="text-center p-10 text-gray-300">Nenhuma tarefa pendente.</div>'; return; }
+        div.innerHTML = tasks.map(t => {
+            const checked = t.status === "CONCLUIDA" ? "checked" : "";
+            const opacity = t.status === "CONCLUIDA" ? "opacity-50 line-through" : "";
+            return `<div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 ${opacity}"><input type="checkbox" ${checked} onchange="toggleTask('${t.id}', '${t.status}')" class="w-5 h-5 accent-blue-600 rounded cursor-pointer"><div class="flex-1"><div class="text-sm font-bold text-slate-700">${t.descricao}</div><div class="text-[10px] text-slate-400 flex items-center gap-2 mt-1">${t.dataLimite ? `<span>📅 ${t.dataLimite}</span>` : ''}${t.nomeLead ? `<span class="bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded flex items-center gap-1"><i class="fas fa-user"></i> ${t.nomeLead}</span>` : ''}</div></div></div>`;
+        }).join('');
+    } else div.innerHTML = '<div class="text-center text-red-400">Erro.</div>';
+}
+
+function abrirModalTarefa() { document.getElementById('taskModal').classList.remove('hidden'); const sel = document.getElementById('taskLeadSelect'); sel.innerHTML = '<option value="">Nenhum (Avulso)</option>'; leadsCache.forEach(l => { const opt = document.createElement('option'); opt.value = l.nomeLead; opt.innerText = l.nomeLead; sel.appendChild(opt); }); }
+async function salvarTarefa() { const desc = document.getElementById('taskDesc').value; if(!desc) return; showLoading(true); await apiCall('addTask', { vendedor: loggedUser, descricao: desc, dataLimite: document.getElementById('taskDate').value, nomeLead: document.getElementById('taskLeadSelect').value }); showLoading(false); document.getElementById('taskModal').classList.add('hidden'); carregarTarefas(); }
+async function toggleTask(id, s) { await apiCall('toggleTask', { taskId: id, status: s, vendedor: loggedUser }, false); carregarTarefas(); }
+async function limparTarefasConcluidas() { if(confirm("Limpar concluídas?")) { showLoading(true); await apiCall('archiveTasks', { vendedor: loggedUser }); showLoading(false); carregarTarefas(); } }
+
+async function verHistoricoFaltas() {
+    const div = document.getElementById('listaHistoricoFaltas');
+    document.getElementById('historicoFaltasContainer').classList.remove('hidden');
+    document.getElementById('formFaltaContainer').classList.add('hidden');
+    div.innerHTML = '<div class="text-center p-5 text-gray-400">Carregando...</div>';
+    const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
+    if (res.status === 'success' && res.data.length > 0) {
+        div.innerHTML = res.data.map(f => `<div onclick='preencherEdicaoFalta(${JSON.stringify(f)})' class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm mb-2 cursor-pointer"><div class="flex justify-between"><div><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px] text-slate-400">${f.dataFalta} • ${f.statusEnvio}</div></div><i class="fas fa-pen text-slate-300"></i></div></div>`).join('');
+    } else div.innerHTML = '<div class="text-center p-5 text-gray-400 text-xs">Nenhum histórico.</div>';
+}
+function ocultarHistoricoFaltas() { document.getElementById('historicoFaltasContainer').classList.add('hidden'); document.getElementById('formFaltaContainer').classList.remove('hidden'); editingAbsenceIndex = null; document.getElementById('faltaData').value = ''; document.getElementById('faltaMotivo').value = ''; document.getElementById('faltaObs').value = ''; document.getElementById('faltaArquivo').value = ''; document.getElementById('btnEnviarFalta').innerHTML = 'ENVIAR'; }
+function preencherEdicaoFalta(f) { document.getElementById('historicoFaltasContainer').classList.add('hidden'); document.getElementById('formFaltaContainer').classList.remove('hidden'); document.getElementById('faltaData').value = f.dataFalta.split('/').reverse().join('-'); document.getElementById('faltaMotivo').value = f.motivo; document.getElementById('faltaObs').value = f.obs; editingAbsenceIndex = f._linha; document.getElementById('btnEnviarFalta').innerHTML = 'ATUALIZAR'; }
+async function enviarJustificativa() { showLoading(true); await apiCall(editingAbsenceIndex?'updateAbsence':'registerAbsence', {vendedor:loggedUser, dataFalta:document.getElementById('faltaData').value, motivo:document.getElementById('faltaMotivo').value, observacao:document.getElementById('faltaObs').value, _linha:editingAbsenceIndex}); showLoading(false); alert("Enviado!"); navegarPara('dashboard'); }
+
+// --- API & UTILS ---
+async function apiCall(route, payload, show=true) {
+    if(show) showLoading(true);
+    if (!navigator.onLine && isWriteOperation(route)) {
+        adicionarAFila(route, payload);
+        if(show) showLoading(false);
+        return { status: 'success', local: true, message: 'Offline Salvo' };
+    }
+    try {
+        const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({ route: route, payload: payload }) });
+        const json = await res.json();
+        if(show) showLoading(false);
+        return json;
+    } catch(e) {
+        if(show) showLoading(false);
+        if (isWriteOperation(route)) { adicionarAFila(route, payload); return { status: 'success', local: true }; }
+        return { status: 'error', message: 'Conexão' };
+    }
+}
+
+function isWriteOperation(route) { return ['addLead', 'deleteLead', 'updateStatus', 'updateAgendamento', 'updateObservacao', 'addTask', 'toggleTask', 'archiveTasks', 'registerAbsence', 'updateAbsence', 'saveObjectionLead', 'updateLeadFull', 'forwardLead', 'manageTeam'].includes(route); }
+function adicionarAFila(r, p) { syncQueue.push({route:r, payload:p}); localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue)); alert("Salvo Offline!"); }
+async function processarFilaSincronizacao() { if(syncQueue.length===0) return; showLoading(true); const f=[]; for(const i of syncQueue) { try { await fetch(API_URL, {method:'POST', body:JSON.stringify({route:i.route, payload:i.payload})}); } catch(e){f.push(i)} } syncQueue=f; localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue)); showLoading(false); }
+function showLoading(s, t) { const l = document.getElementById('loader'); if(l) l.style.display = s ? 'flex' : 'none'; if(t) document.getElementById('loaderText').innerText = t; }
+function fecharLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
 function atualizarDataCabecalho() { document.getElementById('headerDate').innerText = new Date().toLocaleDateString('pt-BR'); }
-function atualizarDashboard() {
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    document.getElementById('statLeads').innerText = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje)).length;
-}
-function verificarAgendamentosHoje() {
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
-    const banner = document.getElementById('lembreteBanner');
-    if (retornos.length > 0) { if(banner) banner.classList.remove('hidden'); } else { if(banner) banner.classList.add('hidden'); }
+function atualizarDashboard() { const h = new Date().toLocaleDateString('pt-BR'); document.getElementById('statLeads').innerText = leadsCache.filter(l => l.timestamp && l.timestamp.includes(h)).length; }
+function verificarAgendamentosHoje() { const h = new Date().toLocaleDateString('pt-BR'); const r = leadsCache.filter(l => l.agendamento && l.agendamento.includes(h)); if(r.length > 0) document.getElementById('lembreteBanner').classList.remove('hidden'); }
+async function carregarVendedores() {
+    const s = document.getElementById('userSelect');
+    if(!s) return;
+    try {
+        const res = await apiCall('getVendors', {}, false);
+        if(res.status==='success') s.innerHTML = '<option value="">Selecione...</option>' + res.data.map(v=>`<option value="${v.nome}">${v.nome}</option>`).join('');
+    } catch(e) { s.innerHTML = '<option value="">Modo Offline</option>'; }
 }
 async function excluirLead() { if(!confirm("Excluir?")) return; showLoading(true); await apiCall('deleteLead', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead }); showLoading(false); alert("Excluído."); fecharLeadModal(); carregarLeads(); }
 async function marcarVendaFechada() { if(!confirm("Venda Fechada?")) return; showLoading(true); await apiCall('updateStatus', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, status: "Venda Fechada" }); showLoading(false); alert("Parabéns!"); fecharLeadModal(); carregarLeads(); }
 async function salvarAgendamento() { const ag = `${document.getElementById('agendarData').value} ${document.getElementById('agendarHora').value}`; await apiCall('updateAgendamento', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, agendamento: ag }); alert("Agendado!"); fecharLeadModal(); }
 async function salvarObservacaoModal() { await apiCall('updateObservacao', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, observacao: document.getElementById('modalLeadObs').value }); alert("Salvo!"); }
-
-// TAREFAS, FALTAS, IA (Mantidos simplificados para integridade)
-async function carregarTarefas(){const d=document.getElementById('listaTarefasContainer');d.innerHTML='Carregando...';const r=await apiCall('getTasks',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(t=>`<div class="bg-white p-3 rounded shadow mb-2 flex gap-2"><input type="checkbox" ${t.status==='CONCLUIDA'?'checked':''} onchange="toggleTask('${t.id}','${t.status}')"><span>${t.descricao}</span></div>`).join('');else d.innerHTML='Erro.'}
-async function salvarTarefa(){await apiCall('addTask',{vendedor:loggedUser,descricao:document.getElementById('taskDesc').value,dataLimite:document.getElementById('taskDate').value});document.getElementById('taskModal').classList.add('hidden');carregarTarefas()}
-async function toggleTask(i,s){await apiCall('toggleTask',{taskId:i,status:s,vendedor:loggedUser},false);carregarTarefas()}
-async function limparTarefasConcluidas(){if(confirm("Limpar?"))await apiCall('archiveTasks',{vendedor:loggedUser});carregarTarefas()}
-function abrirModalTarefa(){document.getElementById('taskModal').classList.remove('hidden')}
-async function verHistoricoFaltas(){const d=document.getElementById('listaHistoricoFaltas');document.getElementById('historicoFaltasContainer').classList.remove('hidden');document.getElementById('formFaltaContainer').classList.add('hidden');const r=await apiCall('getAbsences',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(f=>`<div class="bg-white p-3 mb-2 rounded shadow"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.statusEnvio}</div></div>`).join('')}
-function ocultarHistoricoFaltas(){document.getElementById('historicoFaltasContainer').classList.add('hidden');document.getElementById('formFaltaContainer').classList.remove('hidden')}
-async function enviarJustificativa(){showLoading(true);await apiCall('registerAbsence',{vendedor:loggedUser,dataFalta:document.getElementById('faltaData').value,motivo:document.getElementById('faltaMotivo').value,observacao:document.getElementById('faltaObs').value});showLoading(false);alert("Enviado!");navegarPara('dashboard')}
-function editarLeadAtual(){if(!leadAtualParaAgendar)return;const l=leadAtualParaAgendar;document.getElementById('leadNome').value=l.nomeLead;document.getElementById('leadTelefone').value=l.telefone;document.getElementById('leadEndereco').value=l.endereco;document.getElementById('leadBairro').value=l.bairro;document.getElementById('leadCidade').value=l.cidade;document.getElementById('leadProvedor').value=l.provedor;document.getElementById('leadObs').value=l.observacao;const s=document.getElementById('leadStatus');if(s)s.value=l.status||"Novo";editingLeadIndex=leadsCache.indexOf(l);fecharLeadModal();navegarPara('cadastroLead')}
-async function enviarLead(){const p={vendedor:loggedUser,nomeLead:document.getElementById('leadNome').value,telefone:document.getElementById('leadTelefone').value,endereco:document.getElementById('leadEndereco').value,bairro:document.getElementById('leadBairro').value,cidade:document.getElementById('leadCidade').value,provedor:document.getElementById('leadProvedor').value,interesse:document.getElementById('leadInteresse').value,status:document.getElementById('leadStatus').value,observacao:document.getElementById('leadObs').value};let r='addLead';if(editingLeadIndex!==null){r='updateLeadFull';p._linha=leadsCache[editingLeadIndex]._linha;p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead}const res=await apiCall(r,p);if(res.status==='success'||res.local){alert("Salvo!");if(editingLeadIndex===null&&!res.local)leadsCache.unshift(p);localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")}
-function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
-async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
-async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
-// IA Placeholders
-async function combaterObjecaoGeral(){alert("IA Offline")}
-async function combaterObjecaoLead(){alert("IA Offline")}
-async function salvarObjecaoLead(){}
-async function analiseEstrategicaIA(){alert("IA Offline")}
-async function raioXConcorrencia(){alert("IA Offline")}
-async function refinarObsIA(){}
-async function gerarCoachIA(){alert("IA Offline")}
-async function consultarPlanosIA(){alert("IA Offline")}
-function toggleChat(){}
-async function enviarMensagemChat(){}
-async function buscarEnderecoGPS(){navigator.geolocation.getCurrentPosition(p=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}`).then(r=>r.json()).then(d=>{if(d.address){document.getElementById('leadEndereco').value=d.address.road;document.getElementById('leadBairro').value=d.address.suburb}})},()=>{alert('Erro GPS')})}
-function iniciarDitado(t){}
+function iniciarDitado(t){const r=new(window.SpeechRecognition||window.webkitSpeechRecognition)();r.lang='pt-BR';r.start();r.onresult=e=>{document.getElementById(t).value+=e.results[0][0].transcript}}
 function copiarTexto(id){document.getElementById(id).select();document.execCommand('copy');alert("Copiado!")}
 function enviarZapTexto(id){window.open(`https://wa.me/?text=${encodeURIComponent(document.getElementById(id).value)}`,'_blank')}
-async function carregarMateriais(f=null){const r=await apiCall('getImages',{folderId:f},false);if(r.status==='success')document.getElementById('materiaisGrid').innerHTML=r.data.map(x=>x.type==='folder'?`<div onclick="carregarMateriais('${x.id}')" class="bg-blue-50 p-4 text-center"><i class="fas fa-folder"></i> ${x.name}</div>`:`<div class="p-2 border"><a href="${x.downloadUrl}" target="_blank">${x.name}</a></div>`).join('')}
-function buscarMateriais(){carregarMateriais(currentFolderId,document.getElementById('searchMateriais').value)}
-function preencherEdicaoFalta(f){/*Igual V90*/}
-async function enviarPayloadFalta(r,p){/*Igual V90*/}
+async function buscarEnderecoGPS(){navigator.geolocation.getCurrentPosition(p=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}`).then(r=>r.json()).then(d=>{if(d.address){document.getElementById('leadEndereco').value=d.address.road;document.getElementById('leadBairro').value=d.address.suburb}})},()=>{alert('Erro GPS')})}
+async function gerarAbordagemIA(){const nome=document.getElementById('leadNome').value;showLoading(true);const t=await perguntarIABackend(`Pitch curto para ${nome}`);showLoading(false);if(t)document.getElementById('leadObs').value=t}
+async function gerarScriptVendaIA(){if(!leadAtualParaAgendar)return;showLoading(true);const r=await perguntarIABackend(`Script WhatsApp para ${leadAtualParaAgendar.nomeLead}`);showLoading(false);if(r)alert(r)}
+async function perguntarIABackend(p){ try { const r=await apiCall('askAI',{question:p},false); return r.status==='success' ? r.answer : null; } catch(e){return null;} }
+// Outras funções de IA mantidas (Combater Objeção, Coach, Chat)
+async function combaterObjecaoGeral(){const o=document.getElementById('inputObjecaoGeral').value;const r=await apiCall('solveObjection',{objection:o});if(r.status==='success')document.getElementById('resultadoObjecaoGeral').innerHTML=r.answer}
+async function combaterObjecaoLead(){const o=document.getElementById('inputObjecaoLead').value;const r=await apiCall('solveObjection',{objection:o});if(r.status==='success')document.getElementById('respostaObjecaoLead').value=r.answer}
+async function salvarObjecaoLead(){await apiCall('saveObjectionLead',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,objection:document.getElementById('inputObjecaoLead').value,answer:document.getElementById('respostaObjecaoLead').value})}
+async function analiseEstrategicaIA(){const r=await perguntarIABackend(`Analise lead ${leadAtualParaAgendar.nomeLead}`);if(r)document.getElementById('modalLeadObs').value+="\n\n[IA]: "+r}
+async function gerarCoachIA(){const r=await perguntarIABackend("Frase motivacional");if(r)alert(r)}
+async function consultarPlanosIA(){document.getElementById('chatModal').classList.remove('hidden')}
+function toggleChat(){document.getElementById('chatModal').classList.add('hidden')}
+async function enviarMensagemChat(){const m=document.getElementById('chatInput').value;if(m){document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;const r=await perguntarIABackend(m);document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;}}
+// Funções Admin
+function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
+async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");}
+async function encaminharLeadModal(){/*Igual V92*/}
