@@ -1,10 +1,10 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V98 (FIX LOGIN)
+ * MHNET VENDAS - LÓGICA V99 (PT-BR FINAL)
  * ============================================================
- * 📝 CORREÇÃO CRÍTICA:
- * - Garante que a lista de vendedores carregue mesmo sem API.
- * - Destrava o botão de Login.
+ * 📝 AJUSTES:
+ * - Textos e mensagens padronizados para Português Brasil.
+ * - Mantida toda a lógica de Offline, Sync e Gestão.
  * ============================================================
  */
 
@@ -24,7 +24,7 @@ let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 
 // INICIALIZAÇÃO
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V98 - Iniciado");
+    console.log("🚀 MHNET App V99 - Iniciado");
     
     // Tenta carregar vendedores imediatamente
     carregarVendedores();
@@ -45,12 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('online', processarFilaSincronizacao);
 
-// --- FUNÇÃO DE LOGIN (CORRIGIDA) ---
+// --- FUNÇÃO DE LOGIN ---
 function setLoggedUser() {
     const select = document.getElementById('userSelect');
     const valor = select.value;
     
-    if (valor && valor !== "" && valor !== "A carregar...") { 
+    // Ajuste PT-BR: Verifica "Carregando..." em vez de "A carregar..."
+    if (valor && valor !== "" && valor !== "Carregando...") { 
         loggedUser = valor; 
         localStorage.setItem('loggedUser', valor); 
         initApp(); 
@@ -58,7 +59,7 @@ function setLoggedUser() {
         // Se a lista estiver vazia, força o modo offline para permitir teste
         if(select.options.length <= 1) {
             carregarVendedoresOffline();
-            alert("A carregar lista de vendedores... Tente novamente em 2 segundos.");
+            alert("Carregando lista de vendedores... Tente novamente em 2 segundos.");
         } else {
             alert('Por favor, selecione o seu nome na lista.');
         }
@@ -70,7 +71,7 @@ async function carregarVendedores() {
     const s = document.getElementById('userSelect');
     if(!s) return;
     
-    s.innerHTML = '<option value="">A conectar...</option>';
+    s.innerHTML = '<option value="">Conectando...</option>';
 
     // Timeout de 3s: Se a API demorar, carrega offline
     const timeout = new Promise((_, reject) => setTimeout(() => reject("Tempo esgotado"), 3000));
@@ -127,6 +128,7 @@ function initApp() {
     // Admin
     if (loggedUser === "Bruno Garcia Queiroz") {
         document.getElementById('btnAdminSettings')?.classList.remove('hidden');
+        document.getElementById('divEncaminhar')?.classList.remove('hidden');
     }
     
     atualizarDataCabecalho();
@@ -135,7 +137,7 @@ function initApp() {
 }
 
 function logout() { 
-    if(confirm("Sair do sistema?")) { 
+    if(confirm("Deseja sair do sistema?")) { 
         localStorage.removeItem('loggedUser'); 
         location.reload(); 
     } 
@@ -212,7 +214,6 @@ async function apiCall(route, payload, show=true) {
             adicionarAFila(route, payload);
             return { status: 'success', local: true, message: 'Salvo localmente' };
         }
-        // Retorno seguro para evitar travamento em leituras
         return { status: 'error', message: 'Sem conexão.' };
     }
 }
@@ -339,7 +340,7 @@ function abrirLeadDetalhes(index) {
     if (btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
     
     const containerRaioX = document.getElementById('containerRaioX');
-    if(containerRaioX) containerRaioX.innerHTML = `<button onclick="raioXConcorrencia()" class="ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] font-bold shadow flex items-center gap-1"><i class="fas fa-bolt text-yellow-400"></i> Raio-X</button>`;
+    if(containerRaioX) containerRaioX.innerHTML = `<button onclick="raioXConcorrencia()" class="ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] font-bold shadow flex items-center gap-1 active:scale-95"><i class="fas fa-bolt text-yellow-400"></i> Raio-X</button>`;
 
     document.getElementById('leadModal').classList.remove('hidden');
 }
@@ -396,8 +397,20 @@ function showLoading(show, txt) {
     if(txt && document.getElementById('loaderText')) document.getElementById('loaderText').innerText = txt;
 }
 function atualizarDataCabecalho() { document.getElementById('headerDate').innerText = new Date().toLocaleDateString('pt-BR'); }
-function atualizarDashboard() { const h = new Date().toLocaleDateString('pt-BR'); document.getElementById('statLeads').innerText = leadsCache.filter(l => l.timestamp && l.timestamp.includes(h)).length; }
-function verificarAgendamentosHoje() { const h = new Date().toLocaleDateString('pt-BR'); const r = leadsCache.filter(l => l.agendamento && l.agendamento.includes(h)); const b = document.getElementById('lembreteBanner'); if (r.length > 0) { if(b) b.classList.remove('hidden'); } else { if(b) b.classList.add('hidden'); } }
+function atualizarDashboard() {
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    document.getElementById('statLeads').innerText = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje)).length;
+}
+function verificarAgendamentosHoje() {
+    const hoje = new Date().toLocaleDateString('pt-BR');
+    const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
+    const banner = document.getElementById('lembreteBanner');
+    if (retornos.length > 0) { if(banner) banner.classList.remove('hidden'); } else { if(banner) banner.classList.add('hidden'); }
+}
+async function excluirLead() { if(!confirm("Excluir?")) return; showLoading(true); await apiCall('deleteLead', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead }); showLoading(false); alert("Excluído."); fecharLeadModal(); carregarLeads(); }
+async function marcarVendaFechada() { if(!confirm("Venda Fechada?")) return; showLoading(true); await apiCall('updateStatus', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, status: "Venda Fechada" }); showLoading(false); alert("Parabéns!"); fecharLeadModal(); carregarLeads(); }
+async function salvarAgendamento() { const ag = `${document.getElementById('agendarData').value} ${document.getElementById('agendarHora').value}`; await apiCall('updateAgendamento', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, agendamento: ag }); alert("Agendado!"); fecharLeadModal(); }
+async function salvarObservacaoModal() { await apiCall('updateObservacao', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, observacao: document.getElementById('modalLeadObs').value }); alert("Salvo!"); }
 
 // TAREFAS, FALTAS, IA (Mantidos simplificados para integridade)
 async function carregarTarefas(){const d=document.getElementById('listaTarefasContainer');d.innerHTML='Carregando...';const r=await apiCall('getTasks',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(t=>`<div class="bg-white p-3 rounded shadow mb-2 flex gap-2"><input type="checkbox" ${t.status==='CONCLUIDA'?'checked':''} onchange="toggleTask('${t.id}','${t.status}')"><span>${t.descricao}</span></div>`).join('');else d.innerHTML='Erro.'}
@@ -410,10 +423,6 @@ function ocultarHistoricoFaltas(){document.getElementById('historicoFaltasContai
 async function enviarJustificativa(){showLoading(true);await apiCall('registerAbsence',{vendedor:loggedUser,dataFalta:document.getElementById('faltaData').value,motivo:document.getElementById('faltaMotivo').value,observacao:document.getElementById('faltaObs').value});showLoading(false);alert("Enviado!");navegarPara('dashboard')}
 function editarLeadAtual(){if(!leadAtualParaAgendar)return;const l=leadAtualParaAgendar;document.getElementById('leadNome').value=l.nomeLead;document.getElementById('leadTelefone').value=l.telefone;document.getElementById('leadEndereco').value=l.endereco;document.getElementById('leadBairro').value=l.bairro;document.getElementById('leadCidade').value=l.cidade;document.getElementById('leadProvedor').value=l.provedor;document.getElementById('leadObs').value=l.observacao;const s=document.getElementById('leadStatus');if(s)s.value=l.status||"Novo";editingLeadIndex=leadsCache.indexOf(l);fecharLeadModal();navegarPara('cadastroLead')}
 async function enviarLead(){const p={vendedor:loggedUser,nomeLead:document.getElementById('leadNome').value,telefone:document.getElementById('leadTelefone').value,endereco:document.getElementById('leadEndereco').value,bairro:document.getElementById('leadBairro').value,cidade:document.getElementById('leadCidade').value,provedor:document.getElementById('leadProvedor').value,interesse:document.getElementById('leadInteresse').value,status:document.getElementById('leadStatus').value,observacao:document.getElementById('leadObs').value};let r='addLead';if(editingLeadIndex!==null){r='updateLeadFull';p._linha=leadsCache[editingLeadIndex]._linha;p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead}const res=await apiCall(r,p);if(res.status==='success'||res.local){alert("Salvo!");if(editingLeadIndex===null&&!res.local)leadsCache.unshift(p);localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")}
-async function excluirLead(){if(!confirm("Excluir?"))return;await apiCall('deleteLead',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead});alert("Excluído.");fecharLeadModal();carregarLeads()}
-async function marcarVendaFechada(){if(!confirm("Venda?"))return;await apiCall('updateStatus',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,status:"Venda Fechada"});alert("Parabéns!");fecharLeadModal();carregarLeads()}
-async function salvarAgendamento(){const a=`${document.getElementById('agendarData').value} ${document.getElementById('agendarHora').value}`;await apiCall('updateAgendamento',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,agendamento:a});alert("Agendado!");fecharLeadModal()}
-async function salvarObservacaoModal(){await apiCall('updateObservacao',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,observacao:document.getElementById('modalLeadObs').value});alert("Salvo!")}
 function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
 async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
 async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
