@@ -1,24 +1,43 @@
 {
-  "name": "MHNET Gestor",
+  "name": "MHNET Vendas Pro",
   "short_name": "MHNET",
+  "description": "Sistema de Gestão de Vendas MHNET com IA",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#004c99",
-  "theme_color": "#004c99",
-  "orientation": "portrait",
-  "description": "Gestão de Vendas MHNET - Offline Capable",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "./",
   "icons": [
     {
-      "src": "https://mhnet.com.br/assets/img/logo_branca.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://mhnet.com.br/assets/img/logo_branca.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Novo Lead",
+      "short_name": "Lead",
+      "description": "Cadastrar novo lead",
+      "url": "./index.html?page=cadastroLead",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Home",
+      "description": "Ver painel principal",
+      "url": "./index.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }
