@@ -91,7 +91,10 @@
                     <div class="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white/10 to-transparent"></div>
                     <div class="flex items-center gap-4 relative z-10">
                         <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-green-400 border border-slate-600"><i class="fas fa-chart-pie text-xl"></i></div>
-                        <div class="text-left"><div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Funil de Vendas</div><div class="text-xl font-bold">Meus Indicadores</div></div>
+                        <div class="text-left">
+                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Funil de Vendas</div>
+                            <div class="text-xl font-bold">Meus Indicadores</div>
+                        </div>
                     </div>
                     <i class="fas fa-chevron-right text-slate-500 relative z-10 group-hover:text-white transition"></i>
                 </button>
@@ -173,7 +176,7 @@
             <!-- TELA TAREFAS -->
             <div id="tarefas" class="page hidden fade-in"><div class="flex items-center justify-between mb-6"><div class="flex items-center gap-4"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Tarefas</h2></div><div class="flex gap-2"><button onclick="limparTarefasConcluidas()" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center active:scale-90 shadow-sm"><i class="fas fa-trash-alt"></i></button><button onclick="abrirModalTarefa()" class="w-10 h-10 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition hover:bg-blue-700"><i class="fas fa-plus"></i></button></div></div><div id="listaTarefasContainer" class="space-y-3 pb-20"></div></div>
 
-            <!-- TELA FALTAS (AJUSTADA) -->
+            <!-- TELA FALTAS -->
             <div id="faltas" class="page hidden fade-in">
                 <div class="flex items-center gap-4 mb-6">
                     <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
@@ -181,10 +184,11 @@
                 </div>
                 
                 <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 space-y-4">
+                    <!-- BOTÃO VER HISTÓRICO -->
                     <button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl mb-2 flex items-center justify-center gap-2"><i class="fas fa-history"></i> VER HISTÓRICO</button>
                     
                     <div id="formFaltaContainer">
-                        <label class="label-padrao">Data da Folga/Ocorrência</label>
+                        <label class="label-padrao">Data da Ocorrência</label>
                         <input type="date" id="faltaData" class="input-padrao mb-3">
                         
                         <label class="label-padrao">Tipo de Solicitação</label>
@@ -210,18 +214,16 @@
                         <button onclick="enviarJustificativa()" class="w-full bg-[#00aeef] text-white font-bold py-3 rounded-xl mt-4 shadow-lg active:scale-95">ENVIAR SOLICITAÇÃO</button>
                     </div>
                 </div>
-                <div id="listaHistoricoFaltas" class="mt-4 pb-20"></div>
-                <!-- Container oculto para o botão voltar do histórico -->
+                <!-- LISTA DE HISTÓRICO DENTRO DE UM CONTAINER PRÓPRIO -->
                 <div id="historicoFaltasContainer" class="hidden mt-4 pb-20">
                      <button onclick="ocultarHistoricoFaltas()" class="text-xs text-blue-500 mb-2 font-bold uppercase hover:underline">Voltar ao Formulário</button>
-                     <div id="listaHistoricoFaltasContent"></div>
+                     <!-- A lista é injetada aqui -->
+                     <div id="listaHistoricoFaltas"></div>
                 </div>
             </div>
 
             <!-- TELA MATERIAIS & OBJEÇÕES -->
-            <div id="materiais" class="page hidden fade-in">
-                <div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div>
-                <!-- Filtros Materiais -->
+            <div id="materiais" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div>
                 <div class="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
                     <button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]">Todos</button>
                     <button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">500MB</button>
@@ -234,7 +236,6 @@
                 <div class="bg-white p-2 rounded-xl shadow-sm mb-4 flex gap-2 border border-slate-100 sticky top-0 z-10"><div class="pl-2 flex items-center justify-center text-slate-400"><i class="fas fa-search"></i></div><input type="text" id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-slate-600 bg-transparent text-sm" placeholder="Buscar artes, planos..."></div>
                 <div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20"></div>
             </div>
-            
             <div id="objecoes" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Matriz de Objeções</h2></div><div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 space-y-4"><p class="text-sm text-slate-500 font-medium">Qual a objeção do cliente?</p><textarea id="inputObjecaoGeral" class="input-padrao min-h-[100px]" placeholder="Ex: Cliente diz que a fidelidade é muito alta..."></textarea><button onclick="combaterObjecaoGeral()" class="w-full bg-red-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2"><i class="fas fa-fist-raised"></i> COMBATER AGORA</button></div><div id="resultadoObjecaoGeral" class="mt-4 hidden p-5 bg-blue-50 rounded-2xl border border-blue-100 text-slate-700 text-sm leading-relaxed shadow-sm"></div></div>
 
             <!-- TELA CADASTRO -->
@@ -272,7 +273,7 @@
                 .catch(err => console.log('SW falhou ao registrar:', err));
         }
         
-        // Helper para filtros de Materiais
+        // Helper para filtros de Materiais (Adicionado para funcionar com os botões)
         function filtrarMateriaisBtn(termo) {
             const input = document.getElementById('searchMateriais');
             if(input) {
