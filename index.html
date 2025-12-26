@@ -71,9 +71,9 @@
                 </select>
                 <div class="absolute right-4 top-4 pointer-events-none text-gray-400"><i class="fas fa-chevron-down"></i></div>
             </div>
-            <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-blue-500">ACESSAR SISTEMA</button>
+            <button onclick="setLoggedUser()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-blue-500">ENTRAR NO SISTEMA</button>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão Final V106</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão Final V105 (PT-BR)</p>
     </div>
 
     <!-- APP PRINCIPAL -->
@@ -229,12 +229,35 @@
             <!-- TELA FALTAS -->
             <div id="faltas" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Justificativa</h2></div><div class="bg-white p-6 rounded-[1.5rem] space-y-4"><button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl mb-2">VER HISTÓRICO</button><input type="date" id="faltaData" class="input-padrao"><select id="faltaMotivo" class="input-padrao bg-white"><option>Doença</option><option>Pessoal</option><option>Outros</option></select><textarea id="faltaObs" class="input-padrao" placeholder="Detalhes..."></textarea><input type="file" id="faltaArquivo" class="w-full text-xs text-slate-500"><button onclick="enviarJustificativa()" class="w-full bg-[#004c99] text-white font-bold py-3 rounded-xl">ENVIAR</button></div><div id="listaHistoricoFaltas" class="mt-4 pb-20"></div></div>
 
-            <!-- TELA MATERIAIS & OBJEÇÕES -->
-            <div id="materiais" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div><div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20"></div></div>
+            <!-- TELA MATERIAIS (COM FILTROS & BUSCA) -->
+            <div id="materiais" class="page hidden fade-in">
+                <div class="flex items-center gap-4 mb-4">
+                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-[#004c99]">Materiais</h2>
+                </div>
+                
+                <!-- Filtros Rápidos -->
+                <div class="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
+                    <button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]">Todos</button>
+                    <button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">500MB</button>
+                    <button onclick="filtrarMateriaisBtn('700mb')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">700MB</button>
+                    <button onclick="filtrarMateriaisBtn('Móvel')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Móvel</button>
+                    <button onclick="filtrarMateriaisBtn('Combo')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Combos</button>
+                </div>
+
+                <!-- Barra de Busca -->
+                <div class="bg-white p-2 rounded-xl shadow-sm mb-4 flex gap-2 border border-slate-100 sticky top-0 z-10">
+                    <div class="pl-2 flex items-center justify-center text-slate-400"><i class="fas fa-search"></i></div>
+                    <input type="text" id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-slate-600 bg-transparent text-sm" placeholder="Buscar artes, planos...">
+                </div>
+
+                <div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20"></div>
+            </div>
+
             <div id="objecoes" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Matriz de Objeções</h2></div><div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 space-y-4"><p class="text-sm text-slate-500 font-medium">Qual a objeção do cliente?</p><textarea id="inputObjecaoGeral" class="input-padrao min-h-[100px]" placeholder="Ex: Cliente diz que a fidelidade é muito alta..."></textarea><button onclick="combaterObjecaoGeral()" class="w-full bg-red-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2"><i class="fas fa-fist-raised"></i> COMBATER AGORA</button></div><div id="resultadoObjecaoGeral" class="mt-4 hidden p-5 bg-blue-50 rounded-2xl border border-blue-100 text-slate-700 text-sm leading-relaxed shadow-sm"></div></div>
 
             <!-- TELA CADASTRO -->
-            <div id="cadastroLead" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Ficha de Cadastro</h2></div><div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 space-y-4"><button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-700 p-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2"><i class="fas fa-map-marker-alt"></i> Usar GPS</button><input type="text" id="leadNome" class="input-padrao" placeholder="Nome *"><input type="tel" id="leadTelefone" class="input-padrao" placeholder="WhatsApp *"><input type="text" id="leadEndereco" class="input-padrao" placeholder="Endereço"><div class="grid grid-cols-2 gap-3"><input type="text" id="leadBairro" class="input-padrao" placeholder="Bairro"><input type="text" id="leadCidade" class="input-padrao" placeholder="Cidade"></div><div class="grid grid-cols-2 gap-3"><input type="text" id="leadProvedor" class="input-padrao" placeholder="Provedor"><select id="leadInteresse" class="input-padrao bg-white"><option>Alto</option><option selected>Médio</option><option>Baixo</option></select></div><div class="p-3 bg-slate-50 rounded-xl border border-slate-200"><label class="label-padrao text-slate-500">Fase do Funil</label><select id="leadStatus" class="input-padrao bg-white text-sm font-bold text-slate-700"><option value="Novo">Novo Lead</option><option value="Em Negociação">Em Negociação</option><option value="Agendado">Visita Agendada</option><option value="Venda Fechada">✅ Venda Fechada</option><option value="Perda">❌ Perda / Sem interesse</option></select></div><div id="divEncaminhar" class="hidden bg-yellow-50 p-3 rounded-xl border border-yellow-200"><label class="label-padrao text-yellow-700">Encaminhar (Admin)</label><select id="leadVendedorDestino" class="input-padrao bg-white text-sm"><option value="">Selecione...</option></select></div><textarea id="leadObs" rows="3" class="input-padrao" placeholder="Observações..."></textarea><button onclick="enviarLead()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg mt-2">SALVAR</button></div></div>
+            <div id="cadastroLead" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Ficha de Cadastro</h2></div><div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-slate-100 space-y-5"><button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-700 border border-blue-200 p-4 rounded-xl font-bold text-xs uppercase tracking-wide flex items-center justify-center gap-2 active:bg-blue-100 mb-2"><i class="fas fa-location-crosshairs text-lg animate-pulse"></i> Usar GPS</button><div><label class="label-padrao">Nome do Cliente *</label><input type="text" id="leadNome" class="input-padrao" placeholder="Nome completo"></div><div><label class="label-padrao">WhatsApp *</label><input type="tel" id="leadTelefone" class="input-padrao" placeholder="(00) 00000-0000"></div><div><label class="label-padrao">Endereço</label><input type="text" id="leadEndereco" class="input-padrao" placeholder="Rua, Número"></div><div class="grid grid-cols-2 gap-3"><div><label class="label-padrao">Bairro</label><input type="text" id="leadBairro" class="input-padrao" placeholder="Bairro"></div><div><label class="label-padrao">Cidade</label><input type="text" id="leadCidade" class="input-padrao" placeholder="Cidade"></div></div><div class="grid grid-cols-2 gap-3"><div><label class="label-padrao">Provedor Atual</label><input type="text" id="leadProvedor" class="input-padrao" placeholder="Ex: Vivo"></div><div><label class="label-padrao">Nível Interesse</label><select id="leadInteresse" class="input-padrao bg-white"><option>Alto</option><option selected>Médio</option><option>Baixo</option></select></div></div><div class="p-3 bg-slate-50 rounded-xl border border-slate-200"><label class="label-padrao text-slate-500">Fase do Funil</label><select id="leadStatus" class="input-padrao bg-white text-sm font-bold text-slate-700"><option value="Novo">Novo Lead</option><option value="Em Negociação">Em Negociação</option><option value="Agendado">Visita Agendada</option><option value="Venda Fechada">✅ Venda Fechada</option><option value="Perda">❌ Perda / Sem interesse</option></select></div><div id="divEncaminhar" class="hidden bg-yellow-50 p-3 rounded-xl border border-yellow-200"><label class="label-padrao text-yellow-700">Encaminhar (Admin)</label><select id="leadVendedorDestino" class="input-padrao bg-white text-sm"><option value="">Selecione...</option></select></div><textarea id="leadObs" rows="3" class="input-padrao" placeholder="Observações..."></textarea><button onclick="enviarLead()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg mt-2">SALVAR CADASTRO</button></div></div>
 
             <!-- MODAL DETALHES LEAD -->
             <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center">
@@ -246,7 +269,7 @@
                          <button onclick="editarLeadAtual()" class="w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:text-[#00aeef] border border-slate-200"><i class="fas fa-pen"></i></button>
                     </div>
 
-                    <!-- Nome e Tags (Item 5: Ordem Ajustada) -->
+                    <!-- Nome e Tags -->
                     <div class="mb-6 pr-2">
                         <h3 id="modalLeadNome" class="text-2xl font-black text-slate-800 leading-tight mb-3">Nome</h3>
                         <div class="flex flex-wrap gap-2">
@@ -330,6 +353,21 @@
             navigator.serviceWorker.register('./sw.js')
                 .then(reg => console.log('SW registrado com sucesso:', reg))
                 .catch(err => console.log('SW falhou ao registrar:', err));
+        }
+        
+        // Helper para filtros de Materiais (Adicionado para funcionar com os botões)
+        function filtrarMateriaisBtn(termo) {
+            const input = document.getElementById('searchMateriais');
+            if(input) {
+                input.value = (termo === 'Todos') ? '' : termo;
+                buscarMateriais();
+                // Visual
+                document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white'));
+                document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.add('bg-white', 'text-slate-500'));
+                
+                event.target.classList.add('active', 'bg-[#00aeef]', 'text-white');
+                event.target.classList.remove('bg-white', 'text-slate-500');
+            }
         }
     </script>
 </body>
