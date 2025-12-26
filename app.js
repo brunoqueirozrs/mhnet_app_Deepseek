@@ -1,11 +1,12 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V107 (FALTAS & WHATSAPP)
+ * MHNET VENDAS - LÓGICA V107 (FALTAS & WHATSAPP & GPS FIX)
  * ============================================================
  * 📝 UPDATE:
  * - Lista de Faltas atualizada via JS (Layout novo).
  * - Envio de justificativa abre WhatsApp com Observação.
  * - Sincronizado com HTML V106 e Backend V93.
+ * - GPS ajustado para capturar Rua, Bairro e Cidade.
  * ============================================================
  */
 
@@ -467,6 +468,8 @@ function abrirModalTarefa(){document.getElementById('taskModal').classList.remov
 async function salvarTarefa(){await apiCall('addTask',{vendedor:loggedUser,descricao:document.getElementById('taskDesc').value,dataLimite:document.getElementById('taskDate').value});document.getElementById('taskModal').classList.add('hidden');carregarTarefas()}
 async function toggleTask(i,s){await apiCall('toggleTask',{taskId:i,status:s,vendedor:loggedUser},false);carregarTarefas()}
 async function limparTarefasConcluidas(){if(confirm("Limpar?"))await apiCall('archiveTasks',{vendedor:loggedUser});carregarTarefas()}
+async function verHistoricoFaltas(){const d=document.getElementById('listaHistoricoFaltas');document.getElementById('historicoFaltasContainer').classList.remove('hidden');document.getElementById('formFaltaContainer').classList.add('hidden');const r=await apiCall('getAbsences',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(f=>`<div class="bg-white p-3 mb-2 rounded shadow"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.statusEnvio}</div></div>`).join('')}
+function ocultarHistoricoFaltas(){document.getElementById('historicoFaltasContainer').classList.add('hidden');document.getElementById('formFaltaContainer').classList.remove('hidden')}
 function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
 async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
 async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
@@ -487,7 +490,6 @@ function enviarZapTexto(id){window.open(`https://wa.me/?text=${encodeURIComponen
 async function gerarAbordagemIA(){const nome=document.getElementById('leadNome').value;showLoading(true);const t=await perguntarIABackend(`Pitch curto para ${nome}`);showLoading(false);if(t)document.getElementById('leadObs').value=t}
 async function gerarScriptVendaIA(){if(!leadAtualParaAgendar)return;showLoading(true);const r=await perguntarIABackend(`Script WhatsApp para ${leadAtualParaAgendar.nomeLead}`);showLoading(false);if(r)alert("Copiado: "+r)}
 async function perguntarIABackend(p){ try { const r=await apiCall('askAI',{question:p},false); return r.status==='success' ? r.answer : null; } catch(e){return null;} }
-async function salvarObservacaoModal(){await apiCall('updateObservacao',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,observacao:document.getElementById('modalLeadObs').value});alert("Salvo!")}
-async function marcarVendaFechada(){if(!confirm("Venda Fechada?"))return;await apiCall('updateStatus',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,status:"Venda Fechada"});alert("Parabéns!");fecharLeadModal();carregarLeads()}
-async function excluirLead(){if(!confirm("Excluir?"))return;await apiCall('deleteLead',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead});alert("Excluído.");fecharLeadModal();carregarLeads()}
-async function salvarAgendamento(){const a=`${document.getElementById('agendarData').value} ${document.getElementById('agendarHora').value}`;await apiCall('updateAgendamento',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,agendamento:a});alert("Agendado!");fecharLeadModal()}
+function preencherEdicaoFalta(f){document.getElementById('historicoFaltasContainer').classList.add('hidden');document.getElementById('formFaltaContainer').classList.remove('hidden');const [d, m, a] = f.dataFalta.split('/');document.getElementById('faltaData').value = `${a}-${m}-${d}`;document.getElementById('faltaMotivo').value = f.motivo;document.getElementById('faltaObs').value = f.obs;editingAbsenceIndex = f._linha;document.getElementById('btnEnviarFalta').innerHTML = 'ATUALIZAR';}
+async function enviarPayloadFalta(r,p){const res = await apiCall(r, p);showLoading(false);if (res.status === 'success') {alert(editingAbsenceIndex ? "Atualizado!" : "Enviado!");ocultarHistoricoFaltas();navegarPara('dashboard');} else alert("Erro ao enviar.");}
+function ajustarMicrofone(){const btn=document.getElementById('btnMicNome');if(btn){btn.removeAttribute('onclick');btn.onclick=()=>iniciarDitado('leadObs');}}
