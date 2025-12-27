@@ -1370,3 +1370,426 @@ async function perguntarIABackend(pergunta) {
 }
 
 console.log('✅ MHNET App V117 - Todas as funções carregadas');
+
+/**
+ * ============================================================================
+ * FUNÇÕES DO MODAL DE DETALHES DO LEAD - V117 COMPLETO
+ * ============================================================================
+ * Cole estas funções no app.js (substituindo as antigas se existirem)
+ * ============================================================================
+ */
+
+// ============================================================================
+// 1. ABRIR MODAL COM TODOS OS DADOS
+// ============================================================================
+function abrirLeadDetalhes(index) {
+    const l = leadsCache[index];
+    if(!l) {
+        alert('Lead não encontrado!');
+        return;
+    }
+    
+    console.log('📂 Abrindo detalhes do lead:', l.nomeLead);
+    
+    leadAtualParaAgendar = l;
+    editingLeadIndex = index;
+    
+    // ============================================
+    // DADOS BÁSICOS
+    // ============================================
+    document.getElementById('modalLeadNome').innerText = l.nomeLead || 'Nome não informado';
+    document.getElementById('modalLeadBairro').innerText = l.bairro || 'Bairro não informado';
+    document.getElementById('modalLeadCidade').innerText = l.cidade || 'Cidade não informada';
+    document.getElementById('modalLeadTelefone').innerText = l.telefone || 'Telefone não informado';
+    document.getElementById('modalLeadProvedor').innerText = l.provedor || 'Não informado';
+    
+    // ============================================
+    // STATUS DO FUNIL
+    // ============================================
+    const statusSel = document.getElementById('modalStatusFunil');
+    if(statusSel) statusSel.value = l.status || "Novo";
+    
+    // ============================================
+    // OBSERVAÇÕES E OBJEÇÕES
+    // ============================================
+    document.getElementById('modalLeadObs').value = l.observacao || "";
+    document.getElementById('inputObjecaoLead').value = l.objecao || "";
+    document.getElementById('respostaObjecaoLead').value = l.respostaObjecao || "";
+    
+    // ============================================
+    // AGENDAMENTO
+    // ============================================
+    const dataInput = document.getElementById('agendarData');
+    const horaInput = document.getElementById('agendarHora');
+    
+    if(l.agendamento) {
+        // Formato esperado: "25/12/2024 14:30"
+        const partes = l.agendamento.split(' ');
+        if(partes.length >= 2) {
+            const [dia, mes, ano] = partes[0].split('/');
+            if(dia && mes && ano) {
+                dataInput.value = `${ano}-${mes.padStart(2,'0')}-${dia.padStart(2,'0')}`;
+            }
+            horaInput.value = partes[1] || '09:00';
+        }
+    } else {
+        dataInput.value = '';
+        horaInput.value = '09:00';
+    }
+
+    // ============================================
+    // BOTÃO WHATSAPP
+    // ============================================
+    const btnWhats = document.getElementById('btnModalWhats');
+    if (btnWhats) {
+        const fone = l.telefone ? l.telefone.replace(/\D/g,'') : '';
+        btnWhats.onclick = () => {
+            if(fone) {
+                window.open(`https://wa.me/55${fone}`, '_blank');
+            } else {
+                alert('⚠️ Telefone não cadastrado para este lead');
+            }
+        };
+    }
+    
+    // ============================================
+    // ÁREA ADMIN (ENCAMINHAMENTO)
+    // ============================================
+    if (loggedUser === "Bruno Garcia Queiroz") {
+        const areaAdmin = document.getElementById('adminEncaminharArea');
+        if(areaAdmin) {
+            areaAdmin.classList.remove('hidden');
+            
+            const sel = document.getElementById('modalLeadDestino');
+            if(sel && vendorsCache.length > 0) {
+                sel.innerHTML = '<option value="">Selecione vendedor...</option>' + 
+                    vendorsCache.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+            }
+        }
+    } else {
+        // Oculta área admin para vendedores comuns
+        const areaAdmin = document.getElementById('adminEncaminharArea');
+        if(areaAdmin) areaAdmin.classList.add('hidden');
+    }
+
+    // ============================================
+    // TAREFAS VINCULADAS
+    // ============================================
+    renderTarefasNoModal(l.nomeLead);
+
+    // ============================================
+    // MOSTRA O MODAL
+    // ============================================
+    document.getElementById('leadModal').classList.remove('hidden');
+    
+    // Scroll para o topo do modal
+    const modalContent = document.querySelector('#leadModal .overflow-y-auto');
+    if(modalContent) modalContent.scrollTop = 0;
+}
+
+// ============================================================================
+// 2. FECHAR MODAL
+// ============================================================================
+function fecharLeadModal() {
+    document.getElementById('leadModal').classList.add('hidden');
+    leadAtualParaAgendar = null;
+    editingLeadIndex = null;
+    console.log('❌ Modal fechado');
+}
+
+// ============================================================================
+// 3. SALVAR TODAS AS ALTERAÇÕES
+// ============================================================================
+async function salvarEdicaoModal() {
+    if (!leadAtualParaAgendar) {
+        alert('Nenhum lead selecionado!');
+        return;
+    }
+    
+    console.log('💾 Salvando alterações do lead:', leadAtualParaAgendar.nomeLead);
+    
+    const novoStatus = document.getElementById('modalStatusFunil').value;
+    const obs = document.getElementById('modalLeadObs').value;
+    const dataAgenda = document.getElementById('agendarData').value;
+    const horaAgenda = document.getElementById('agendarHora').value;
+    
+    // Atualiza cache local
+    leadAtualParaAgendar.status = novoStatus;
+    leadAtualParaAgendar.observacao = obs;
+    
+    if (dataAgenda) {
+        const [ano, mes, dia] = dataAgenda.split('-');
+        leadAtualParaAgendar.agendamento = `${dia}/${mes}/${ano} ${horaAgenda || '09:00'}`;
+    }
+    
+    localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+    
+    // Atualiza visual se estiver na tela de leads
+    if(document.getElementById('gestaoLeads').style.display !== 'none') {
+        renderLeads();
+    }
+    
+    showLoading(true, "SALVANDO ALTERAÇÕES...");
+    
+    // Envia para backend (paralelo para ser mais rápido)
+    try {
+        await Promise.all([
+            apiCall('updateStatus', { 
+                vendedor: loggedUser, 
+                nomeLead: leadAtualParaAgendar.nomeLead, 
+                status: novoStatus 
+            }, false),
+            apiCall('updateObservacao', { 
+                vendedor: loggedUser, 
+                nomeLead: leadAtualParaAgendar.nomeLead, 
+                observacao: obs 
+            }, false)
+        ]);
+        
+        if (dataAgenda) {
+            await apiCall('updateAgendamento', { 
+                vendedor: loggedUser, 
+                nomeLead: leadAtualParaAgendar.nomeLead, 
+                agendamento: leadAtualParaAgendar.agendamento 
+            }, false);
+        }
+        
+        showLoading(false);
+        alert('✅ Lead atualizado com sucesso!');
+        fecharLeadModal();
+        
+    } catch(e) {
+        showLoading(false);
+        alert('⚠️ Houve um erro, mas os dados foram salvos localmente');
+        fecharLeadModal();
+    }
+}
+
+// ============================================================================
+// 4. EDITAR LEAD (VAI PARA FORMULÁRIO)
+// ============================================================================
+function editarLeadAtual() {
+    if(!leadAtualParaAgendar) return;
+    
+    console.log('✏️ Editando lead:', leadAtualParaAgendar.nomeLead);
+    
+    const l = leadAtualParaAgendar;
+    
+    // Preenche formulário de cadastro
+    document.getElementById('leadNome').value = l.nomeLead || '';
+    document.getElementById('leadTelefone').value = l.telefone || '';
+    document.getElementById('leadEndereco').value = l.endereco || '';
+    document.getElementById('leadBairro').value = l.bairro || '';
+    document.getElementById('leadCidade').value = l.cidade || '';
+    document.getElementById('leadProvedor').value = l.provedor || '';
+    document.getElementById('leadObs').value = l.observacao || '';
+    
+    const statusSel = document.getElementById('leadStatus');
+    if(statusSel) statusSel.value = l.status || "Novo";
+    
+    const interSel = document.getElementById('leadInteresse');
+    if(interSel) interSel.value = l.interesse || "Médio";
+    
+    // Admin: mostra campo de encaminhamento
+    if(loggedUser === "Bruno Garcia Queiroz") {
+        const divEnc = document.getElementById('divEncaminhar');
+        if(divEnc) divEnc.classList.remove('hidden');
+    }
+    
+    fecharLeadModal();
+    navegarPara('cadastroLead');
+}
+
+// ============================================================================
+// 5. EXCLUIR LEAD
+// ============================================================================
+async function excluirLead() {
+    if(!leadAtualParaAgendar) return;
+    
+    const nome = leadAtualParaAgendar.nomeLead;
+    
+    if(!confirm(`⚠️ ATENÇÃO!\n\nDeseja realmente EXCLUIR o lead:\n"${nome}"?\n\nEsta ação não pode ser desfeita!`)) {
+        return;
+    }
+    
+    console.log('🗑️ Excluindo lead:', nome);
+    
+    showLoading(true, "EXCLUINDO...");
+    
+    await apiCall('deleteLead', {
+        vendedor: loggedUser,
+        nomeLead: nome,
+        _linha: leadAtualParaAgendar._linha
+    });
+    
+    // Remove do cache
+    leadsCache = leadsCache.filter(l => l.nomeLead !== nome);
+    localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+    
+    showLoading(false);
+    alert(`🗑️ Lead "${nome}" excluído com sucesso!`);
+    
+    fecharLeadModal();
+    
+    // Atualiza lista se estiver na tela de leads
+    if(document.getElementById('gestaoLeads').style.display !== 'none') {
+        renderLeads();
+    }
+    
+    atualizarDashboard();
+}
+
+// ============================================================================
+// 6. MARCAR VENDA FECHADA
+// ============================================================================
+async function marcarVendaFechada() {
+    if(!leadAtualParaAgendar) return;
+    
+    if(!confirm(`🎉 PARABÉNS!\n\nConfirmar venda fechada para:\n"${leadAtualParaAgendar.nomeLead}"?`)) {
+        return;
+    }
+    
+    console.log('🏆 Marcando venda fechada:', leadAtualParaAgendar.nomeLead);
+    
+    showLoading(true, "REGISTRANDO VENDA...");
+    
+    await apiCall('updateStatus', {
+        vendedor: loggedUser,
+        nomeLead: leadAtualParaAgendar.nomeLead,
+        status: "Venda Fechada"
+    });
+    
+    // Atualiza cache local
+    leadAtualParaAgendar.status = "Venda Fechada";
+    localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+    
+    showLoading(false);
+    
+    alert(`🏆 PARABÉNS!\n\nVenda de "${leadAtualParaAgendar.nomeLead}" registrada com sucesso!\n\nContinue assim! 💪`);
+    
+    fecharLeadModal();
+    
+    if(document.getElementById('gestaoLeads').style.display !== 'none') {
+        renderLeads();
+    }
+    
+    atualizarDashboard();
+}
+
+// ============================================================================
+// 7. TAREFAS VINCULADAS AO LEAD
+// ============================================================================
+function renderTarefasNoModal(nomeLead) {
+    const container = document.getElementById('sectionTarefasLead');
+    const lista = document.getElementById('listaTarefasLead');
+    
+    if(!container || !lista) return;
+    
+    // Filtra tarefas pendentes deste lead
+    const tarefasLead = tasksCache.filter(t => 
+        t.nomeLead === nomeLead && t.status !== 'CONCLUIDA'
+    );
+    
+    if(tarefasLead.length > 0) {
+        container.classList.remove('hidden');
+        lista.innerHTML = tarefasLead.map(t => `
+            <div class="bg-white p-3 rounded-xl shadow-sm border-2 border-indigo-200 flex items-center gap-2">
+                <input type="checkbox" 
+                       onchange="toggleTask('${t.id}','${t.status}')" 
+                       class="w-4 h-4 rounded border-2 border-indigo-300 cursor-pointer">
+                <div class="flex-1">
+                    <p class="text-xs font-bold text-slate-700">${t.descricao}</p>
+                    ${t.dataLimite ? `<p class="text-[10px] text-slate-500 mt-1"><i class="fas fa-calendar"></i> ${t.dataLimite}</p>` : ''}
+                </div>
+            </div>
+        `).join('');
+    } else {
+        container.classList.add('hidden');
+    }
+}
+
+// ============================================================================
+// 8. ENCAMINHAR LEAD (ADMIN)
+// ============================================================================
+async function encaminharLeadModal() {
+    const destino = document.getElementById('modalLeadDestino').value;
+    
+    if(!destino) {
+        alert('⚠️ Selecione um vendedor para encaminhar!');
+        return;
+    }
+    
+    if(!leadAtualParaAgendar) return;
+    
+    if(!confirm(`📤 Encaminhar o lead:\n"${leadAtualParaAgendar.nomeLead}"\n\nPara: ${destino}?`)) {
+        return;
+    }
+    
+    console.log(`📤 Encaminhando ${leadAtualParaAgendar.nomeLead} → ${destino}`);
+    
+    showLoading(true, "ENCAMINHANDO...");
+    
+    await apiCall('forwardLead', {
+        nomeLead: leadAtualParaAgendar.nomeLead,
+        telefone: leadAtualParaAgendar.telefone,
+        novoVendedor: destino,
+        origem: loggedUser
+    });
+    
+    showLoading(false);
+    alert(`✅ Lead encaminhado para ${destino} com sucesso!`);
+    
+    fecharLeadModal();
+    carregarLeads(false);
+}
+
+// ============================================================================
+// 9. SALVAR OBJEÇÃO
+// ============================================================================
+async function salvarObjecaoLead() {
+    if(!leadAtualParaAgendar) return;
+    
+    const objecao = document.getElementById('inputObjecaoLead').value.trim();
+    const resposta = document.getElementById('respostaObjecaoLead').value.trim();
+    
+    if(!objecao || !resposta) {
+        alert('⚠️ Digite a objeção e gere a resposta pela IA antes de salvar!');
+        return;
+    }
+    
+    console.log('💾 Salvando objeção:', objecao);
+    
+    showLoading(true, "SALVANDO OBJEÇÃO...");
+    
+    await apiCall('saveObjectionLead', {
+        vendedor: loggedUser,
+        nomeLead: leadAtualParaAgendar.nomeLead,
+        objection: objecao,
+        answer: resposta
+    });
+    
+    // Atualiza cache local
+    leadAtualParaAgendar.objecao = objecao;
+    leadAtualParaAgendar.respostaObjecao = resposta;
+    localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+    
+    showLoading(false);
+    alert('✅ Objeção salva no histórico do lead!');
+}
+
+// ============================================================================
+// 10. ABRIR WHATSAPP (HELPER)
+// ============================================================================
+function abrirWhatsApp() {
+    if(!leadAtualParaAgendar) return;
+    
+    const fone = leadAtualParaAgendar.telefone ? leadAtualParaAgendar.telefone.replace(/\D/g,'') : '';
+    
+    if(fone) {
+        window.open(`https://wa.me/55${fone}`, '_blank');
+    } else {
+        alert('⚠️ Telefone não cadastrado para este lead');
+    }
+}
+
+console.log('✅ Funções do Modal Lead V117 carregadas');
