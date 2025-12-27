@@ -1,5 +1,4 @@
-const CACHE_NAME = 'mhnet-v113-stable';
-// Apenas arquivos locais são vitais para o SW instalar sem erro
+const CACHE_NAME = 'mhnet-v114-fix'; // Versão incrementada para limpar cache antigo
 const ASSETS = [
   './',
   './index.html',
@@ -7,21 +6,19 @@ const ASSETS = [
   './manifest.json'
 ];
 
-// 1. Instalação (Cache Apenas Local)
+// 1. Instalação
 self.addEventListener('install', (e) => {
-  console.log('[SW] Instalando V113...');
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Tenta cachear arquivos locais. Se falhar, não quebra a instalação.
-      return cache.addAll(ASSETS).catch(err => console.error("Erro cache local:", err));
+      // Tenta cachear apenas arquivos locais
+      return cache.addAll(ASSETS).catch(err => console.log("Cache local parcial:", err));
     })
   );
 });
 
-// 2. Ativação (Limpeza)
+// 2. Ativação (Limpeza agressiva de caches antigos)
 self.addEventListener('activate', (e) => {
-  console.log('[SW] Ativado');
   e.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
@@ -32,30 +29,24 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// 3. Interceptação (Estratégia Híbrida)
+// 3. Interceptação (Ignora CDNs externos para evitar erro CORS)
 self.addEventListener('fetch', (e) => {
-  // Ignora APIs e Google Scripts (sempre online)
-  if (e.request.url.includes('script.google.com') || e.request.url.includes('api.callmebot')) {
-    return;
+  const url = e.request.url;
+
+  // LISTA DE EXCLUSÃO: Não cachear estes domínios pelo SW
+  if (url.includes('script.google.com') || 
+      url.includes('api.callmebot') || 
+      url.includes('cdn.tailwindcss.com') || 
+      url.includes('cdnjs.cloudflare.com')) {
+    return; // Deixa o navegador lidar com a rede normalmente
   }
 
-  // Estratégia Stale-While-Revalidate para arquivos estáticos
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      // Se tiver no cache, retorna. Senão, busca na rede.
-      const fetchPromise = fetch(e.request).then((networkResponse) => {
-        // Se a resposta for válida, atualiza o cache (mesmo arquivos externos como CDN, se permitido)
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, responseClone));
-        }
-        return networkResponse;
-      }).catch(() => {
-         // Se estiver offline e não tiver no cache, retorna algo vazio para não quebrar
+      return cachedResponse || fetch(e.request).catch(() => {
+         // Se offline e não tem cache, não retorna erro para não quebrar a app
          return new Response('', { status: 408, statusText: 'Offline' });
       });
-
-      return cachedResponse || fetchPromise;
     })
   );
 });
