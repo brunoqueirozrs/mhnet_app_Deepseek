@@ -1,58 +1,61 @@
-const CACHE_NAME = 'mhnet-v90-offline-sync';
+const CACHE_NAME = 'mhnet-v113-stable';
+// Apenas arquivos locais são vitais para o SW instalar sem erro
 const ASSETS = [
   './',
   './index.html',
   './app.js',
-  './manifest.json',
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+  './manifest.json'
 ];
 
-// 1. Instalação: Baixa e guarda os ficheiros essenciais
+// 1. Instalação (Cache Apenas Local)
 self.addEventListener('install', (e) => {
-  console.log('[SW] A instalar v90...');
-  self.skipWaiting(); // Força o SW a assumir o controlo imediatamente
+  console.log('[SW] Instalando V113...');
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Cache criado');
-      return cache.addAll(ASSETS);
+      // Tenta cachear arquivos locais. Se falhar, não quebra a instalação.
+      return cache.addAll(ASSETS).catch(err => console.error("Erro cache local:", err));
     })
   );
 });
 
-// 2. Ativação: Limpa versões antigas do cache para libertar espaço
+// 2. Ativação (Limpeza)
 self.addEventListener('activate', (e) => {
   console.log('[SW] Ativado');
   e.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
-        if (key !== CACHE_NAME) {
-          console.log('[SW] A remover cache antigo:', key);
-          return caches.delete(key);
-        }
+        if (key !== CACHE_NAME) return caches.delete(key);
       }));
     })
   );
   self.clients.claim();
 });
 
-// 3. Interceptação de Rede (O Coração do Offline)
+// 3. Interceptação (Estratégia Híbrida)
 self.addEventListener('fetch', (e) => {
-  // Ignora requisições para a API (Google Script/CallMeBot)
-  // Deixamos o app.js lidar com a falta de internet para dados dinâmicos (Fila de Sincronização)
+  // Ignora APIs e Google Scripts (sempre online)
   if (e.request.url.includes('script.google.com') || e.request.url.includes('api.callmebot')) {
-    return; 
+    return;
   }
 
-  // Estratégia Cache-First para a Interface (HTML, CSS, JS)
-  // Tenta pegar do cache (rápido). Se não tiver, vai à rede.
+  // Estratégia Stale-While-Revalidate para arquivos estáticos
   e.respondWith(
     caches.match(e.request).then((cachedResponse) => {
-      return cachedResponse || fetch(e.request).catch(() => {
-          // Se falhar (sem net) e não estiver no cache, não faz nada (ou poderia retornar uma página de erro customizada)
-          // Para imagens, poderíamos retornar um placeholder, mas por enquanto deixamos vazio para não quebrar o layout.
-          return new Response('', { status: 408, statusText: 'Offline' });
+      // Se tiver no cache, retorna. Senão, busca na rede.
+      const fetchPromise = fetch(e.request).then((networkResponse) => {
+        // Se a resposta for válida, atualiza o cache (mesmo arquivos externos como CDN, se permitido)
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, responseClone));
+        }
+        return networkResponse;
+      }).catch(() => {
+         // Se estiver offline e não tiver no cache, retorna algo vazio para não quebrar
+         return new Response('', { status: 408, statusText: 'Offline' });
       });
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
