@@ -81,7 +81,7 @@
                 <i class="fas fa-sync"></i> Tentar reconectar
             </div>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão Final V118</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão Final V119</p>
     </div>
 
     <!-- BANNER DE INSTALAÇÃO PWA -->
@@ -154,7 +154,7 @@
                 <!-- Lembrete -->
                 <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-2xl shadow-sm flex items-start gap-4 active:scale-95 transition cursor-pointer" onclick="filtrarRetornos()">
                     <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center text-orange-500 shrink-0"><i class="fas fa-bell animate-bounce"></i></div>
-                    <div><p class="font-bold text-orange-800 text-sm">Atenção!</p><p id="lembreteTexto" class="text-xs text-orange-600 mt-1">Retornos pendentes.</p></div>
+                    <div><p class="font-bold text-orange-800 text-sm">Atenção!</p><p class="text-xs text-orange-600 mt-1">Retornos pendentes.</p></div>
                 </div>
 
                 <!-- CARDS PRINCIPAIS -->
@@ -202,16 +202,21 @@
 
             <!-- TELA LEADS -->
             <div id="gestaoLeads" class="page hidden fade-in">
-                <div class="flex items-center justify-between mb-4"><h2 class="text-xl font-bold text-[#004c99]">Carteira</h2><button onclick="carregarLeads()" class="w-9 h-9 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-90"><i class="fas fa-sync text-xs"></i></button></div>
+                <!-- Cabeçalho com Voltar -->
+                <div class="flex items-center gap-4 mb-4">
+                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-[#004c99]">Carteira</h2>
+                    <button onclick="carregarLeads()" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-90 shadow-md ml-auto"><i class="fas fa-sync text-sm"></i></button>
+                </div>
                 
                 <!-- Filtros Funil -->
                 <div class="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
-                    <button onclick="filtrarPorStatus('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]" id="btnFilterTodos">Todos</button>
-                    <button onclick="filtrarPorStatus('Novo')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterNovo">Novos</button>
-                    <button onclick="filtrarPorStatus('Em Negociação')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterNegociação">Negociação</button>
-                    <button onclick="filtrarPorStatus('Agendado')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterAgendado">Agendados</button>
-                    <button onclick="filtrarPorStatus('Venda Fechada')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterVendaFechada">Vendas</button>
-                    <button onclick="filtrarPorStatus('Perda')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterPerda">Perdidos</button>
+                    <button onclick="filtrarPorStatus('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]">Todos</button>
+                    <button onclick="filtrarPorStatus('Novo')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Novos</button>
+                    <button onclick="filtrarPorStatus('Em Negociação')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Negociação</button>
+                    <button onclick="filtrarPorStatus('Agendado')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Agendados</button>
+                    <button onclick="filtrarPorStatus('Venda Fechada')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Vendas</button>
+                    <button onclick="filtrarPorStatus('Perda')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Perdidos</button>
                 </div>
 
                 <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full input-padrao mb-4" placeholder="Buscar por nome, bairro, telefone...">
@@ -244,7 +249,6 @@
             <!-- TELA MATERIAIS -->
             <div id="materiais" class="page hidden fade-in">
                 <div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div>
-                <!-- Filtros Rápidos -->
                 <div class="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
                     <button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]">Todos</button>
                     <button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">500MB</button>
@@ -267,12 +271,12 @@
             <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center">
                 <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
                 <div class="bg-white w-full sm:w-[450px] sm:rounded-3xl rounded-t-[2.5rem] p-6 relative shadow-2xl slide-up max-h-[95vh] overflow-y-auto">
-                    <div class="flex justify-between items-center mb-6"><button onclick="excluirLead()" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-100"><i class="fas fa-trash-alt"></i></button><button onclick="editarLeadAtual()" class="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl flex items-center gap-2 font-bold text-sm hover:bg-slate-200 active:scale-95 transition border-2 border-slate-200 shadow-md"><i class="fas fa-pen"></i> EDITAR DADOS</button></div>
+                    <div class="flex justify-between items-center mb-6"><button onclick="excluirLead()" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-100"><i class="fas fa-trash-alt"></i></button><button onclick="editarLeadAtual()" class="w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:text-[#00aeef] border border-slate-200"><i class="fas fa-pen"></i></button></div>
                     <div class="mb-6 pr-2"><h3 id="modalLeadNome" class="text-2xl font-black text-slate-800 leading-tight mb-3">Nome</h3><div class="flex flex-wrap gap-2"><span class="tag-info text-blue-500"><i class="fas fa-map-marker-alt"></i> <span id="modalLeadBairro">Bairro</span></span><span class="tag-info text-blue-500"><i class="fas fa-city"></i> <span id="modalLeadCidade">Cidade</span></span><span class="tag-info text-green-600 bg-green-50 border-green-100 cursor-pointer" id="btnModalWhatsTag"><i class="fab fa-whatsapp text-green-500"></i> <span id="modalLeadTelefone">Tel</span></span></div></div>
                     <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 mb-4"><div><span class="label-padrao mb-0">Provedor</span><span id="modalLeadProvedor" class="font-bold text-slate-700">--</span></div><div id="containerRaioX"></div></div>
                     <!-- Area Encaminhamento -->
                     <div id="adminEncaminharArea" class="hidden mb-4 p-3 bg-yellow-50 rounded-xl border border-yellow-200"><label class="label-padrao text-yellow-700">Encaminhar Lead</label><div class="flex gap-2"><select id="modalLeadDestino" class="input-padrao bg-white text-sm h-10 w-full"><option value="">Selecione...</option></select><button onclick="encaminharLeadModal()" class="bg-yellow-500 text-white w-12 rounded-lg shadow flex items-center justify-center active:scale-95"><i class="fas fa-share"></i></button></div></div>
-                    <!-- Tarefas Vinculadas -->
+                    <!-- Tarefas -->
                     <div id="sectionTarefasLead" class="hidden mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100"><label class="label-padrao text-blue-800 mb-2">Tarefas Pendentes</label><div id="listaTarefasLead" class="space-y-2"></div></div>
                     <div class="mb-4"><label class="label-padrao">Status do Funil</label><select id="modalStatusFunil" onchange="salvarStatusFunil()" class="input-padrao h-12 text-sm font-bold bg-white border-blue-200 text-slate-700"><option value="Novo">Novo</option><option value="Em Negociação">Em Negociação</option><option value="Agendado">Visita Agendada</option><option value="Venda Fechada">✅ Venda Fechada</option><option value="Perda">❌ Perda / Cancelado</option></select></div>
                     <div class="mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100"><label class="label-padrao text-blue-800 mb-2 flex items-center gap-2"><i class="fas fa-calendar-alt"></i> Agendar Retorno</label><div class="flex gap-2 mb-2"><input type="date" id="agendarData" class="flex-1 input-padrao text-sm"><input type="time" id="agendarHora" class="w-24 input-padrao text-sm"></div></div>
@@ -322,7 +326,7 @@
             }
         }
         
-        // Fallback de Login Offline imediato (para não travar)
+        // Fallback de Login Offline imediato
         window.addEventListener('load', () => {
              const s = document.getElementById('userSelect');
              if(s && s.options.length <= 1) {
@@ -331,7 +335,7 @@
                          const OFF = ["Bruno Garcia Queiroz", "Ana Paula Rodrigues", "Vendedor Teste"];
                          s.innerHTML = '<option value="">Modo Offline (Selecione)</option>' + OFF.map(n => `<option value="${n}">${n}</option>`).join('');
                      }
-                 }, 3000); // Espera 3s pela API
+                 }, 3000); 
              }
         });
         
