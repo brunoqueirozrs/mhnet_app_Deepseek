@@ -1,16 +1,16 @@
 /**
- * ============================================================================
- * MHNET VENDAS - LÓGICA V117 (FINAL MASTER)
- * ============================================================================
- * 📝 UPDATE:
- * - Adicionada função 'verTodosLeads' para o botão "Minha Carteira".
- * - Integração de Tarefas dentro do Modal de Detalhes.
- * - Área de Encaminhamento (Admin) no Modal.
- * - Sincronização total com Index V117.
- * ============================================================================
+ * ============================================================
+ * MHNET VENDAS - LÓGICA V118 (MASTER SINCRONIZADO)
+ * ============================================================
+ * 📝 RESUMO:
+ * - Sincronização total com Index V118.
+ * - Suporte a Leads, Tarefas, Faltas e Materiais.
+ * - Integração IA completa (Scripts, Raio-X, Coach).
+ * - Gestão Administrativa e Offline.
+ * ============================================================
  */
 
-// ⚠️ ID DO BACKEND V110
+// ⚠️ ID DO BACKEND V110 (Mantenha o ID da sua última implantação)
 const DEPLOY_ID = 'AKfycbydgHNvi0o4tZgqa37nY7-jzZd4g8Qcgo1K297KG6QKj90T2d8eczNEwWatGiXbvere'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -27,17 +27,16 @@ let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 let chatHistoryData = [];
 
-// ============================================================================
+// ============================================================
 // 1. INICIALIZAÇÃO
-// ============================================================================
+// ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V117 - Inicializando");
+    console.log("🚀 MHNET App V118 - Ready");
     
     carregarVendedores();
     
-    // Carrega caches locais
-    const savedLeads = localStorage.getItem('mhnet_leads_cache');
-    if(savedLeads) { try { leadsCache = JSON.parse(savedLeads); } catch(e) {} }
+    const saved = localStorage.getItem('mhnet_leads_cache');
+    if(saved) { try { leadsCache = JSON.parse(saved); } catch(e) {} }
     
     if (loggedUser) {
          initApp();
@@ -53,42 +52,24 @@ window.addEventListener('online', () => {
     processarFilaSincronizacao();
 });
 
-// ============================================================================
+// ============================================================
 // 2. CORE & NAVEGAÇÃO
-// ============================================================================
+// ============================================================
 
 function initApp() {
     document.getElementById('userMenu').style.display = 'none';
     document.getElementById('mainContent').style.display = 'flex';
     document.getElementById('userInfo').innerText = loggedUser;
     
-    // Libera painel Admin para o Gestor
+    // Libera painel Admin se for o Gestor
     if (loggedUser === "Bruno Garcia Queiroz") {
         document.getElementById('btnAdminSettings')?.classList.remove('hidden');
     }
     
     atualizarDataCabecalho();
     carregarLeads(false); 
-    carregarTarefas(false); // Carrega tarefas em background para usar nos leads
+    carregarTarefas(false); // Carrega tarefas para vincular nos leads
     navegarPara('dashboard');
-}
-
-function setLoggedUser() {
-    const v = document.getElementById('userSelect').value;
-    if (v && v !== "" && v !== "Carregando...") { 
-        loggedUser = v; 
-        localStorage.setItem('loggedUser', v); 
-        initApp(); 
-    } else {
-        alert('Selecione um vendedor!');
-    }
-}
-
-function logout() { 
-    if(confirm("Deseja sair do sistema?")) { 
-        localStorage.removeItem('loggedUser'); 
-        location.reload(); 
-    } 
 }
 
 function navegarPara(pageId) {
@@ -104,17 +85,22 @@ function navegarPara(pageId) {
     }
     
     const scroller = document.getElementById('main-scroll');
-    if(scroller) scroller.scrollTop = 0;
+    if(scroller) scroller.scrollTo(0,0);
 
     // Hooks de Página
     if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
     if (pageId === 'tarefas') renderTarefas(); 
     if (pageId === 'indicadores') abrirIndicadores();
     if (pageId === 'gestaoLeads') {
-        // Se entrar diretamente, mantém estado anterior ou reseta se necessário
         const busca = document.getElementById('searchLead');
+        // Se a busca não tiver filtro ativo, reseta para mostrar tudo
         if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
-             renderLeads();
+            busca.value = "";
+            busca.placeholder = "Buscar nome, bairro, telefone...";
+            // Reseta visual dos botões de filtro
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btnFilterTodos')?.classList.add('active');
+            renderLeads(); 
         }
     }
     if (pageId === 'cadastroLead') {
@@ -130,11 +116,10 @@ function navegarPara(pageId) {
     if (pageId === 'faltas') ocultarHistoricoFaltas();
 }
 
-// ============================================================================
+// ============================================================
 // 3. LEADS (CARTEIRA, FILTROS E BUSCA)
-// ============================================================================
+// ============================================================
 
-// Botão "Leads Hoje" (Card Branco)
 function filtrarLeadsHoje() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje));
@@ -151,27 +136,10 @@ function filtrarLeadsHoje() {
         input.placeholder = `📅 Filtrado: Hoje (${leadsHoje.length})`;
     }
     
-    // Limpa filtros de status visualmente
+    // Limpa filtros visuais
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     
     renderListaLeads(leadsHoje);
-}
-
-// Botão "Minha Carteira" (Card Azul) - RESTAURADO
-function verTodosLeads() {
-    navegarPara('gestaoLeads');
-    
-    const input = document.getElementById('searchLead');
-    if(input) {
-        input.value = "";
-        input.placeholder = "Buscar por nome, bairro, telefone...";
-    }
-    
-    // Reseta filtros para "Todos"
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('btnFilterTodos')?.classList.add('active');
-    
-    renderLeads(); // Mostra todos do cache
 }
 
 function filtrarRetornos() {
@@ -195,7 +163,6 @@ function filtrarRetornos() {
 function filtrarPorStatus(status) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     
-    // Mapeamento de IDs dos botões (segurança)
     const idMap = {
         'Todos': 'btnFilterTodos', 'Novo': 'btnFilterNovo', 'Em Negociação': 'btnFilterNegociação',
         'Agendado': 'btnFilterAgendado', 'Venda Fechada': 'btnFilterVendaFechada', 'Perda': 'btnFilterPerda'
@@ -227,7 +194,6 @@ async function carregarLeads(showLoader = true) {
     const res = await apiCall('getLeads', { vendedor: loggedUser }, showLoader);
     if (res && res.status === 'success') {
         leadsCache = res.data || [];
-        // Ordena por inserção (mais recente primeiro)
         leadsCache.sort((a, b) => b._linha - a._linha);
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
         
@@ -294,9 +260,9 @@ function criarCardLead(l, index) {
     </div>`;
 }
 
-// ============================================================================
-// 4. DETALHES LEAD (MODAL COMPLETO)
-// ============================================================================
+// ============================================================
+// 4. DETALHES LEAD (MODAL)
+// ============================================================
 
 function abrirLeadDetalhes(index) {
     const l = leadsCache[index];
@@ -310,10 +276,10 @@ function abrirLeadDetalhes(index) {
     document.getElementById('modalLeadTelefone').innerText = l.telefone || "Sem fone";
     document.getElementById('modalLeadProvedor').innerText = l.provedor || "--";
     
-    // Status e Agendamento
     const statusSel = document.getElementById('modalStatusFunil');
     if(statusSel) statusSel.value = l.status || "Novo";
     
+    // Agendamento
     if(l.agendamento) {
         const parts = l.agendamento.split(' ');
         if(parts.length >= 1) {
@@ -325,18 +291,15 @@ function abrirLeadDetalhes(index) {
         document.getElementById('agendarData').value = '';
     }
 
-    // Campos de Texto
     document.getElementById('modalLeadObs').value = l.observacao || "";
     document.getElementById('inputObjecaoLead').value = l.objecao || "";
     document.getElementById('respostaObjecaoLead').value = l.respostaObjecao || "";
 
-    // Ações
     const btnWhats = document.getElementById('btnModalWhats');
     if (btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
     const btnTag = document.getElementById('btnModalWhatsTag');
     if (btnTag) btnTag.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
     
-    // Raio-X
     const containerRaioX = document.getElementById('containerRaioX');
     if(containerRaioX) {
         containerRaioX.innerHTML = `<button onclick="raioXConcorrencia()" class="ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] font-bold shadow flex items-center gap-1 active:scale-95"><i class="fas fa-bolt text-yellow-400"></i> Raio-X</button>`;
@@ -356,7 +319,7 @@ function abrirLeadDetalhes(index) {
         document.getElementById('adminEncaminharArea')?.classList.add('hidden');
     }
 
-    // Tarefas Vinculadas (NOVO)
+    // Tarefas Vinculadas
     renderTarefasNoModal(l.nomeLead);
 
     document.getElementById('leadModal').classList.remove('hidden');
@@ -372,7 +335,6 @@ async function salvarEdicaoModal() {
     const dataAgenda = document.getElementById('agendarData').value;
     const horaAgenda = document.getElementById('agendarHora').value;
     
-    // Atualiza Cache Local
     leadAtualParaAgendar.status = novoStatus;
     leadAtualParaAgendar.observacao = obs;
     if (dataAgenda) {
@@ -401,9 +363,9 @@ async function salvarEdicaoModal() {
     fecharLeadModal();
 }
 
-// ============================================================================
-// 5. TAREFAS (COM FILTRO NO MODAL)
-// ============================================================================
+// ============================================================
+// 5. TAREFAS
+// ============================================================
 
 async function carregarTarefas(show = true) {
     if(!navigator.onLine && tasksCache.length > 0) { if(show) renderTarefas(); return; }
@@ -423,7 +385,6 @@ function renderTarefas() {
         return;
     }
     
-    // Ordena
     tasksCache.sort((a, b) => (a.status === 'PENDENTE' ? -1 : 1));
 
     div.innerHTML = tasksCache.map(t => {
@@ -494,11 +455,13 @@ async function limparTarefasConcluidas() {
     tasksCache = tasksCache.filter(t => t.status !== 'CONCLUIDA');
     renderTarefas();
     await apiCall('archiveTasks', { vendedor: loggedUser });
+    showLoading(false);
+    carregarTarefas();
 }
 
-// ============================================================================
+// ============================================================
 // 6. MATERIAIS & FALTAS
-// ============================================================================
+// ============================================================
 
 async function carregarMateriais(f=null, s="") {
     const div = document.getElementById('materiaisGrid');
@@ -510,7 +473,6 @@ async function carregarMateriais(f=null, s="") {
         const res = await apiCall('getImages', { folderId: f, search: s }, false);
         if (res && res.status === 'success' && res.data) {
             materialsCache = res.data;
-            // Atualiza navegação
             const btnVoltar = document.querySelector('#materiais button'); 
             const titleEl = document.querySelector('#materiais h2');
             if(btnVoltar) {
@@ -521,23 +483,6 @@ async function carregarMateriais(f=null, s="") {
         } else { throw new Error("Erro API"); }
     } catch (error) {
         div.innerHTML = `<div class="col-span-2 text-center text-red-400">Erro ao carregar.</div>`;
-    }
-}
-
-function filtrarMateriaisBtn(termo) {
-    const input = document.getElementById('searchMateriais');
-    if(input) {
-        input.value = (termo === 'Todos') ? '' : termo;
-        buscarMateriais();
-        // Visual Botões
-        document.querySelectorAll('#materiais .filter-btn').forEach(b => {
-             b.classList.remove('active', 'bg-[#00aeef]', 'text-white');
-             b.classList.add('bg-white', 'text-slate-500');
-        });
-        if(event.target) {
-            event.target.classList.add('active', 'bg-[#00aeef]', 'text-white');
-            event.target.classList.remove('bg-white', 'text-slate-500');
-        }
     }
 }
 
@@ -632,6 +577,8 @@ function adicionarAFila(r, p) { syncQueue.push({route:r, payload:p}); localStora
 async function processarFilaSincronizacao() { if(syncQueue.length===0) return; showLoading(true); const f=[]; for(const i of syncQueue) { try { await fetch(API_URL, {method:'POST', body:JSON.stringify({route:i.route, payload:i.payload})}); } catch(e){f.push(i)} } syncQueue=f; localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue)); showLoading(false); if (syncQueue.length === 0 && document.getElementById('gestaoLeads').style.display !== 'none') carregarLeads(false); }
 async function carregarVendedores() { const s=document.getElementById('userSelect'); if(!s)return; try{const r=await apiCall('getVendors',{},false);if(r.status==='success'){const o=r.data.map(v=>`<option value="${v.nome}">${v.nome}</option>`).join('');s.innerHTML='<option value="">Selecione...</option>'+o; document.getElementById('modalLeadDestino').innerHTML='<option value="">Selecione...</option>'+o;}}catch(e){s.innerHTML='<option value="">Offline</option>';} }
 function showLoading(s,t){const l=document.getElementById('loader');if(l)l.style.display=s?'flex':'none';if(t)document.getElementById('loaderText').innerText=t}
+function setLoggedUser(){const v=document.getElementById('userSelect').value;if(v&&v!=="A carregar..."){loggedUser=v;localStorage.setItem('loggedUser',v);initApp()}else alert("Selecione!")}
+function logout(){localStorage.removeItem('loggedUser');location.reload()}
 function atualizarDataCabecalho(){document.getElementById('headerDate').innerText=new Date().toLocaleDateString('pt-BR')}
 function atualizarDashboard(){const h=new Date().toLocaleDateString('pt-BR');document.getElementById('statLeads').innerText=leadsCache.filter(l=>l.timestamp&&l.timestamp.includes(h)).length}
 function verificarAgendamentosHoje(){const h=new Date().toLocaleDateString('pt-BR');const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));if(r.length>0)document.getElementById('lembreteBanner').classList.remove('hidden');else document.getElementById('lembreteBanner').classList.add('hidden')}
@@ -660,7 +607,7 @@ async function enviarLead() {
     else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; }
     
     const res=await apiCall(r,p);
-    if(res.status==='success'||res.local){alert("Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")
+    if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")
 }
 
 // ADMIN
@@ -688,3 +635,4 @@ async function gerarCoachIA(){const r=await perguntarIABackend("Frase motivacion
 async function consultarPlanosIA(){document.getElementById('chatModal').classList.remove('hidden')}
 function toggleChat(){document.getElementById('chatModal').classList.add('hidden')}
 async function enviarMensagemChat(){const m=document.getElementById('chatInput').value;if(m){document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;const r=await perguntarIABackend(m);document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;}}
+function ajustarMicrofone(){const btn=document.getElementById('btnMicNome');if(btn){btn.removeAttribute('onclick');btn.onclick=()=>iniciarDitado('leadObs');}}
