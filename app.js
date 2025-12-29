@@ -1,12 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V118 (MASTER SINCRONIZADO)
+ * MHNET VENDAS - LÓGICA V119 (ADMIN FIX)
  * ============================================================
  * 📝 RESUMO:
+ * - Correção da verificação de Administrador (Case Insensitive).
+ * - Garantia que botões de Configuração e Encaminhamento apareçam.
  * - Sincronização total com Index V118.
- * - Suporte a Leads, Tarefas, Faltas e Materiais.
- * - Integração IA completa (Scripts, Raio-X, Coach).
- * - Gestão Administrativa e Offline.
  * ============================================================
  */
 
@@ -27,11 +26,19 @@ let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 let chatHistoryData = [];
 
+// Nome do Admin para verificação (Ajuste conforme necessário)
+const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
+
+// Função auxiliar para verificar se é admin
+function isAdminUser() {
+    return loggedUser && loggedUser.toUpperCase() === ADMIN_NAME_CHECK;
+}
+
 // ============================================================
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V118 - Ready");
+    console.log("🚀 MHNET App V119 - Ready");
     
     carregarVendedores();
     
@@ -61,14 +68,16 @@ function initApp() {
     document.getElementById('mainContent').style.display = 'flex';
     document.getElementById('userInfo').innerText = loggedUser;
     
-    // Libera painel Admin se for o Gestor
-    if (loggedUser === "Bruno Garcia Queiroz") {
-        document.getElementById('btnAdminSettings')?.classList.remove('hidden');
+    // Libera painel Admin se for o Gestor (Verificação Robusta)
+    if (isAdminUser()) {
+        const btnConf = document.getElementById('btnAdminSettings');
+        if(btnConf) btnConf.classList.remove('hidden');
+        console.log("👑 Modo Admin Ativado para:", loggedUser);
     }
     
     atualizarDataCabecalho();
     carregarLeads(false); 
-    carregarTarefas(false); // Carrega tarefas para vincular nos leads
+    carregarTarefas(false); 
     navegarPara('dashboard');
 }
 
@@ -97,7 +106,6 @@ function navegarPara(pageId) {
         if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
             busca.value = "";
             busca.placeholder = "Buscar nome, bairro, telefone...";
-            // Reseta visual dos botões de filtro
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('btnFilterTodos')?.classList.add('active');
             renderLeads(); 
@@ -110,6 +118,11 @@ function navegarPara(pageId) {
             const sel = document.getElementById('leadInteresse'); if(sel) sel.value = 'Médio';
             const status = document.getElementById('leadStatus'); if(status) status.value = 'Novo';
             const dest = document.getElementById('leadVendedorDestino'); if(dest) dest.value = '';
+            
+            // Se for admin, mostra o campo de encaminhamento no cadastro também
+            if(isAdminUser()) {
+                document.getElementById('divEncaminhar')?.classList.remove('hidden');
+            }
         }
     }
     if (pageId === 'materiais' && !currentFolderId) setTimeout(() => carregarMateriais(null), 100);
@@ -136,7 +149,6 @@ function filtrarLeadsHoje() {
         input.placeholder = `📅 Filtrado: Hoje (${leadsHoje.length})`;
     }
     
-    // Limpa filtros visuais
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     
     renderListaLeads(leadsHoje);
@@ -197,6 +209,7 @@ async function carregarLeads(showLoader = true) {
         leadsCache.sort((a, b) => b._linha - a._linha);
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
         
+        // Se o backend confirmar que é admin, garante visibilidade do painel
         if (res.isAdmin) document.getElementById('adminPanel')?.classList.remove('hidden');
         
         if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
@@ -306,12 +319,14 @@ function abrirLeadDetalhes(index) {
     }
     
     // Admin: Encaminhamento
-    if (loggedUser === "Bruno Garcia Queiroz") {
+    if (isAdminUser()) {
         const areaAdmin = document.getElementById('adminEncaminharArea');
         if(areaAdmin) {
             areaAdmin.classList.remove('hidden');
             const sel = document.getElementById('modalLeadDestino');
-            if(sel && vendorsCache.length > 0) {
+            
+            // Popula select se estiver vazio ou com valor default
+            if(sel && (sel.options.length <= 1) && vendorsCache.length > 0) {
                 sel.innerHTML = '<option value="">Selecione...</option>' + vendorsCache.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
             }
         }
@@ -549,9 +564,9 @@ async function enviarJustificativa() {
     }
 }
 
-// ============================================================================
+// ============================================================
 // 7. UTILS & ADMIN
-// ============================================================================
+// ============================================================
 
 async function apiCall(route, payload, show=true) {
     if(show) showLoading(true);
@@ -595,7 +610,7 @@ window.editarLeadAtual = function() {
     document.getElementById('leadProvedor').value = l.provedor;
     document.getElementById('leadObs').value = l.observacao;
     const s = document.getElementById('leadStatus'); if(s) s.value = l.status || "Novo";
-    if (loggedUser === "Bruno Garcia Queiroz") document.getElementById('divEncaminhar').classList.remove('hidden');
+    if (isAdminUser()) document.getElementById('divEncaminhar').classList.remove('hidden');
     editingLeadIndex = leadsCache.indexOf(l);
     fecharLeadModal();
     navegarPara('cadastroLead');
