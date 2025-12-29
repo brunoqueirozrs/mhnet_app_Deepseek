@@ -1,679 +1,247 @@
-/**
- * ============================================================
- * MHNET VENDAS - LÓGICA V121 (ADMIN & NAV FIX)
- * ============================================================
- * 📝 UPDATE:
- * - Admin: Normalização de nome para garantir acesso total aos leads.
- * - Navegação: Função 'verTodosLeads' exposta globalmente.
- * - UX: Ajuste no carregamento para evitar telas brancas.
- * ============================================================
- */
-
-// ⚠️ ID DO BACKEND V110 (Mantenha o ID da sua última implantação)
-const DEPLOY_ID = 'AKfycbydgHNvi0o4tZgqa37nY7-jzZd4g8Qcgo1K297KG6QKj90T2d8eczNEwWatGiXbvere'; 
-const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-
-// --- ESTADO GLOBAL ---
-let loggedUser = localStorage.getItem('loggedUser');
-let leadsCache = [];
-let vendorsCache = []; 
-let tasksCache = [];
-let materialsCache = [];
-let leadAtualParaAgendar = null; 
-let currentFolderId = null;
-let editingLeadIndex = null;
-let editingAbsenceIndex = null;
-let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
-let chatHistoryData = [];
-
-// Nome do Admin para verificação (Deve ser igual ao do Backend)
-const ADMIN_NAME_CANONICAL = "Bruno Garcia Queiroz";
-
-// Função auxiliar para verificar se é admin (Case Insensitive)
-function isAdminUser() {
-    return loggedUser && loggedUser.trim().toUpperCase() === ADMIN_NAME_CANONICAL.toUpperCase();
-}
-
-// ============================================================
-// 1. INICIALIZAÇÃO
-// ============================================================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V121 - Inicializando");
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MHNET Gestor</title>
     
-    carregarVendedores();
-    
-    const saved = localStorage.getItem('mhnet_leads_cache');
-    if(saved) { try { leadsCache = JSON.parse(saved); } catch(e) {} }
-    
-    if (loggedUser) {
-         initApp();
-         if(navigator.onLine) processarFilaSincronizacao();
-    } else {
-         document.getElementById('userMenu').style.display = 'flex';
-         document.getElementById('mainContent').style.display = 'none';
-    }
-});
+    <!-- Configurações PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#004c99">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MHNET">
+    <!-- Ícone seguro (SVG) -->
+    <link rel="apple-touch-icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/wifi.svg">
 
-window.addEventListener('online', () => {
-    console.log("🌐 Online - Sincronizando...");
-    processarFilaSincronizacao();
-});
-
-// ============================================================
-// 2. CORE & NAVEGAÇÃO
-// ============================================================
-
-function initApp() {
-    document.getElementById('userMenu').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'flex';
-    document.getElementById('userInfo').innerText = loggedUser;
+    <!-- Tailwind & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    // Libera painel Admin se for o Gestor (Verificação Robusta)
-    if (isAdminUser()) {
-        const btnConf = document.getElementById('btnAdminSettings');
-        if(btnConf) btnConf.classList.remove('hidden');
+    <style>
+        /* Animações e Utilitários */
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        const panel = document.getElementById('adminPanel');
-        if(panel) panel.classList.remove('hidden');
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
-        console.log("👑 Modo Admin Ativado");
-    }
-    
-    atualizarDataCabecalho();
-    carregarLeads(false); 
-    carregarTarefas(false); 
-    navegarPara('dashboard');
-}
-
-function navegarPara(pageId) {
-    // Scroll para o topo ao mudar de página
-    const scroller = document.getElementById('main-scroll');
-    if(scroller) scroller.scrollTo(0,0);
-
-    document.querySelectorAll('.page').forEach(el => {
-        el.style.display = 'none';
-        el.classList.remove('fade-in');
-    });
-
-    const target = document.getElementById(pageId);
-    if(target) {
-        target.style.display = 'block';
-        setTimeout(() => target.classList.add('fade-in'), 10);
-    }
-    
-    // Hooks de Página
-    if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
-    if (pageId === 'tarefas') renderTarefas(); 
-    if (pageId === 'indicadores') abrirIndicadores();
-    if (pageId === 'gestaoLeads') {
-        const busca = document.getElementById('searchLead');
-        // Se a busca não tiver filtro ativo, reseta para mostrar tudo
-        if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
-            busca.value = "";
-            busca.placeholder = "Buscar nome, bairro, telefone...";
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btnFilterTodos')?.classList.add('active');
-            renderLeads(); 
-        }
-    }
-    if (pageId === 'cadastroLead') {
-        ajustarMicrofone();
-        if (editingLeadIndex === null) {
-            document.querySelectorAll('#cadastroLead input, #cadastroLead textarea').forEach(el => el.value = '');
-            const sel = document.getElementById('leadInteresse'); if(sel) sel.value = 'Médio';
-            const status = document.getElementById('leadStatus'); if(status) status.value = 'Novo';
-            const dest = document.getElementById('leadVendedorDestino'); if(dest) dest.value = '';
-            
-            if(isAdminUser()) {
-                document.getElementById('divEncaminhar')?.classList.remove('hidden');
-            }
-        }
-    }
-    if (pageId === 'materiais' && !currentFolderId) setTimeout(() => carregarMateriais(null), 100);
-    if (pageId === 'faltas') ocultarHistoricoFaltas();
-}
-
-// --- FUNÇÃO GLOBAL: Botão "Carteira" no Menu Inferior ---
-window.verTodosLeads = function() {
-    navegarPara('gestaoLeads');
-    
-    const input = document.getElementById('searchLead');
-    if(input) {
-        input.value = "";
-        input.placeholder = "Buscar nome, bairro, telefone...";
-    }
-    
-    // Reseta filtros visuais
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('btnFilterTodos')?.classList.add('active');
-    
-    // Renderiza a lista completa do cache
-    renderLeads();
-}
-
-// ============================================================
-// 3. LEADS (CARTEIRA, FILTROS E BUSCA)
-// ============================================================
-
-function filtrarLeadsHoje() {
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje));
-    
-    if (leadsHoje.length === 0) {
-        alert("📅 Nenhum lead cadastrado hoje!\nVamos pra cima! 🚀");
-        return; 
-    }
-    
-    navegarPara('gestaoLeads');
-    const input = document.getElementById('searchLead');
-    if(input) {
-        input.value = "";
-        input.placeholder = `📅 Filtrado: Hoje (${leadsHoje.length})`;
-    }
-    
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    renderListaLeads(leadsHoje);
-}
-
-function filtrarRetornos() {
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
-    
-    if (retornos.length === 0) {
-        alert("Nenhum retorno agendado para hoje.");
-        return;
-    }
-    
-    navegarPara('gestaoLeads');
-    const input = document.getElementById('searchLead');
-    if(input) {
-        input.value = "";
-        input.placeholder = `🔔 Retornos de Hoje (${retornos.length})`;
-    }
-    renderListaLeads(retornos);
-}
-
-function filtrarPorStatus(status) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    
-    const idMap = {
-        'Todos': 'btnFilterTodos', 'Novo': 'btnFilterNovo', 'Em Negociação': 'btnFilterNegociação',
-        'Agendado': 'btnFilterAgendado', 'Venda Fechada': 'btnFilterVendaFechada', 'Perda': 'btnFilterPerda'
-    };
-    
-    const btn = document.getElementById(idMap[status]) || event.target;
-    if(btn) btn.classList.add('active');
-    
-    const input = document.getElementById('searchLead');
-    if(input) input.value = "";
-
-    let listaFiltrada = leadsCache;
-    if (status !== 'Todos') {
-        listaFiltrada = leadsCache.filter(l => l.status === status || l.interesse === status);
-        if(input) input.placeholder = `Filtro: ${status} (${listaFiltrada.length})`;
-    } else {
-        if(input) input.placeholder = "Buscar nome, bairro, telefone...";
-    }
-    
-    renderListaLeads(listaFiltrada);
-}
-
-async function carregarLeads(showLoader = true) {
-    if(!navigator.onLine) {
-        if(document.getElementById('listaLeadsGestao')) renderLeads();
-        return;
-    }
-
-    // NORMALIZAÇÃO DE ADMIN: Envia o nome exato esperado pelo backend se for admin
-    const userToSend = isAdminUser() ? ADMIN_NAME_CANONICAL : loggedUser;
-
-    const res = await apiCall('getLeads', { vendedor: userToSend }, showLoader);
-    if (res && res.status === 'success') {
-        leadsCache = res.data || [];
-        leadsCache.sort((a, b) => b._linha - a._linha);
-        localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
+        .scale-up { animation: scaleUp 0.2s ease-out; }
+        @keyframes scaleUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
-        // Se o backend confirmar que é admin, garante visibilidade do painel
-        if (res.isAdmin || isAdminUser()) {
-             document.getElementById('adminPanel')?.classList.remove('hidden');
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        body { height: 100dvh; overscroll-behavior-y: none; background-color: #f8fafc; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         
-        if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
-            renderLeads();
-        }
-        atualizarDashboard();
-        verificarAgendamentosHoje();
-    }
-}
+        /* Inputs Personalizados */
+        .input-padrao { width: 100%; padding: 0.8rem; border: 1px solid #e2e8f0; border-radius: 0.8rem; outline: none; transition: all 0.2s; -webkit-appearance: none; background: white; color: #1e293b; font-weight: 500; font-size: 0.95rem; }
+        .input-padrao:focus { border-color: #00aeef; box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15); }
+        .label-padrao { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
+        
+        /* Menu Inferior fixo */
+        .glass-nav { background: rgba(255, 255, 255, 1); border-top: 1px solid #e2e8f0; padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* Funil Visual */
+        .funnel-step { margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.75rem; clip-path: polygon(5% 0, 95% 0, 85% 100%, 15% 100%); text-shadow: 0 1px 2px rgba(0,0,0,0.2); margin-bottom: 2px; }
+        .funnel-1 { width: 100%; height: 40px; background: #60a5fa; }
+        .funnel-2 { width: 85%; height: 40px; background: #3b82f6; }
+        .funnel-3 { width: 70%; height: 40px; background: #1d4ed8; }
+        
+        /* Componentes */
+        .tag-info { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; color: #475569; background: #f1f5f9; border: 1px solid #e2e8f0; }
+        .filter-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+        .filter-btn { white-space: nowrap; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; color: #64748b; background: white; border: 1px solid #e2e8f0; transition: all 0.2s; }
+        .filter-btn.active { background: #00aeef; color: white; border-color: #00aeef; box-shadow: 0 2px 5px rgba(0,174,239,0.3); }
+        
+        /* Scroll Suave no Modal */
+        #leadModal .overflow-y-auto { scroll-behavior: smooth; }
+    </style>
+</head>
+<body class="text-slate-800 font-sans flex flex-col overflow-hidden select-none bg-slate-50">
 
-function renderLeads() {
-    const term = (document.getElementById('searchLead')?.value || '').toLowerCase();
-    
-    const lista = leadsCache.filter(l => 
-        (l.nomeLead||'').toLowerCase().includes(term) || 
-        (l.bairro||'').toLowerCase().includes(term) ||
-        (l.telefone||'').includes(term) ||
-        (l.cidade||'').toLowerCase().includes(term)
-    );
-    
-    renderListaLeads(lista);
-}
-
-function renderListaLeads(lista) {
-    const div = document.getElementById('listaLeadsGestao');
-    if (!div) return;
-    
-    if (lista.length === 0) { 
-        div.innerHTML = '<div class="text-center mt-10 text-gray-400">Nenhum lead encontrado.</div>'; 
-        return; 
-    }
-
-    div.innerHTML = lista.map((l) => {
-        const realIndex = leadsCache.indexOf(l);
-        return criarCardLead(l, realIndex);
-    }).join('');
-}
-
-function criarCardLead(l, index) {
-    let badgeColor = "bg-slate-100 text-slate-500";
-    if (l.status === 'Venda Fechada') badgeColor = "bg-green-500 text-white font-bold";
-    else if (l.status === 'Em Negociação') badgeColor = "bg-blue-100 text-blue-600 font-bold";
-    else if (l.status === 'Agendado') badgeColor = "bg-orange-100 text-orange-600 font-bold";
-    else if (l.status === 'Perda') badgeColor = "bg-red-100 text-red-600 font-bold";
-
-    const badgeProv = l.provedor ? `<span class="text-[9px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border border-indigo-100 ml-2"><i class="fas fa-wifi"></i> ${l.provedor}</span>` : '';
-
-    return `
-    <div onclick="abrirLeadDetalhes(${index})" class="bg-white p-4 mb-3 rounded-xl border border-slate-100 shadow-sm cursor-pointer active:scale-95 transition">
-        <div class="flex justify-between items-start">
-            <div>
-                <div class="font-bold text-slate-800 text-lg leading-tight">${l.nomeLead}</div>
-                <div class="text-xs text-slate-500 mt-1">${l.bairro || '-'} • ${l.cidade || '-'}</div>
-                <div class="mt-2 text-[10px] text-indigo-500 font-bold">${badgeProv}</div>
+    <!-- ============================================ -->
+    <!-- TELA DE LOGIN -->
+    <!-- ============================================ -->
+    <div id="userMenu" class="fixed inset-0 bg-gradient-to-b from-[#004c99] to-[#003366] z-[100] flex flex-col items-center justify-center p-6 fade-in">
+        <div class="mb-10 p-6 bg-white/10 rounded-full backdrop-blur-md border border-white/20 shadow-2xl animate-pulse">
+            <i class="fas fa-wifi text-6xl text-white drop-shadow-md"></i>
+        </div>
+        <div class="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl relative overflow-hidden">
+            <h2 class="text-center text-2xl font-bold text-slate-800 mb-6">Bem-vindo</h2>
+            <div class="relative mb-6">
+                <select id="userSelect" class="w-full p-4 bg-slate-50 rounded-xl border border-gray-200 text-lg outline-none mb-4 appearance-none text-center font-bold text-slate-700">
+                    <option value="">Carregando...</option>
+                </select>
+                <div class="absolute right-4 top-4 pointer-events-none text-gray-400"><i class="fas fa-chevron-down"></i></div>
             </div>
-            <div class="flex flex-col items-end gap-1">
-                <span class="text-[10px] px-2 py-1 rounded-full ${badgeColor}">${l.status || 'Novo'}</span>
-                ${l.agendamento ? `<span class="text-[9px] text-orange-500 flex items-center gap-1"><i class="fas fa-clock"></i> ${l.agendamento.split(' ')[0]}</span>` : ''}
+            <!-- Botão com verificação de segurança -->
+            <button onclick="if(typeof setLoggedUser === 'function'){setLoggedUser()}else{alert('Aguarde, o sistema está carregando...')}" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-blue-500">ENTRAR NO SISTEMA</button>
+            
+            <div onclick="window.location.reload(true)" class="text-center mt-4 text-xs text-slate-400 cursor-pointer hover:text-blue-500">
+                <i class="fas fa-sync"></i> Tentar reconectar
             </div>
         </div>
-    </div>`;
-}
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão Final V119</p>
+    </div>
 
-// ============================================================
-// 4. DETALHES LEAD (MODAL)
-// ============================================================
+    <!-- BANNER DE INSTALAÇÃO PWA -->
+    <div id="installPrompt" class="hidden fixed bottom-6 left-4 right-4 z-[200] animate-in slide-in-from-bottom-4">
+      <div class="bg-slate-800 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-700">
+        <div class="flex items-center gap-3">
+            <div class="bg-[#00aeef] w-10 h-10 rounded-xl flex items-center justify-center text-white"><i class="fas fa-download"></i></div>
+            <div><p class="font-bold text-sm">Instalar App</p><p class="text-[10px] text-slate-300">Acesso rápido offline</p></div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="instalarPWA()" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold shadow-lg active:scale-90 transition">INSTALAR</button>
+            <button onclick="fecharInstallPrompt()" class="text-slate-400 w-8 h-8 flex items-center justify-center active:text-white"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+    </div>
 
-function abrirLeadDetalhes(index) {
-    const l = leadsCache[index];
-    if(!l) return;
-    leadAtualParaAgendar = l;
-    
-    // Dados Básicos
-    document.getElementById('modalLeadNome').innerText = l.nomeLead;
-    document.getElementById('modalLeadBairro').innerText = l.bairro || "Sem bairro";
-    document.getElementById('modalLeadCidade').innerText = l.cidade || "Sem cidade";
-    document.getElementById('modalLeadTelefone').innerText = l.telefone || "Sem fone";
-    document.getElementById('modalLeadProvedor').innerText = l.provedor || "--";
-    
-    const statusSel = document.getElementById('modalStatusFunil');
-    if(statusSel) statusSel.value = l.status || "Novo";
-    
-    // Agendamento
-    if(l.agendamento) {
-        const parts = l.agendamento.split(' ');
-        if(parts.length >= 1) {
-            const dateParts = parts[0].split('/');
-            if(dateParts.length === 3) document.getElementById('agendarData').value = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-        }
-        if(parts.length >= 2) document.getElementById('agendarHora').value = parts[1];
-    } else {
-        document.getElementById('agendarData').value = '';
-    }
-
-    document.getElementById('modalLeadObs').value = l.observacao || "";
-    document.getElementById('inputObjecaoLead').value = l.objecao || "";
-    document.getElementById('respostaObjecaoLead').value = l.respostaObjecao || "";
-
-    const btnWhats = document.getElementById('btnModalWhats');
-    if (btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
-    const btnTag = document.getElementById('btnModalWhatsTag');
-    if (btnTag) btnTag.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
-    
-    const containerRaioX = document.getElementById('containerRaioX');
-    if(containerRaioX) {
-        containerRaioX.innerHTML = `<button onclick="raioXConcorrencia()" class="ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] font-bold shadow flex items-center gap-1 active:scale-95"><i class="fas fa-bolt text-yellow-400"></i> Raio-X</button>`;
-    }
-    
-    // Admin: Encaminhamento
-    if (isAdminUser()) {
-        const areaAdmin = document.getElementById('adminEncaminharArea');
-        if(areaAdmin) {
-            areaAdmin.classList.remove('hidden');
-            const sel = document.getElementById('modalLeadDestino');
-            
-            // Popula select se estiver vazio ou com valor default
-            if(sel && (sel.options.length <= 1) && vendorsCache.length > 0) {
-                sel.innerHTML = '<option value="">Selecione...</option>' + vendorsCache.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
-            }
-        }
-    } else {
-        document.getElementById('adminEncaminharArea')?.classList.add('hidden');
-    }
-
-    // Tarefas Vinculadas
-    renderTarefasNoModal(l.nomeLead);
-
-    document.getElementById('leadModal').classList.remove('hidden');
-}
-
-function fecharLeadModal() { document.getElementById('leadModal').classList.add('hidden'); leadAtualParaAgendar = null; editingLeadIndex = null; }
-
-async function salvarEdicaoModal() {
-    if (!leadAtualParaAgendar) return;
-    
-    const novoStatus = document.getElementById('modalStatusFunil').value;
-    const obs = document.getElementById('modalLeadObs').value;
-    const dataAgenda = document.getElementById('agendarData').value;
-    const horaAgenda = document.getElementById('agendarHora').value;
-    
-    leadAtualParaAgendar.status = novoStatus;
-    leadAtualParaAgendar.observacao = obs;
-    if (dataAgenda) {
-        const [a, m, d] = dataAgenda.split('-');
-        leadAtualParaAgendar.agendamento = `${d}/${m}/${a} ${horaAgenda || '09:00'}`;
-    }
-    localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
-    if(document.getElementById('gestaoLeads').style.display !== 'none') renderLeads();
-    
-    showLoading(true, "ATUALIZANDO...");
-    
-    await Promise.all([
-        apiCall('updateStatus', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, status: novoStatus }, false),
-        apiCall('updateObservacao', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, observacao: obs }, false)
-    ]);
-    
-    if (dataAgenda) {
-        await apiCall('updateAgendamento', { 
-            vendedor: loggedUser, 
-            nomeLead: leadAtualParaAgendar.nomeLead, 
-            agendamento: leadAtualParaAgendar.agendamento 
-        }, false);
-    }
-    
-    showLoading(false);
-    fecharLeadModal();
-}
-
-// ============================================================
-// 5. TAREFAS
-// ============================================================
-
-async function carregarTarefas(show = true) {
-    if(!navigator.onLine && tasksCache.length > 0) { if(show) renderTarefas(); return; }
-    const res = await apiCall('getTasks', { vendedor: loggedUser }, false);
-    if (res && res.status === 'success') {
-        tasksCache = res.data;
-        if(show) renderTarefas();
-    }
-}
-
-function renderTarefas() {
-    const div = document.getElementById('listaTarefasContainer');
-    if (!div) return;
-    
-    if (tasksCache.length === 0) {
-        div.innerHTML = `<div class="text-center p-8 text-gray-400">Nenhuma tarefa pendente.</div>`;
-        return;
-    }
-    
-    tasksCache.sort((a, b) => (a.status === 'PENDENTE' ? -1 : 1));
-
-    div.innerHTML = tasksCache.map(t => {
-        const checked = t.status === "CONCLUIDA" ? "checked" : "";
-        const opacity = t.status === "CONCLUIDA" ? "opacity-50 line-through" : "";
-        return `
-        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 mb-2 ${opacity}">
-            <input type="checkbox" ${checked} onchange="toggleTask('${t.id}', '${t.status}')" class="w-5 h-5 rounded cursor-pointer">
-            <div class="flex-1">
-                <div class="text-sm font-bold text-slate-700">${t.descricao}</div>
-                <div class="text-[10px] text-slate-400 mt-1">${t.dataLimite || ''} ${t.nomeLead ? '• '+t.nomeLead : ''}</div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function renderTarefasNoModal(nomeLead) {
-    const container = document.getElementById('sectionTarefasLead');
-    const lista = document.getElementById('listaTarefasLead');
-    const tarefas = tasksCache.filter(t => t.nomeLead === nomeLead && t.status !== 'CONCLUIDA');
-    
-    if (tarefas.length > 0) {
-        container.classList.remove('hidden');
-        lista.innerHTML = tarefas.map(t => `
-            <div class="bg-white p-2 rounded border border-slate-200 flex items-center gap-2">
-                <input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4">
-                <span class="text-xs text-slate-700">${t.descricao}</span>
-            </div>
-        `).join('');
-    } else {
-        container.classList.add('hidden');
-    }
-}
-
-async function toggleTask(id, currentStatus) {
-    const t = tasksCache.find(x => x.id === id);
-    if(t) { t.status = currentStatus === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE'; renderTarefas(); if(leadAtualParaAgendar) renderTarefasNoModal(leadAtualParaAgendar.nomeLead); }
-    await apiCall('toggleTask', { taskId: id, status: currentStatus, vendedor: loggedUser }, false);
-    carregarTarefas(false);
-}
-
-function abrirModalTarefa() {
-    document.getElementById('taskModal').classList.remove('hidden');
-    const sel = document.getElementById('taskLeadSelect');
-    sel.innerHTML = '<option value="">Nenhum (Avulso)</option>';
-    leadsCache.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l.nomeLead; opt.innerText = l.nomeLead; sel.appendChild(opt);
-    });
-}
-
-async function salvarTarefa() {
-    const desc = document.getElementById('taskDesc').value;
-    const date = document.getElementById('taskDate').value;
-    const leadVal = document.getElementById('taskLeadSelect').value;
-    if(!desc) return alert("Digite a descrição.");
-    
-    showLoading(true);
-    await apiCall('addTask', { vendedor: loggedUser, descricao: desc, dataLimite: date, nomeLead: leadVal });
-    showLoading(false);
-    document.getElementById('taskModal').classList.add('hidden');
-    document.getElementById('taskDesc').value = '';
-    carregarTarefas();
-}
-
-async function limparTarefasConcluidas() {
-    if(!confirm("Limpar concluídas?")) return;
-    tasksCache = tasksCache.filter(t => t.status !== 'CONCLUIDA');
-    renderTarefas();
-    await apiCall('archiveTasks', { vendedor: loggedUser });
-    showLoading(false);
-    carregarTarefas();
-}
-
-// ============================================================
-// 6. MATERIAIS & FALTAS
-// ============================================================
-
-async function carregarMateriais(f=null, s="") {
-    const div = document.getElementById('materiaisGrid');
-    if (!div) return;
-    currentFolderId = f; 
-    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Carregando...</div>';
-    
-    try {
-        const res = await apiCall('getImages', { folderId: f, search: s }, false);
-        if (res && res.status === 'success' && res.data) {
-            materialsCache = res.data;
-            const btnVoltar = document.querySelector('#materiais button'); 
-            const titleEl = document.querySelector('#materiais h2');
-            if(btnVoltar) {
-                if(res.isRoot) { btnVoltar.onclick = () => navegarPara('dashboard'); if(titleEl) titleEl.innerText = "Materiais"; } 
-                else { btnVoltar.onclick = () => carregarMateriais(null); if(titleEl) titleEl.innerText = "Voltar"; }
-            }
-            renderMateriais(materialsCache);
-        } else { throw new Error("Erro API"); }
-    } catch (error) {
-        div.innerHTML = `<div class="col-span-2 text-center text-red-400">Erro ao carregar.</div>`;
-    }
-}
-
-function buscarMateriais() {
-    const term = document.getElementById('searchMateriais').value.toLowerCase();
-    const filtrados = materialsCache.filter(m => m.name.toLowerCase().includes(term));
-    renderMateriais(filtrados);
-}
-
-function renderMateriais(items) {
-    const div = document.getElementById('materiaisGrid');
-    if(items.length === 0) { div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Vazio.</div>'; return; }
-    
-    div.innerHTML = items.map(item => {
-        if (item.type === 'folder') {
-            return `<div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36"><i class="fas fa-folder text-5xl text-[#00aeef]"></i><span class="text-xs font-bold text-slate-600 text-center line-clamp-2">${item.name}</span></div>`;
-        } else {
-            return `
-            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative">
-                <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div>
-                <div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div>
-                <div class="flex gap-2">
-                    <a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a>
-                    <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button>
+    <!-- ============================================ -->
+    <!-- APP PRINCIPAL -->
+    <!-- ============================================ -->
+    <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
+        
+        <!-- HEADER -->
+        <header class="bg-[#004c99] text-white pt-4 pb-2 px-5 shadow-lg flex justify-between items-center z-20 shrink-0 rounded-b-[1.5rem]">
+            <div class="flex flex-col justify-center">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="font-bold text-lg tracking-wide">MHNET</span>
+                    <div id="headerDate" class="text-[9px] text-blue-200 font-bold uppercase border-l border-blue-400 pl-2"></div>
                 </div>
-            </div>`;
-        }
-    }).join('');
-}
+                <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_5px_#4ade80]"></div>
+                    <div id="userInfo" class="text-sm font-bold text-white/95 leading-tight truncate max-w-[200px]">Vendedor</div>
+                </div>
+            </div>
+            
+            <div class="flex gap-2">
+                <!-- Botão Config (Admin Only) -->
+                <button id="btnAdminSettings" onclick="abrirConfiguracoes()" class="hidden w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white active:scale-90"><i class="fas fa-cog text-xs"></i></button>
+                <button onclick="logout()" class="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white active:scale-90 transition border border-white/10 shadow-sm"><i class="fas fa-power-off text-xs"></i></button>
+            </div>
+        </header>
 
-// --- FALTAS ---
-async function verHistoricoFaltas() {
-    const div = document.getElementById('listaHistoricoFaltas');
-    document.getElementById('historicoFaltasContainer').classList.remove('hidden');
-    document.getElementById('formFaltaContainer').classList.add('hidden');
-    div.innerHTML = '<div class="text-center p-5">Carregando...</div>';
-    
-    const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
-    if (res.status === 'success' && res.data.length > 0) {
-        div.innerHTML = res.data.map(f => `<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');
-    } else div.innerHTML = '<div class="text-center text-xs">Sem histórico.</div>';
-}
-function ocultarHistoricoFaltas() {
-    document.getElementById('historicoFaltasContainer').classList.add('hidden');
-    document.getElementById('formFaltaContainer').classList.remove('hidden');
-}
-async function enviarJustificativa() {
-    const dt = document.getElementById('faltaData').value;
-    const mt = document.getElementById('faltaMotivo').value;
-    const ob = document.getElementById('faltaObs').value;
-    if(!dt || !mt) return alert("Preencha data e motivo.");
-    
-    showLoading(true);
-    const payload = { vendedor: loggedUser, dataFalta: dt, motivo: mt, observacao: ob };
-    const file = document.getElementById('faltaArquivo').files[0];
-    
-    if(file) {
-        const r = new FileReader();
-        r.onload = async function(e) { payload.fileData = e.target.result; payload.fileName = file.name; payload.mimeType = file.type; await apiCall('registerAbsence', payload); showLoading(false); alert("Enviado!"); navegarPara('dashboard'); };
-        r.readAsDataURL(file);
-    } else {
-        await apiCall('registerAbsence', payload);
-        showLoading(false); alert("Enviado!"); navegarPara('dashboard');
-    }
-}
+        <!-- SCROLL AREA -->
+        <main id="main-scroll" class="flex-1 overflow-y-auto p-5 pb-36 no-scrollbar scroll-smooth -mt-3 relative z-10">
+            
+            <!-- DASHBOARD -->
+            <div id="dashboard" class="page fade-in">
+                
+                <!-- PAINEL GESTOR (Admin) -->
+                <div id="adminPanel" class="hidden bg-slate-800 p-4 rounded-2xl mb-6 shadow-xl border border-slate-700 animate-in slide-in-from-top-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2"><i class="fas fa-user-shield text-yellow-400"></i><span class="text-xs font-bold text-white uppercase tracking-wider">Modo Gestor</span></div>
+                        <span class="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded">Visão Global</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Você está visualizando dados de toda a equipe.</p>
+                </div>
 
-// ============================================================
-// 7. UTILS & ADMIN
-// ============================================================
+                <!-- Botão Indicadores (Funil) -->
+                <button onclick="abrirIndicadores()" class="w-full bg-slate-800 text-white p-5 rounded-2xl shadow-lg mb-6 flex items-center justify-between active:scale-95 transition group relative overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white/10 to-transparent"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-green-400 border border-slate-600"><i class="fas fa-chart-pie text-xl"></i></div>
+                        <div class="text-left">
+                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Funil de Vendas</div>
+                            <div class="text-xl font-bold">Meus Indicadores</div>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-500 relative z-10 group-hover:text-white transition"></i>
+                </button>
 
-async function apiCall(route, payload, show=true) {
-    if(show) showLoading(true);
-    if (!navigator.onLine && isWriteOperation(route)) {
-        adicionarAFila(route, payload);
-        if(show) showLoading(false);
-        if (route === 'toggleTask') return { status: 'success', local: true }; // Otimista
-        return { status: 'success', local: true, message: 'Offline Salvo' };
-    }
-    try {
-        const res = await fetch(API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({ route: route, payload: payload }) });
-        const json = await res.json();
-        if(show) showLoading(false);
-        return json;
-    } catch(e) {
-        if(show) showLoading(false);
-        if (isWriteOperation(route)) { adicionarAFila(route, payload); return { status: 'success', local: true }; }
-        return { status: 'error', message: 'Conexão' };
-    }
-}
-function isWriteOperation(route) { return ['addLead', 'deleteLead', 'updateStatus', 'updateAgendamento', 'updateObservacao', 'addTask', 'toggleTask', 'archiveTasks', 'registerAbsence', 'updateAbsence', 'saveObjectionLead', 'updateLeadFull', 'forwardLead', 'manageTeam'].includes(route); }
-function adicionarAFila(r, p) { syncQueue.push({route:r, payload:p}); localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue)); alert("Salvo Offline!"); }
-async function processarFilaSincronizacao() { if(syncQueue.length===0) return; showLoading(true); const f=[]; for(const i of syncQueue) { try { await fetch(API_URL, {method:'POST', body:JSON.stringify({route:i.route, payload:i.payload})}); } catch(e){f.push(i)} } syncQueue=f; localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue)); showLoading(false); if (syncQueue.length === 0 && document.getElementById('gestaoLeads').style.display !== 'none') carregarLeads(false); }
-async function carregarVendedores() { const s=document.getElementById('userSelect'); if(!s)return; try{const r=await apiCall('getVendors',{},false);if(r.status==='success'){const o=r.data.map(v=>`<option value="${v.nome}">${v.nome}</option>`).join('');s.innerHTML='<option value="">Selecione...</option>'+o; document.getElementById('modalLeadDestino').innerHTML='<option value="">Selecione...</option>'+o;}}catch(e){s.innerHTML='<option value="">Offline</option>';} }
-function showLoading(s,t){const l=document.getElementById('loader');if(l)l.style.display=s?'flex':'none';if(t)document.getElementById('loaderText').innerText=t}
-function setLoggedUser(){const v=document.getElementById('userSelect').value;if(v&&v!=="A carregar..."){loggedUser=v;localStorage.setItem('loggedUser',v);initApp()}else alert("Selecione!")}
-function logout(){localStorage.removeItem('loggedUser');location.reload()}
-function atualizarDataCabecalho(){document.getElementById('headerDate').innerText=new Date().toLocaleDateString('pt-BR')}
-function atualizarDashboard(){const h=new Date().toLocaleDateString('pt-BR');document.getElementById('statLeads').innerText=leadsCache.filter(l=>l.timestamp&&l.timestamp.includes(h)).length}
-function verificarAgendamentosHoje(){const h=new Date().toLocaleDateString('pt-BR');const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));if(r.length>0)document.getElementById('lembreteBanner').classList.remove('hidden');else document.getElementById('lembreteBanner').classList.add('hidden')}
+                <!-- Lembrete -->
+                <div id="lembreteBanner" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 rounded-r-2xl shadow-sm flex items-start gap-4 active:scale-95 transition cursor-pointer" onclick="filtrarRetornos()">
+                    <div class="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center text-orange-500 shrink-0"><i class="fas fa-bell animate-bounce"></i></div>
+                    <div><p class="font-bold text-orange-800 text-sm">Atenção!</p><p class="text-xs text-orange-600 mt-1">Retornos pendentes.</p></div>
+                </div>
 
-// CADASTRO
-window.editarLeadAtual = function() {
-    if (!leadAtualParaAgendar) return;
-    const l = leadAtualParaAgendar;
-    document.getElementById('leadNome').value = l.nomeLead;
-    document.getElementById('leadTelefone').value = l.telefone;
-    document.getElementById('leadEndereco').value = l.endereco;
-    document.getElementById('leadBairro').value = l.bairro;
-    document.getElementById('leadCidade').value = l.cidade;
-    document.getElementById('leadProvedor').value = l.provedor;
-    document.getElementById('leadObs').value = l.observacao;
-    const s = document.getElementById('leadStatus'); if(s) s.value = l.status || "Novo";
-    if (isAdminUser()) document.getElementById('divEncaminhar').classList.remove('hidden');
-    editingLeadIndex = leadsCache.indexOf(l);
-    fecharLeadModal();
-    navegarPara('cadastroLead');
-}
-async function enviarLead() {
-    const p={vendedor:loggedUser, nomeLead:document.getElementById('leadNome').value, telefone:document.getElementById('leadTelefone').value, endereco:document.getElementById('leadEndereco').value, bairro:document.getElementById('leadBairro').value, cidade:document.getElementById('leadCidade').value, provedor:document.getElementById('leadProvedor').value, interesse:document.getElementById('leadInteresse').value, status:document.getElementById('leadStatus').value, observacao:document.getElementById('leadObs').value, novoVendedor:document.getElementById('leadVendedorDestino')?.value||""};
-    let r='addLead'; 
-    if(editingLeadIndex!==null){ r='updateLeadFull'; p._linha=leadsCache[editingLeadIndex]._linha; p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead; }
-    else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; }
-    
-    const res=await apiCall(r,p);
-    if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")
-}
+                <!-- CARDS PRINCIPAIS -->
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- 1. Leads Hoje (Filtro) -->
+                    <div onclick="filtrarLeadsHoje()" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-1 cursor-pointer active:scale-95 transition">
+                        <div class="text-4xl font-black text-[#004c99]" id="statLeads">0</div>
+                        <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider flex items-center gap-1"><i class="fas fa-filter text-xs"></i> Leads Hoje</div>
+                    </div>
+                    
+                    <!-- 2. Minha Carteira (Abre Todos) -->
+                    <div onclick="verTodosLeads()" class="bg-blue-500 p-5 rounded-2xl shadow-lg flex flex-col items-center justify-center text-white active:scale-95 cursor-pointer relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -mr-8 -mt-8 blur-lg"></div>
+                        <i class="fas fa-list-ul text-3xl mb-1 drop-shadow-md"></i>
+                        <div class="text-[10px] uppercase font-bold tracking-wider drop-shadow-md text-center">Minha Carteira</div>
+                    </div>
+                </div>
 
-// ADMIN
-function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
-async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
-async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <button onclick="navegarPara('tarefas')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition">
+                        <div class="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600"><i class="fas fa-check-square"></i></div>
+                        <span class="text-xs font-bold text-slate-600">Tarefas</span>
+                    </button>
+                     <button onclick="navegarPara('faltas')" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition">
+                        <div class="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center text-red-500"><i class="fas fa-calendar-times"></i></div>
+                        <span class="text-xs font-bold text-slate-600">Faltas</span>
+                    </button>
+                </div>
 
-// IA & OUTROS
-async function buscarEnderecoGPS(){navigator.geolocation.getCurrentPosition(p=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}`).then(r=>r.json()).then(d=>{if(d.address){document.getElementById('leadEndereco').value=d.address.road;document.getElementById('leadBairro').value=d.address.suburb;document.getElementById('leadCidade').value=d.address.city||d.address.town}})},()=>{alert('Erro GPS')})}
-function iniciarDitado(t){}
-function copying(id){document.getElementById(id).select();document.execCommand('copy');alert("Copiado!")}
-async function gerarScriptVendaIA(){if(!leadAtualParaAgendar)return;showLoading(true);const r=await perguntarIABackend(`Script WhatsApp para ${leadAtualParaAgendar.nomeLead}`);showLoading(false);if(r)alert("Copiado: "+r)}
-async function perguntarIABackend(p){ try { const r=await apiCall('askAI',{question:p},false); return r.status==='success' ? r.answer : null; } catch(e){return null;} }
-async function abrirIndicadores(){navegarPara('indicadores');['funnelLeads','funnelNegociacao','funnelVendas'].forEach(id=>document.getElementById(id).innerText='...');const r=await apiCall('getIndicators',{vendedor:loggedUser},false);if(r.status==='success'){const d=r.data;document.getElementById('funnelLeads').innerText=d.totalLeads;document.getElementById('funnelNegociacao').innerText=d.negociacao;document.getElementById('funnelVendas').innerText=d.vendas;}}
-async function excluirLead(){if(!confirm("Excluir?"))return;await apiCall('deleteLead',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead});alert("Excluído.");fecharLeadModal();carregarLeads()}
-async function marcarVendaFechada(){if(!confirm("Venda Fechada?"))return;await apiCall('updateStatus',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,status:"Venda Fechada"});alert("Parabéns!");fecharLeadModal();carregarLeads()}
-async function salvarAgendamento(){const a=`${document.getElementById('agendarData').value} ${document.getElementById('agendarHora').value}`;await apiCall('updateAgendamento',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,agendamento:a});alert("Agendado!");fecharLeadModal()}
-async function salvarObservacaoModal(){await apiCall('updateObservacao',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,observacao:document.getElementById('modalLeadObs').value});alert("Salvo!")}
-async function combaterObjecaoGeral(){const o=document.getElementById('inputObjecaoGeral').value;const r=await apiCall('solveObjection',{objection:o});if(r.status==='success')document.getElementById('resultadoObjecaoGeral').innerHTML=r.answer}
-async function combaterObjecaoLead(){const o=document.getElementById('inputObjecaoLead').value;const r=await apiCall('solveObjection',{objection:o});if(r.status==='success')document.getElementById('respostaObjecaoLead').value=r.answer}
-async function salvarObjecaoLead(){await apiCall('saveObjectionLead',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,objection:document.getElementById('inputObjecaoLead').value,answer:document.getElementById('respostaObjecaoLead').value});alert("Salvo!")}
-async function analiseEstrategicaIA(){const r=await perguntarIABackend(`Analise lead ${leadAtualParaAgendar.nomeLead}`);if(r)document.getElementById('modalLeadObs').value+="\n\n[IA]: "+r}
-async function raioXConcorrencia(){const p=document.getElementById('modalLeadProvedor').innerText;const r=await perguntarIABackend(`Raio-X ${p}`);if(r)document.getElementById('modalLeadObs').value += "\n\n[RX]: " + r}
-async function gerarCoachIA(){const r=await perguntarIABackend("Frase motivacional");if(r)alert(r)}
-async function consultarPlanosIA(){document.getElementById('chatModal').classList.remove('hidden')}
-function toggleChat(){document.getElementById('chatModal').classList.add('hidden')}
-async function enviarMensagemChat(){const m=document.getElementById('chatInput').value;if(m){document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;const r=await perguntarIABackend(m);document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;}}
-function ajustarMicrofone(){const btn=document.getElementById('btnMicNome');if(btn){btn.removeAttribute('onclick');btn.onclick=()=>iniciarDitado('leadObs');}}
+                <button onclick="navegarPara('cadastroLead')" class="w-full bg-[#004c99] text-white p-5 rounded-2xl shadow-xl font-bold flex items-center justify-between mb-8 active:scale-95 transition group">
+                    <div class="flex items-center gap-4"><div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center"><i class="fas fa-user-plus text-xl"></i></div><div class="text-left"><div class="text-xs opacity-70 font-medium">Ação Rápida</div><div class="text-lg font-bold">Novo Cliente</div></div></div><i class="fas fa-chevron-right text-xs"></i>
+                </button>
+
+                <!-- Ferramentas -->
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <button onclick="navegarPara('materiais')" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-2 active:bg-orange-50 transition"><div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fas fa-images"></i></div><span class="text-xs font-bold text-slate-600">Materiais</span></button>
+                    <button onclick="navegarPara('objecoes')" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-2 active:bg-red-50 transition"><div class="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center"><i class="fas fa-shield-alt"></i></div><span class="text-xs font-bold text-slate-600">Objeções</span></button>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                     <button onclick="gerarCoachIA()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-purple-50 transition"><div class="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-brain"></i></div><span class="text-xs font-bold text-slate-600">Coach IA</span></button>
+                    <button onclick="consultarPlanosIA()" class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm flex flex-col items-center gap-3 active:bg-blue-50 transition"><div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fas fa-comments"></i></div><span class="text-xs font-bold text-slate-600">Chat IA</span></button>
+                </div>
+            </div>
+
+            <!-- TELA LEADS -->
+            <div id="gestaoLeads" class="page hidden fade-in">
+                <!-- Cabeçalho com Voltar -->
+                <div class="flex items-center gap-4 mb-4">
+                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-[#004c99]">Carteira</h2>
+                    <button onclick="carregarLeads()" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center active:scale-90 shadow-md ml-auto"><i class="fas fa-sync text-sm"></i></button>
+                </div>
+                
+                <!-- Filtros Funil -->
+                <div class="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
+                    <button onclick="filtrarPorStatus('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]">Todos</button>
+                    <button onclick="filtrarPorStatus('Novo')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Novos</button>
+                    <button onclick="filtrarPorStatus('Em Negociação')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Negociação</button>
+                    <button onclick="filtrarPorStatus('Agendado')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Agendados</button>
+                    <button onclick="filtrarPorStatus('Venda Fechada')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Vendas</button>
+                    <button onclick="filtrarPorStatus('Perda')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">Perdidos</button>
+                </div>
+
+                <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full input-padrao mb-4" placeholder="Buscar por nome, bairro, telefone...">
+                <div id="listaLeadsGestao" class="space-y-3 pb-20"></div>
+            </div>
+
+            <!-- TELA INDICADORES -->
+            <div id="indicadores" class="page hidden fade-in">
+                <div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Funil de Vendas</h2></div>
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 mb-6 text-center">
+                    <p class="text-xs text-slate-400 uppercase mb-4 font-bold tracking-widest">Mês Comercial (25-24)</p>
+                    <h3 id="indMes" class="text-lg font-bold text-[#004c99] mb-1">--</h3>
+                    <p id="indCiclo" class="text-[10px] text-slate-400 mb-4">--</p>
+                    <div class="flex flex-col gap-1 w-full max-w-[200px] mx-auto mb-6 mt-4">
+                        <div class="funnel-step funnel-1"><span id="funnelLeads" class="mr-1.5">0</span> Leads</div>
+                        <div class="funnel-step funnel-2"><span id="funnelNegociacao" class="mr-1.5">0</span> Negoc.</div>
+                        <div class="funnel-step funnel-3 shadow-md"><span id="funnelVendas" class="mr-1.5">0</span> Vendas</div>
+                    </div>
+                    <div class="flex justify-between text-left px-4 border-t border-slate-100 pt-4"><div><p class="text-[10px] font-bold uppercase text-slate-400">Meta</p><p id="indMeta" class="text-xl font-black text-slate-800">--</p></div><div class="text-right"><p class="text-[10px] font-bold uppercase text-slate-400">Vendas Mês</p><p id="indRealizado" class="text-xl font-black text-green-600">--</p></div></div>
+                </div>
+                <div class="bg-slate-800 p-5 rounded-2xl shadow-lg text-white relative"><div class="flex items-center gap-2 mb-2"><i class="fas fa-robot text-green-400"></i> <span class="text-xs font-bold uppercase opacity-70">Coach IA</span></div><p id="indAnaliseIA" class="text-sm italic opacity-90">Calculando estratégia...</p></div>
+            </div>
+
+            <!-- TELA TAREFAS -->
+            <div id="tarefas" class="page hidden fade-in"><div class="flex items-center justify-between mb-6"><div class="flex items-center gap-4"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Tarefas</h2></div><div class="flex gap-2"><button onclick="limparTarefasConcluidas()" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center active:scale-90 shadow-sm"><i class="fas fa-trash-alt"></i></button><button onclick="abrirModalTarefa()" class="w-10 h-10 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition hover:bg-blue-700"><i class="fas fa-plus"></i></button></div></div><div id="listaTarefasContainer" class="space-y-3 pb-20"></div></div>
+
+            <!-- TELA FALTAS -->
+            <div id="faltas" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition hover:text-[#004c99]"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#0
