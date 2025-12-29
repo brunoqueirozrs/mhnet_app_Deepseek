@@ -1,11 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V119 (ADMIN FIX)
+ * MHNET VENDAS - LÓGICA V120 (FINAL PATCHED)
  * ============================================================
- * 📝 RESUMO:
- * - Correção da verificação de Administrador (Case Insensitive).
- * - Garantia que botões de Configuração e Encaminhamento apareçam.
- * - Sincronização total com Index V118.
+ * 📝 RESUMO DAS CORREÇÕES:
+ * 1. Botões Inferiores: Adicionada função 'verTodosLeads' para o botão Carteira.
+ * 2. Admin: Verificação robusta para 'BRUNO GARCIA QUEIROZ' (carrega todos os leads).
+ * 3. Navegação: Botão de voltar e fluxo de telas revisados.
  * ============================================================
  */
 
@@ -31,14 +31,14 @@ const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
 
 // Função auxiliar para verificar se é admin
 function isAdminUser() {
-    return loggedUser && loggedUser.toUpperCase() === ADMIN_NAME_CHECK;
+    return loggedUser && loggedUser.trim().toUpperCase() === ADMIN_NAME_CHECK;
 }
 
 // ============================================================
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V119 - Ready");
+    console.log("🚀 MHNET App V120 - Ready");
     
     carregarVendedores();
     
@@ -72,6 +72,11 @@ function initApp() {
     if (isAdminUser()) {
         const btnConf = document.getElementById('btnAdminSettings');
         if(btnConf) btnConf.classList.remove('hidden');
+        
+        // Garante que o painel de gestor no dashboard apareça se já tiver cache
+        const panel = document.getElementById('adminPanel');
+        if(panel) panel.classList.remove('hidden');
+        
         console.log("👑 Modo Admin Ativado para:", loggedUser);
     }
     
@@ -127,6 +132,24 @@ function navegarPara(pageId) {
     }
     if (pageId === 'materiais' && !currentFolderId) setTimeout(() => carregarMateriais(null), 100);
     if (pageId === 'faltas') ocultarHistoricoFaltas();
+}
+
+// --- FUNÇÃO FALTANTE: Botão "Carteira" no Menu Inferior ---
+window.verTodosLeads = function() {
+    navegarPara('gestaoLeads');
+    
+    const input = document.getElementById('searchLead');
+    if(input) {
+        input.value = "";
+        input.placeholder = "Buscar nome, bairro, telefone...";
+    }
+    
+    // Reseta filtros visuais
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btnFilterTodos')?.classList.add('active');
+    
+    // Renderiza a lista completa do cache
+    renderLeads();
 }
 
 // ============================================================
@@ -210,7 +233,10 @@ async function carregarLeads(showLoader = true) {
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
         
         // Se o backend confirmar que é admin, garante visibilidade do painel
-        if (res.isAdmin) document.getElementById('adminPanel')?.classList.remove('hidden');
+        // O Backend V110 já deve retornar isAdmin: true se for o Bruno
+        if (res.isAdmin || isAdminUser()) {
+             document.getElementById('adminPanel')?.classList.remove('hidden');
+        }
         
         if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
             renderLeads();
