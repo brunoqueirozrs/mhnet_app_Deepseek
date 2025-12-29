@@ -1,16 +1,15 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V126 (FINAL BLINDADO)
+ * MHNET VENDAS - LÓGICA V127 (FIX LOOP & SAFETY)
  * ============================================================
- * 📝 CORREÇÕES CRÍTICAS REALIZADAS:
- * 1. FIM DO LOOP INFINITO: A função 'navegarPara' não chama mais 'verTodosLeads'.
- * 2. MODAL SEGURO: Verificação de existência de elementos antes de preencher.
- * 3. ADMIN RESTAURADO: Botão de encaminhar volta a aparecer para o gestor.
- * 4. IA RESTAURADA: Scripts e análises conectados novamente.
+ * 📝 CORREÇÕES CRÍTICAS:
+ * 1. FIX LOOP: Removida a recursividade entre 'navegarPara' e 'verTodosLeads'.
+ * 2. SAFETY: Verificação de existência de elementos (Null Check) antes de preencher.
+ * 3. SYNC: Mantida sincronia com Backend V110 e Index V118+.
  * ============================================================
  */
 
-// ⚠️ ID DO BACKEND V110 (Mantenha o ID da sua última implantação)
+// ⚠️ ID DO BACKEND V110
 const DEPLOY_ID = 'AKfycbydgHNvi0o4tZgqa37nY7-jzZd4g8Qcgo1K297KG6QKj90T2d8eczNEwWatGiXbvere'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 
@@ -27,7 +26,6 @@ let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 let chatHistoryData = [];
 
-// Configuração Admin
 const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
 
 function isAdminUser() {
@@ -39,9 +37,9 @@ function isAdminUser() {
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V126 - Inicializando...");
+    console.log("🚀 MHNET App V127 - Starting...");
     
-    // Torna funções globais acessíveis ao HTML (onclick)
+    // Funções Globais
     exporFuncoesGlobais();
     
     carregarVendedores();
@@ -99,14 +97,14 @@ function exporFuncoesGlobais() {
 window.addEventListener('online', () => { processarFilaSincronizacao(); });
 
 // ============================================================
-// 2. CORE & NAVEGAÇÃO
+// 2. CORE & NAVEGAÇÃO (FIX LOOP)
 // ============================================================
+
 function initApp() {
     document.getElementById('userMenu').style.display = 'none';
     document.getElementById('mainContent').style.display = 'flex';
     document.getElementById('userInfo').innerText = loggedUser;
     
-    // Libera Admin
     if (isAdminUser()) {
         const btn = document.getElementById('btnAdminSettings');
         if(btn) btn.classList.remove('hidden');
@@ -121,41 +119,40 @@ function initApp() {
 }
 
 function navegarPara(pageId) {
-    // 1. Esconde todas as páginas
     document.querySelectorAll('.page').forEach(el => {
         el.style.display = 'none';
         el.classList.remove('fade-in');
     });
 
-    // 2. Mostra a página alvo
     const target = document.getElementById(pageId);
     if(target) {
         target.style.display = 'block';
         setTimeout(() => target.classList.add('fade-in'), 10);
     }
     
-    // 3. Scroll para o topo
     const scroller = document.getElementById('main-scroll');
     if(scroller) scroller.scrollTo(0,0);
 
-    // 4. Hooks (Ações ao entrar na tela)
+    // Hooks
     if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
     if (pageId === 'tarefas') renderTarefas(); 
     if (pageId === 'indicadores') abrirIndicadores();
     
-    // CORREÇÃO DO LOOP INFINITO:
-    // Apenas renderiza, não chama verTodosLeads() que chamaria navegarPara() de novo.
+    // ✅ FIX LOOP: Lógica direta, sem chamar verTodosLeads()
     if (pageId === 'gestaoLeads') {
         const busca = document.getElementById('searchLead');
-        // Se não for filtro ativo, garante lista completa
+        // Se a busca não tiver filtro ativo, reseta para mostrar tudo
         if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
-             renderLeads(); 
+            busca.value = "";
+            busca.placeholder = "Buscar nome, bairro, telefone...";
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('btnFilterTodos')?.classList.add('active');
+            renderLeads(); 
         }
     }
     
     if (pageId === 'cadastroLead') {
         if (editingLeadIndex === null) {
-            // Limpa form se for novo cadastro
             document.querySelectorAll('#cadastroLead input, #cadastroLead textarea').forEach(el => el.value = '');
             if(isAdminUser()) document.getElementById('divEncaminhar')?.classList.remove('hidden');
         }
@@ -170,24 +167,19 @@ function navegarPara(pageId) {
 
 // Botão "Minha Carteira"
 function verTodosLeads() {
-    navegarPara('gestaoLeads');
+    // 1. Muda a tela visualmente primeiro
+    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+    document.getElementById('gestaoLeads').style.display = 'block';
     
+    // 2. Reseta filtros e renderiza
     const input = document.getElementById('searchLead');
     if(input) { 
         input.value = ""; 
         input.placeholder = "Buscar nome, bairro, telefone..."; 
     }
     
-    // Reseta botões de filtro visualmente
-    document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('active', 'bg-[#00aeef]', 'text-white');
-        b.classList.add('bg-white', 'text-slate-500');
-    });
-    const btnTodos = document.getElementById('btnFilterTodos');
-    if(btnTodos) {
-        btnTodos.classList.add('active', 'bg-[#00aeef]', 'text-white');
-        btnTodos.classList.remove('bg-white', 'text-slate-500');
-    }
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btnFilterTodos')?.classList.add('active');
     
     renderLeads();
 }
@@ -201,12 +193,17 @@ function filtrarLeadsHoje() {
         return; 
     }
     
-    navegarPara('gestaoLeads');
+    // Navegação manual para evitar loop
+    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+    document.getElementById('gestaoLeads').style.display = 'block';
+    
     const input = document.getElementById('searchLead');
     if(input) {
         input.value = "";
         input.placeholder = `📅 Hoje (${leadsHoje.length})`;
     }
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    
     renderListaLeads(leadsHoje);
 }
 
@@ -219,7 +216,10 @@ function filtrarRetornos() {
         return; 
     }
     
-    navegarPara('gestaoLeads');
+    // Navegação manual
+    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+    document.getElementById('gestaoLeads').style.display = 'block';
+
     const input = document.getElementById('searchLead');
     if(input) {
         input.value = "";
@@ -229,16 +229,10 @@ function filtrarRetornos() {
 }
 
 function filtrarPorStatus(status) {
-    // Gestão visual dos botões
-    document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('active', 'bg-[#00aeef]', 'text-white');
-        b.classList.add('bg-white', 'text-slate-500');
-    });
-    
-    if(event.target) {
-        event.target.classList.add('active', 'bg-[#00aeef]', 'text-white');
-        event.target.classList.remove('bg-white', 'text-slate-500');
-    }
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    const btnMap = {'Todos':'btnFilterTodos','Novo':'btnFilterNovo','Em Negociação':'btnFilterNegociação','Agendado':'btnFilterAgendado','Venda Fechada':'btnFilterVendaFechada','Perda':'btnFilterPerda'};
+    const btn = document.getElementById(btnMap[status]) || event.target;
+    if(btn) btn.classList.add('active');
     
     const input = document.getElementById('searchLead');
     if(input) input.value = "";
@@ -261,11 +255,14 @@ async function carregarLeads(showLoader = true) {
     
     if (res && res.status === 'success') {
         leadsCache = res.data || [];
-        // Ordena por inserção (mais recentes no topo)
         leadsCache.sort((a, b) => b._linha - a._linha);
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
         
-        if (document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
+        if (isAdminUser()) {
+             document.getElementById('adminPanel')?.classList.remove('hidden');
+        }
+        
+        if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
             renderLeads();
         }
         atualizarDashboard();
@@ -318,74 +315,80 @@ function criarCardLead(l, index) {
 }
 
 // ============================================================
-// 4. DETALHES DO LEAD (MODAL SEGURO)
+// 4. DETALHES LEAD (MODAL SEGURO - FIX NULL)
 // ============================================================
 function abrirLeadDetalhes(index) {
     const l = leadsCache[index];
-    if(!l) return console.error("Lead inválido no índice:", index);
+    if(!l) return console.error("Lead inválido:", index);
     
     leadAtualParaAgendar = l;
     
-    // Função segura para setar texto
-    const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt; };
-    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+    // Funções de preenchimento seguro
+    const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt || ''; };
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
 
     setText('modalLeadNome', l.nomeLead);
-    setText('modalLeadBairro', l.bairro || '-');
-    setText('modalLeadCidade', l.cidade || '-');
-    setText('modalLeadTelefone', l.telefone || '-');
+    setText('modalLeadBairro', l.bairro);
+    setText('modalLeadCidade', l.cidade);
+    setText('modalLeadTelefone', l.telefone);
     setText('modalLeadProvedor', l.provedor || "--");
     
     setVal('modalStatusFunil', l.status || "Novo");
-    setVal('modalLeadObs', l.observacao || "");
-    setVal('inputObjecaoLead', l.objecao || "");
-    setVal('respostaObjecaoLead', l.respostaObjecao || "");
+    setVal('modalLeadObs', l.observacao);
+    setVal('inputObjecaoLead', l.objecao);
+    setVal('respostaObjecaoLead', l.respostaObjecao);
 
     // Agendamento
     const dtInput = document.getElementById('agendarData');
     const hrInput = document.getElementById('agendarHora');
-    if(l.agendamento && dtInput && hrInput) {
-        const p = l.agendamento.split(' ');
-        if(p[0]) { const [d,m,a] = p[0].split('/'); dtInput.value = `${a}-${m}-${d}`; }
-        if(p[1]) hrInput.value = p[1];
-    } else if (dtInput) { dtInput.value = ''; }
+    if(dtInput) {
+        if(l.agendamento) {
+            const p = l.agendamento.split(' ');
+            if(p[0]) { const [d,m,a] = p[0].split('/'); dtInput.value = `${a}-${m}-${d}`; }
+            if(p[1] && hrInput) hrInput.value = p[1];
+        } else {
+            dtInput.value = '';
+        }
+    }
 
     // Botões Dinâmicos
+    const btnWhats = document.getElementById('btnModalWhats');
+    if(btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
+    
     const containerRaioX = document.getElementById('containerRaioX');
     if(containerRaioX) containerRaioX.innerHTML = `<button onclick="raioXConcorrencia()" class="ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] shadow">Raio-X</button>`;
 
-    // Admin Encaminhamento
+    // Admin
     if (isAdminUser()) {
         const area = document.getElementById('adminEncaminharArea');
         if(area) {
             area.classList.remove('hidden');
             const sel = document.getElementById('modalLeadDestino');
             if(sel && sel.options.length <= 1 && vendorsCache.length > 0) {
-                 sel.innerHTML = '<option value="">Selecione...</option>' + vendorsCache.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+                 sel.innerHTML = '<option value="">Selecione vendedor...</option>' + vendorsCache.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
             }
         }
-    } else {
-        document.getElementById('adminEncaminharArea')?.classList.add('hidden');
     }
 
     renderTarefasNoModal(l.nomeLead);
-    document.getElementById('leadModal').classList.remove('hidden');
+    const modal = document.getElementById('leadModal');
+    if(modal) modal.classList.remove('hidden');
 }
 
-function fecharLeadModal() { document.getElementById('leadModal').classList.add('hidden'); leadAtualParaAgendar = null; editingLeadIndex = null; }
+function fecharLeadModal() { document.getElementById('leadModal')?.classList.add('hidden'); leadAtualParaAgendar = null; editingLeadIndex = null; }
 
 async function salvarEdicaoModal() {
     if (!leadAtualParaAgendar) return;
     
-    const s = document.getElementById('modalStatusFunil').value;
-    const o = document.getElementById('modalLeadObs').value;
-    const d = document.getElementById('agendarData').value;
+    const s = document.getElementById('modalStatusFunil')?.value || "Novo";
+    const o = document.getElementById('modalLeadObs')?.value || "";
+    const d = document.getElementById('agendarData')?.value;
     
     leadAtualParaAgendar.status = s;
     leadAtualParaAgendar.observacao = o;
     if (d) {
         const [a, m, day] = d.split('-');
-        leadAtualParaAgendar.agendamento = `${day}/${m}/${a} ${document.getElementById('agendarHora').value || '09:00'}`;
+        leadAtualParaAgendar.agendamento = `${day}/${m}/${a} ${document.getElementById('agendarHora')?.value || '09:00'}`;
     }
     
     localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
@@ -405,6 +408,7 @@ async function salvarEdicaoModal() {
 // ============================================================
 // 5. TAREFAS
 // ============================================================
+
 async function carregarTarefas(show = true) {
     if(!navigator.onLine && tasksCache.length > 0) { if(show) renderTarefas(); return; }
     const res = await apiCall('getTasks', { vendedor: loggedUser }, false);
@@ -413,31 +417,75 @@ async function carregarTarefas(show = true) {
         if(show) renderTarefas();
     }
 }
+
 function renderTarefas() {
     const div = document.getElementById('listaTarefasContainer');
     if (!div) return;
-    if (tasksCache.length === 0) { div.innerHTML = `<div class="text-center p-8 text-gray-400">Nenhuma tarefa pendente.</div>`; return; }
+    
+    if (tasksCache.length === 0) {
+        div.innerHTML = `<div class="text-center p-8 text-gray-400">Nenhuma tarefa pendente.</div>`;
+        return;
+    }
+    
     tasksCache.sort((a, b) => (a.status === 'PENDENTE' ? -1 : 1));
-    div.innerHTML = tasksCache.map(t => `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 mb-2 ${t.status==='CONCLUIDA'?'opacity-50 line-through':''}"><input type="checkbox" ${t.status==='CONCLUIDA'?'checked':''} onchange="toggleTask('${t.id}', '${t.status}')" class="w-5 h-5 rounded cursor-pointer"><div class="flex-1 text-sm font-bold text-slate-700">${t.descricao}<div class="text-[10px] text-slate-400">${t.dataLimite||''}</div></div></div>`).join('');
+
+    div.innerHTML = tasksCache.map(t => {
+        const checked = t.status === "CONCLUIDA" ? "checked" : "";
+        const opacity = t.status === "CONCLUIDA" ? "opacity-50 line-through" : "";
+        return `
+        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 mb-2 ${opacity}">
+            <input type="checkbox" ${checked} onchange="toggleTask('${t.id}', '${t.status}')" class="w-5 h-5 rounded cursor-pointer">
+            <div class="flex-1">
+                <div class="text-sm font-bold text-slate-700">${t.descricao}</div>
+                <div class="text-[10px] text-slate-400 mt-1">${t.dataLimite || ''} ${t.nomeLead ? '• '+t.nomeLead : ''}</div>
+            </div>
+        </div>`;
+    }).join('');
 }
+
 function renderTarefasNoModal(nomeLead) {
     const container = document.getElementById('sectionTarefasLead');
     const lista = document.getElementById('listaTarefasLead');
+    if(!container || !lista) return;
+
     const tarefas = tasksCache.filter(t => t.nomeLead === nomeLead && t.status !== 'CONCLUIDA');
-    if (tarefas.length > 0) { container.classList.remove('hidden'); lista.innerHTML = tarefas.map(t => `<div class="bg-white p-2 rounded border border-slate-200 flex items-center gap-2"><input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4"><span class="text-xs text-slate-700">${t.descricao}</span></div>`).join(''); } else { container.classList.add('hidden'); }
+    
+    if (tarefas.length > 0) {
+        container.classList.remove('hidden');
+        lista.innerHTML = tarefas.map(t => `
+            <div class="bg-white p-2 rounded border border-slate-200 flex items-center gap-2">
+                <input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4">
+                <span class="text-xs text-slate-700">${t.descricao}</span>
+            </div>
+        `).join('');
+    } else {
+        container.classList.add('hidden');
+    }
 }
+
 async function toggleTask(id, currentStatus) {
     const t = tasksCache.find(x => x.id === id);
     if(t) { t.status = currentStatus === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE'; renderTarefas(); if(leadAtualParaAgendar) renderTarefasNoModal(leadAtualParaAgendar.nomeLead); }
     await apiCall('toggleTask', { taskId: id, status: currentStatus, vendedor: loggedUser }, false);
     carregarTarefas(false);
 }
-function abrirModalTarefa() { document.getElementById('taskModal').classList.remove('hidden'); const s=document.getElementById('taskLeadSelect');s.innerHTML='<option value="">Nenhum</option>';leadsCache.forEach(l=>{s.innerHTML+=`<option value="${l.nomeLead}">${l.nomeLead}</option>`}); }
+
+function abrirModalTarefa() {
+    document.getElementById('taskModal').classList.remove('hidden');
+    const sel = document.getElementById('taskLeadSelect');
+    sel.innerHTML = '<option value="">Nenhum (Avulso)</option>';
+    leadsCache.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.nomeLead; opt.innerText = l.nomeLead; sel.appendChild(opt);
+    });
+}
+
 async function salvarTarefa() {
     const desc = document.getElementById('taskDesc').value;
     const date = document.getElementById('taskDate').value;
     const leadVal = document.getElementById('taskLeadSelect').value;
     if(!desc) return alert("Digite a descrição.");
+    
     showLoading(true);
     await apiCall('addTask', { vendedor: loggedUser, descricao: desc, dataLimite: date, nomeLead: leadVal });
     showLoading(false);
@@ -445,30 +493,110 @@ async function salvarTarefa() {
     document.getElementById('taskDesc').value = '';
     carregarTarefas();
 }
-async function limparTarefasConcluidas() { if(!confirm("Limpar concluídas?")) return; tasksCache = tasksCache.filter(t => t.status !== 'CONCLUIDA'); renderTarefas(); await apiCall('archiveTasks', { vendedor: loggedUser }); showLoading(false); carregarTarefas(); }
+
+async function limparTarefasConcluidas() {
+    if(!confirm("Limpar concluídas?")) return;
+    tasksCache = tasksCache.filter(t => t.status !== 'CONCLUIDA');
+    renderTarefas();
+    await apiCall('archiveTasks', { vendedor: loggedUser });
+    showLoading(false);
+    carregarTarefas();
+}
 
 // ============================================================
-// 6. MATERIAIS, FALTAS E UTILS
+// 6. MATERIAIS & FALTAS
 // ============================================================
+
 async function carregarMateriais(f=null, s="") {
     const div = document.getElementById('materiaisGrid');
     if (!div) return;
-    currentFolderId = f; div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Carregando...</div>';
-    try { const res = await apiCall('getImages', { folderId: f, search: s }, false); if (res && res.status === 'success') { materialsCache = res.data; renderMateriais(materialsCache); } else throw new Error(); } catch (error) { div.innerHTML = `<div class="col-span-2 text-center text-red-400">Erro.</div>`; }
+    currentFolderId = f; 
+    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Carregando...</div>';
+    
+    try {
+        const res = await apiCall('getImages', { folderId: f, search: s }, false);
+        if (res && res.status === 'success' && res.data) {
+            materialsCache = res.data;
+            const btnVoltar = document.querySelector('#materiais button'); 
+            const titleEl = document.querySelector('#materiais h2');
+            if(btnVoltar) {
+                if(res.isRoot) { btnVoltar.onclick = () => navegarPara('dashboard'); if(titleEl) titleEl.innerText = "Materiais"; } 
+                else { btnVoltar.onclick = () => carregarMateriais(null); if(titleEl) titleEl.innerText = "Voltar"; }
+            }
+            renderMateriais(materialsCache);
+        } else { throw new Error("Erro API"); }
+    } catch (error) {
+        div.innerHTML = `<div class="col-span-2 text-center text-red-400">Erro ao carregar.</div>`;
+    }
 }
-function filtrarMateriaisBtn(termo) {
-    const input = document.getElementById('searchMateriais');
-    if(input) { input.value = (termo === 'Todos') ? '' : termo; buscarMateriais(); }
+
+function buscarMateriais() {
+    const term = document.getElementById('searchMateriais').value.toLowerCase();
+    const filtrados = materialsCache.filter(m => m.name.toLowerCase().includes(term));
+    renderMateriais(filtrados);
 }
-function buscarMateriais() { const t = document.getElementById('searchMateriais').value.toLowerCase(); renderMateriais(materialsCache.filter(m => m.name.toLowerCase().includes(t))); }
+
 function renderMateriais(items) {
     const div = document.getElementById('materiaisGrid');
     if(items.length === 0) { div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Vazio.</div>'; return; }
-    div.innerHTML = items.map(item => item.type === 'folder' ? `<div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36"><i class="fas fa-folder text-5xl text-[#00aeef]"></i><span class="text-xs font-bold text-slate-600 text-center line-clamp-2">${item.name}</span></div>` : `<div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative"><div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div><div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div><div class="flex gap-2"><a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a><button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button></div></div>`).join('');
+    
+    div.innerHTML = items.map(item => {
+        if (item.type === 'folder') {
+            return `<div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36"><i class="fas fa-folder text-5xl text-[#00aeef]"></i><span class="text-xs font-bold text-slate-600 text-center line-clamp-2">${item.name}</span></div>`;
+        } else {
+            return `
+            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative">
+                <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div>
+                <div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div>
+                <div class="flex gap-2">
+                    <a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a>
+                    <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button>
+                </div>
+            </div>`;
+        }
+    }).join('');
 }
-async function verHistoricoFaltas(){const d=document.getElementById('listaHistoricoFaltas');document.getElementById('historicoFaltasContainer').classList.remove('hidden');document.getElementById('formFaltaContainer').classList.add('hidden');const r=await apiCall('getAbsences',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(f=>`<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');else d.innerHTML='Sem histórico.'}
-function ocultarHistoricoFaltas(){document.getElementById('historicoFaltasContainer').classList.add('hidden');document.getElementById('formFaltaContainer').classList.remove('hidden')}
-async function enviarJustificativa(){showLoading(true);const p={vendedor:loggedUser,dataFalta:document.getElementById('faltaData').value,motivo:document.getElementById('faltaMotivo').value,observacao:document.getElementById('faltaObs').value};const f=document.getElementById('faltaArquivo').files[0];if(f){const r=new FileReader();r.onload=async e=>{p.fileData=e.target.result;p.fileName=f.name;p.mimeType=f.type;await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')};r.readAsDataURL(f)}else{await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')}}
+
+// --- FALTAS ---
+async function verHistoricoFaltas() {
+    const div = document.getElementById('listaHistoricoFaltas');
+    document.getElementById('historicoFaltasContainer').classList.remove('hidden');
+    document.getElementById('formFaltaContainer').classList.add('hidden');
+    div.innerHTML = '<div class="text-center p-5">Carregando...</div>';
+    
+    const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
+    if (res.status === 'success' && res.data.length > 0) {
+        div.innerHTML = res.data.map(f => `<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');
+    } else div.innerHTML = '<div class="text-center text-xs">Sem histórico.</div>';
+}
+function ocultarHistoricoFaltas() {
+    document.getElementById('historicoFaltasContainer').classList.add('hidden');
+    document.getElementById('formFaltaContainer').classList.remove('hidden');
+}
+async function enviarJustificativa() {
+    const dt = document.getElementById('faltaData').value;
+    const mt = document.getElementById('faltaMotivo').value;
+    const ob = document.getElementById('faltaObs').value;
+    if(!dt || !mt) return alert("Preencha data e motivo.");
+    
+    showLoading(true);
+    const payload = { vendedor: loggedUser, dataFalta: dt, motivo: mt, observacao: ob };
+    const file = document.getElementById('faltaArquivo').files[0];
+    
+    if(file) {
+        const r = new FileReader();
+        r.onload = async function(e) { payload.fileData = e.target.result; payload.fileName = file.name; payload.mimeType = file.type; await apiCall('registerAbsence', payload); showLoading(false); alert("Enviado!"); navegarPara('dashboard'); };
+        r.readAsDataURL(file);
+    } else {
+        await apiCall('registerAbsence', payload);
+        showLoading(false); alert("Enviado!"); navegarPara('dashboard');
+    }
+}
+
+// ============================================================
+// 7. UTILS & ADMIN
+// ============================================================
+
 async function apiCall(route, payload, show=true) {
     if(show) showLoading(true);
     if (!navigator.onLine && isWriteOperation(route)) {
@@ -498,11 +626,40 @@ function logout(){localStorage.removeItem('loggedUser');location.reload()}
 function atualizarDataCabecalho(){document.getElementById('headerDate').innerText=new Date().toLocaleDateString('pt-BR')}
 function atualizarDashboard(){const h=new Date().toLocaleDateString('pt-BR');document.getElementById('statLeads').innerText=leadsCache.filter(l=>l.timestamp&&l.timestamp.includes(h)).length}
 function verificarAgendamentosHoje(){const h=new Date().toLocaleDateString('pt-BR');const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));if(r.length>0)document.getElementById('lembreteBanner').classList.remove('hidden');else document.getElementById('lembreteBanner').classList.add('hidden')}
-function editarLeadAtual(){if(!leadAtualParaAgendar)return;const l=leadAtualParaAgendar;document.getElementById('leadNome').value=l.nomeLead;document.getElementById('leadTelefone').value=l.telefone;document.getElementById('leadEndereco').value=l.endereco;document.getElementById('leadBairro').value=l.bairro;document.getElementById('leadCidade').value=l.cidade;document.getElementById('leadProvedor').value=l.provedor;document.getElementById('leadObs').value=l.observacao;const s=document.getElementById('leadStatus');if(s)s.value=l.status||"Novo";if(isAdminUser())document.getElementById('divEncaminhar').classList.remove('hidden');editingLeadIndex=leadsCache.indexOf(l);fecharLeadModal();navegarPara('cadastroLead')}
-async function enviarLead(){const p={vendedor:loggedUser,nomeLead:document.getElementById('leadNome').value,telefone:document.getElementById('leadTelefone').value,endereco:document.getElementById('leadEndereco').value,bairro:document.getElementById('leadBairro').value,cidade:document.getElementById('leadCidade').value,provedor:document.getElementById('leadProvedor').value,interesse:document.getElementById('leadInteresse').value,status:document.getElementById('leadStatus').value,observacao:document.getElementById('leadObs').value,novoVendedor:document.getElementById('leadVendedorDestino')?.value||""};let r='addLead';if(editingLeadIndex!==null){r='updateLeadFull';p._linha=leadsCache[editingLeadIndex]._linha;p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead}else if(p.novoVendedor){r='forwardLead';p.origem=loggedUser}const res=await apiCall(r,p);if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")}
+
+// CADASTRO
+window.editarLeadAtual = function() {
+    if (!leadAtualParaAgendar) return;
+    const l = leadAtualParaAgendar;
+    document.getElementById('leadNome').value = l.nomeLead;
+    document.getElementById('leadTelefone').value = l.telefone;
+    document.getElementById('leadEndereco').value = l.endereco;
+    document.getElementById('leadBairro').value = l.bairro;
+    document.getElementById('leadCidade').value = l.cidade;
+    document.getElementById('leadProvedor').value = l.provedor;
+    document.getElementById('leadObs').value = l.observacao;
+    const s = document.getElementById('leadStatus'); if(s) s.value = l.status || "Novo";
+    if (isAdminUser()) document.getElementById('divEncaminhar').classList.remove('hidden');
+    editingLeadIndex = leadsCache.indexOf(l);
+    fecharLeadModal();
+    navegarPara('cadastroLead');
+}
+async function enviarLead() {
+    const p={vendedor:loggedUser, nomeLead:document.getElementById('leadNome').value, telefone:document.getElementById('leadTelefone').value, endereco:document.getElementById('leadEndereco').value, bairro:document.getElementById('leadBairro').value, cidade:document.getElementById('leadCidade').value, provedor:document.getElementById('leadProvedor').value, interesse:document.getElementById('leadInteresse').value, status:document.getElementById('leadStatus').value, observacao:document.getElementById('leadObs').value, novoVendedor:document.getElementById('leadVendedorDestino')?.value||""};
+    let r='addLead'; 
+    if(editingLeadIndex!==null){ r='updateLeadFull'; p._linha=leadsCache[editingLeadIndex]._linha; p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead; }
+    else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; }
+    
+    const res=await apiCall(r,p);
+    if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")
+}
+
+// ADMIN
 function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
 async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
 async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
+
+// IA & OUTROS
 async function buscarEnderecoGPS(){navigator.geolocation.getCurrentPosition(p=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}`).then(r=>r.json()).then(d=>{if(d.address){document.getElementById('leadEndereco').value=d.address.road;document.getElementById('leadBairro').value=d.address.suburb;document.getElementById('leadCidade').value=d.address.city||d.address.town}})},()=>{alert('Erro GPS')})}
 function iniciarDitado(t){}
 function copying(id){document.getElementById(id).select();document.execCommand('copy');alert("Copiado!")}
@@ -523,3 +680,4 @@ async function consultarPlanosIA(){document.getElementById('chatModal').classLis
 function toggleChat(){document.getElementById('chatModal').classList.add('hidden')}
 async function enviarMensagemChat(){const m=document.getElementById('chatInput').value;if(m){document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;const r=await perguntarIABackend(m);document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;}}
 function ajustarMicrofone(){const btn=document.getElementById('btnMicNome');if(btn){btn.removeAttribute('onclick');btn.onclick=()=>iniciarDitado('leadObs');}}
+function filtrarMateriaisBtn(termo) { const input = document.getElementById('searchMateriais'); if(input) { input.value = (termo === 'Todos') ? '' : termo; buscarMateriais(); document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white')); document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.add('bg-white', 'text-slate-500')); event.target.classList.add('active', 'bg-[#00aeef]', 'text-white'); event.target.classList.remove('bg-white', 'text-slate-500'); } }
