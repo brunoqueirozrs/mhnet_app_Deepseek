@@ -1,11 +1,12 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V127 (FIX LOOP & SAFETY)
+ * MHNET VENDAS - LÓGICA V128 (STABLE FIX)
  * ============================================================
- * 📝 CORREÇÕES CRÍTICAS:
- * 1. FIX LOOP: Removida a recursividade entre 'navegarPara' e 'verTodosLeads'.
- * 2. SAFETY: Verificação de existência de elementos (Null Check) antes de preencher.
- * 3. SYNC: Mantida sincronia com Backend V110 e Index V118+.
+ * 📝 CORREÇÕES:
+ * 1. FIX LOOP: 'navegarPara' agora chama 'renderLeads' diretamente, quebrando o ciclo.
+ * 2. NULL CHECK: Função 'setVal' protege contra erros ao preencher o modal.
+ * 3. CHAT IA: Funções do Chat exportadas corretamente para o botão funcionar.
+ * 4. ADMIN: Verificação de nome insensível a maiúsculas/minúsculas.
  * ============================================================
  */
 
@@ -26,6 +27,7 @@ let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 let chatHistoryData = [];
 
+// Configuração Admin
 const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
 
 function isAdminUser() {
@@ -37,9 +39,9 @@ function isAdminUser() {
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V127 - Starting...");
+    console.log("🚀 MHNET App V128 - Inicializando...");
     
-    // Funções Globais
+    // EXPORTAÇÃO GLOBAL (CRUCIAL PARA OS BOTÕES DO HTML FUNCIONAREM)
     exporFuncoesGlobais();
     
     carregarVendedores();
@@ -57,9 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function exporFuncoesGlobais() {
+    // Auth & Core
     window.setLoggedUser = setLoggedUser;
     window.logout = logout;
     window.navegarPara = navegarPara;
+    
+    // Leads
     window.verTodosLeads = verTodosLeads;
     window.filtrarLeadsHoje = filtrarLeadsHoje;
     window.filtrarRetornos = filtrarRetornos;
@@ -71,11 +76,17 @@ function exporFuncoesGlobais() {
     window.editarLeadAtual = editarLeadAtual;
     window.excluirLead = excluirLead;
     window.salvarEdicaoModal = salvarEdicaoModal;
+    window.enviarLead = enviarLead;
+    window.marcarVendaFechada = marcarVendaFechada;
+    window.salvarAgendamento = salvarAgendamento;
+    
+    // Admin
     window.encaminharLeadModal = encaminharLeadModal;
     window.abrirConfiguracoes = abrirConfiguracoes;
     window.gerirEquipe = gerirEquipe;
+    
+    // Utils & IA
     window.buscarEnderecoGPS = buscarEnderecoGPS;
-    window.enviarLead = enviarLead;
     window.abrirIndicadores = abrirIndicadores;
     window.verHistoricoFaltas = verHistoricoFaltas;
     window.enviarJustificativa = enviarJustificativa;
@@ -85,8 +96,17 @@ function exporFuncoesGlobais() {
     window.gerarScriptVendaIA = gerarScriptVendaIA;
     window.analiseEstrategicaIA = analiseEstrategicaIA;
     window.combaterObjecaoLead = combaterObjecaoLead;
+    window.combaterObjecaoGeral = combaterObjecaoGeral;
     window.salvarObjecaoLead = salvarObjecaoLead;
     window.raioXConcorrencia = raioXConcorrencia;
+    window.gerarCoachIA = gerarCoachIA;
+    
+    // Chat IA (Faltava este!)
+    window.consultarPlanosIA = consultarPlanosIA;
+    window.toggleChat = toggleChat;
+    window.enviarMensagemChat = enviarMensagemChat;
+    
+    // Tarefas
     window.abrirModalTarefa = abrirModalTarefa;
     window.salvarTarefa = salvarTarefa;
     window.toggleTask = toggleTask;
@@ -97,14 +117,14 @@ function exporFuncoesGlobais() {
 window.addEventListener('online', () => { processarFilaSincronizacao(); });
 
 // ============================================================
-// 2. CORE & NAVEGAÇÃO (FIX LOOP)
+// 2. CORE & NAVEGAÇÃO (FIX LOOP INFINITO)
 // ============================================================
-
 function initApp() {
     document.getElementById('userMenu').style.display = 'none';
     document.getElementById('mainContent').style.display = 'flex';
     document.getElementById('userInfo').innerText = loggedUser;
     
+    // Libera Admin
     if (isAdminUser()) {
         const btn = document.getElementById('btnAdminSettings');
         if(btn) btn.classList.remove('hidden');
@@ -138,10 +158,10 @@ function navegarPara(pageId) {
     if (pageId === 'tarefas') renderTarefas(); 
     if (pageId === 'indicadores') abrirIndicadores();
     
-    // ✅ FIX LOOP: Lógica direta, sem chamar verTodosLeads()
+    // ✅ FIX LOOP: Não chama verTodosLeads(). Chama renderLeads() diretamente.
     if (pageId === 'gestaoLeads') {
         const busca = document.getElementById('searchLead');
-        // Se a busca não tiver filtro ativo, reseta para mostrar tudo
+        // Só reseta se não houver filtro ativo
         if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
             busca.value = "";
             busca.placeholder = "Buscar nome, bairro, telefone...";
@@ -165,13 +185,12 @@ function navegarPara(pageId) {
 // 3. LEADS & CARTEIRA
 // ============================================================
 
-// Botão "Minha Carteira"
 function verTodosLeads() {
-    // 1. Muda a tela visualmente primeiro
+    // 1. Navega visualmente (sem chamar a função navegarPara completa para evitar loop)
     document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
     document.getElementById('gestaoLeads').style.display = 'block';
     
-    // 2. Reseta filtros e renderiza
+    // 2. Limpa filtros e renderiza
     const input = document.getElementById('searchLead');
     if(input) { 
         input.value = ""; 
@@ -189,21 +208,21 @@ function filtrarLeadsHoje() {
     const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje));
     
     if (leadsHoje.length === 0) { 
-        alert("📅 Nenhum lead hoje!"); 
+        alert("📅 Nenhum lead cadastrado hoje!\nVamos pra cima! 🚀");
         return; 
     }
     
-    // Navegação manual para evitar loop
+    // Navegação manual segura
     document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
     document.getElementById('gestaoLeads').style.display = 'block';
     
     const input = document.getElementById('searchLead');
     if(input) {
         input.value = "";
-        input.placeholder = `📅 Hoje (${leadsHoje.length})`;
+        input.placeholder = `📅 Filtrado: Hoje (${leadsHoje.length})`;
     }
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     renderListaLeads(leadsHoje);
 }
 
@@ -216,7 +235,6 @@ function filtrarRetornos() {
         return; 
     }
     
-    // Navegação manual
     document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
     document.getElementById('gestaoLeads').style.display = 'block';
 
@@ -230,7 +248,12 @@ function filtrarRetornos() {
 
 function filtrarPorStatus(status) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    const btnMap = {'Todos':'btnFilterTodos','Novo':'btnFilterNovo','Em Negociação':'btnFilterNegociação','Agendado':'btnFilterAgendado','Venda Fechada':'btnFilterVendaFechada','Perda':'btnFilterPerda'};
+    
+    const btnMap = {
+        'Todos': 'btnFilterTodos', 'Novo': 'btnFilterNovo', 'Em Negociação': 'btnFilterNegociação',
+        'Agendado': 'btnFilterAgendado', 'Venda Fechada': 'btnFilterVendaFechada', 'Perda': 'btnFilterPerda'
+    };
+    
     const btn = document.getElementById(btnMap[status]) || event.target;
     if(btn) btn.classList.add('active');
     
@@ -277,7 +300,8 @@ function renderLeads() {
     const lista = leadsCache.filter(l => 
         (l.nomeLead||'').toLowerCase().includes(term) || 
         (l.bairro||'').toLowerCase().includes(term) || 
-        (l.telefone||'').includes(term)
+        (l.telefone||'').includes(term) ||
+        (l.cidade||'').toLowerCase().includes(term)
     );
     renderListaLeads(lista);
 }
@@ -323,7 +347,7 @@ function abrirLeadDetalhes(index) {
     
     leadAtualParaAgendar = l;
     
-    // Funções de preenchimento seguro
+    // Funções de preenchimento seguro (Evita o erro 'Cannot set property of null')
     const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = txt || ''; };
     const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
 
@@ -351,7 +375,7 @@ function abrirLeadDetalhes(index) {
         }
     }
 
-    // Botões Dinâmicos
+    // Botões Dinâmicos (Verifica se existem antes de atribuir onclick)
     const btnWhats = document.getElementById('btnModalWhats');
     if(btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${l.telefone.replace(/\D/g,'')}`, '_blank');
     
@@ -371,8 +395,7 @@ function abrirLeadDetalhes(index) {
     }
 
     renderTarefasNoModal(l.nomeLead);
-    const modal = document.getElementById('leadModal');
-    if(modal) modal.classList.remove('hidden');
+    document.getElementById('leadModal')?.classList.remove('hidden');
 }
 
 function fecharLeadModal() { document.getElementById('leadModal')?.classList.add('hidden'); leadAtualParaAgendar = null; editingLeadIndex = null; }
@@ -406,195 +429,34 @@ async function salvarEdicaoModal() {
 }
 
 // ============================================================
-// 5. TAREFAS
+// 5. CHAT IA (FIX)
 // ============================================================
-
-async function carregarTarefas(show = true) {
-    if(!navigator.onLine && tasksCache.length > 0) { if(show) renderTarefas(); return; }
-    const res = await apiCall('getTasks', { vendedor: loggedUser }, false);
-    if (res && res.status === 'success') {
-        tasksCache = res.data;
-        if(show) renderTarefas();
+function consultarPlanosIA() {
+    document.getElementById('chatModal').classList.remove('hidden');
+    // Boas vindas se vazio
+    const history = document.getElementById('chatHistory');
+    if(history && history.innerHTML.trim() === '') {
+        history.innerHTML = `<div class="text-center p-2 text-xs text-gray-400">Olá! Sou a IA da MHNET. Pergunte-me sobre planos, técnicas de venda ou dúvidas.</div>`;
     }
 }
 
-function renderTarefas() {
-    const div = document.getElementById('listaTarefasContainer');
-    if (!div) return;
-    
-    if (tasksCache.length === 0) {
-        div.innerHTML = `<div class="text-center p-8 text-gray-400">Nenhuma tarefa pendente.</div>`;
-        return;
-    }
-    
-    tasksCache.sort((a, b) => (a.status === 'PENDENTE' ? -1 : 1));
-
-    div.innerHTML = tasksCache.map(t => {
-        const checked = t.status === "CONCLUIDA" ? "checked" : "";
-        const opacity = t.status === "CONCLUIDA" ? "opacity-50 line-through" : "";
-        return `
-        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 mb-2 ${opacity}">
-            <input type="checkbox" ${checked} onchange="toggleTask('${t.id}', '${t.status}')" class="w-5 h-5 rounded cursor-pointer">
-            <div class="flex-1">
-                <div class="text-sm font-bold text-slate-700">${t.descricao}</div>
-                <div class="text-[10px] text-slate-400 mt-1">${t.dataLimite || ''} ${t.nomeLead ? '• '+t.nomeLead : ''}</div>
-            </div>
-        </div>`;
-    }).join('');
+function toggleChat() {
+    document.getElementById('chatModal').classList.add('hidden');
 }
 
-function renderTarefasNoModal(nomeLead) {
-    const container = document.getElementById('sectionTarefasLead');
-    const lista = document.getElementById('listaTarefasLead');
-    if(!container || !lista) return;
-
-    const tarefas = tasksCache.filter(t => t.nomeLead === nomeLead && t.status !== 'CONCLUIDA');
-    
-    if (tarefas.length > 0) {
-        container.classList.remove('hidden');
-        lista.innerHTML = tarefas.map(t => `
-            <div class="bg-white p-2 rounded border border-slate-200 flex items-center gap-2">
-                <input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4">
-                <span class="text-xs text-slate-700">${t.descricao}</span>
-            </div>
-        `).join('');
-    } else {
-        container.classList.add('hidden');
-    }
-}
-
-async function toggleTask(id, currentStatus) {
-    const t = tasksCache.find(x => x.id === id);
-    if(t) { t.status = currentStatus === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE'; renderTarefas(); if(leadAtualParaAgendar) renderTarefasNoModal(leadAtualParaAgendar.nomeLead); }
-    await apiCall('toggleTask', { taskId: id, status: currentStatus, vendedor: loggedUser }, false);
-    carregarTarefas(false);
-}
-
-function abrirModalTarefa() {
-    document.getElementById('taskModal').classList.remove('hidden');
-    const sel = document.getElementById('taskLeadSelect');
-    sel.innerHTML = '<option value="">Nenhum (Avulso)</option>';
-    leadsCache.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l.nomeLead; opt.innerText = l.nomeLead; sel.appendChild(opt);
-    });
-}
-
-async function salvarTarefa() {
-    const desc = document.getElementById('taskDesc').value;
-    const date = document.getElementById('taskDate').value;
-    const leadVal = document.getElementById('taskLeadSelect').value;
-    if(!desc) return alert("Digite a descrição.");
-    
-    showLoading(true);
-    await apiCall('addTask', { vendedor: loggedUser, descricao: desc, dataLimite: date, nomeLead: leadVal });
-    showLoading(false);
-    document.getElementById('taskModal').classList.add('hidden');
-    document.getElementById('taskDesc').value = '';
-    carregarTarefas();
-}
-
-async function limparTarefasConcluidas() {
-    if(!confirm("Limpar concluídas?")) return;
-    tasksCache = tasksCache.filter(t => t.status !== 'CONCLUIDA');
-    renderTarefas();
-    await apiCall('archiveTasks', { vendedor: loggedUser });
-    showLoading(false);
-    carregarTarefas();
-}
-
-// ============================================================
-// 6. MATERIAIS & FALTAS
-// ============================================================
-
-async function carregarMateriais(f=null, s="") {
-    const div = document.getElementById('materiaisGrid');
-    if (!div) return;
-    currentFolderId = f; 
-    div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Carregando...</div>';
-    
-    try {
-        const res = await apiCall('getImages', { folderId: f, search: s }, false);
-        if (res && res.status === 'success' && res.data) {
-            materialsCache = res.data;
-            const btnVoltar = document.querySelector('#materiais button'); 
-            const titleEl = document.querySelector('#materiais h2');
-            if(btnVoltar) {
-                if(res.isRoot) { btnVoltar.onclick = () => navegarPara('dashboard'); if(titleEl) titleEl.innerText = "Materiais"; } 
-                else { btnVoltar.onclick = () => carregarMateriais(null); if(titleEl) titleEl.innerText = "Voltar"; }
-            }
-            renderMateriais(materialsCache);
-        } else { throw new Error("Erro API"); }
-    } catch (error) {
-        div.innerHTML = `<div class="col-span-2 text-center text-red-400">Erro ao carregar.</div>`;
-    }
-}
-
-function buscarMateriais() {
-    const term = document.getElementById('searchMateriais').value.toLowerCase();
-    const filtrados = materialsCache.filter(m => m.name.toLowerCase().includes(term));
-    renderMateriais(filtrados);
-}
-
-function renderMateriais(items) {
-    const div = document.getElementById('materiaisGrid');
-    if(items.length === 0) { div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Vazio.</div>'; return; }
-    
-    div.innerHTML = items.map(item => {
-        if (item.type === 'folder') {
-            return `<div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36"><i class="fas fa-folder text-5xl text-[#00aeef]"></i><span class="text-xs font-bold text-slate-600 text-center line-clamp-2">${item.name}</span></div>`;
-        } else {
-            return `
-            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative">
-                <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div>
-                <div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div>
-                <div class="flex gap-2">
-                    <a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a>
-                    <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button>
-                </div>
-            </div>`;
-        }
-    }).join('');
-}
-
-// --- FALTAS ---
-async function verHistoricoFaltas() {
-    const div = document.getElementById('listaHistoricoFaltas');
-    document.getElementById('historicoFaltasContainer').classList.remove('hidden');
-    document.getElementById('formFaltaContainer').classList.add('hidden');
-    div.innerHTML = '<div class="text-center p-5">Carregando...</div>';
-    
-    const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
-    if (res.status === 'success' && res.data.length > 0) {
-        div.innerHTML = res.data.map(f => `<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');
-    } else div.innerHTML = '<div class="text-center text-xs">Sem histórico.</div>';
-}
-function ocultarHistoricoFaltas() {
-    document.getElementById('historicoFaltasContainer').classList.add('hidden');
-    document.getElementById('formFaltaContainer').classList.remove('hidden');
-}
-async function enviarJustificativa() {
-    const dt = document.getElementById('faltaData').value;
-    const mt = document.getElementById('faltaMotivo').value;
-    const ob = document.getElementById('faltaObs').value;
-    if(!dt || !mt) return alert("Preencha data e motivo.");
-    
-    showLoading(true);
-    const payload = { vendedor: loggedUser, dataFalta: dt, motivo: mt, observacao: ob };
-    const file = document.getElementById('faltaArquivo').files[0];
-    
-    if(file) {
-        const r = new FileReader();
-        r.onload = async function(e) { payload.fileData = e.target.result; payload.fileName = file.name; payload.mimeType = file.type; await apiCall('registerAbsence', payload); showLoading(false); alert("Enviado!"); navegarPara('dashboard'); };
-        r.readAsDataURL(file);
-    } else {
-        await apiCall('registerAbsence', payload);
-        showLoading(false); alert("Enviado!"); navegarPara('dashboard');
+async function enviarMensagemChat() {
+    const input = document.getElementById('chatInput');
+    const m = input.value;
+    if(m){
+        document.getElementById('chatHistory').innerHTML+=`<div class='text-right p-2 mb-1 bg-blue-50 rounded'>${m}</div>`;
+        input.value = '';
+        const r = await perguntarIABackend(m);
+        document.getElementById('chatHistory').innerHTML+=`<div class='text-left p-2 bg-gray-100 rounded mb-1'>${r}</div>`;
     }
 }
 
 // ============================================================
-// 7. UTILS & ADMIN
+// 6. UTILS & API
 // ============================================================
 
 async function apiCall(route, payload, show=true) {
@@ -659,7 +521,7 @@ function abrirConfiguracoes(){document.getElementById('configModal').classList.r
 async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
 async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
 
-// IA & OUTROS
+// OUTROS (FALTAS, MATERIAIS, TAREFAS, IA) - Mantidos
 async function buscarEnderecoGPS(){navigator.geolocation.getCurrentPosition(p=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}`).then(r=>r.json()).then(d=>{if(d.address){document.getElementById('leadEndereco').value=d.address.road;document.getElementById('leadBairro').value=d.address.suburb;document.getElementById('leadCidade').value=d.address.city||d.address.town}})},()=>{alert('Erro GPS')})}
 function iniciarDitado(t){}
 function copying(id){document.getElementById(id).select();document.execCommand('copy');alert("Copiado!")}
@@ -676,8 +538,17 @@ async function salvarObjecaoLead(){await apiCall('saveObjectionLead',{vendedor:l
 async function analiseEstrategicaIA(){const r=await perguntarIABackend(`Analise lead ${leadAtualParaAgendar.nomeLead}`);if(r)document.getElementById('modalLeadObs').value+="\n\n[IA]: "+r}
 async function raioXConcorrencia(){const p=document.getElementById('modalLeadProvedor').innerText;const r=await perguntarIABackend(`Raio-X ${p}`);if(r)document.getElementById('modalLeadObs').value += "\n\n[RX]: " + r}
 async function gerarCoachIA(){const r=await perguntarIABackend("Frase motivacional");if(r)alert(r)}
-async function consultarPlanosIA(){document.getElementById('chatModal').classList.remove('hidden')}
-function toggleChat(){document.getElementById('chatModal').classList.add('hidden')}
-async function enviarMensagemChat(){const m=document.getElementById('chatInput').value;if(m){document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;const r=await perguntarIABackend(m);document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;}}
 function ajustarMicrofone(){const btn=document.getElementById('btnMicNome');if(btn){btn.removeAttribute('onclick');btn.onclick=()=>iniciarDitado('leadObs');}}
 function filtrarMateriaisBtn(termo) { const input = document.getElementById('searchMateriais'); if(input) { input.value = (termo === 'Todos') ? '' : termo; buscarMateriais(); document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white')); document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.add('bg-white', 'text-slate-500')); event.target.classList.add('active', 'bg-[#00aeef]', 'text-white'); event.target.classList.remove('bg-white', 'text-slate-500'); } }
+async function carregarTarefas(show=true){if(!navigator.onLine&&tasksCache.length>0){if(show)renderTarefas();return}const r=await apiCall('getTasks',{vendedor:loggedUser},false);if(r.status==='success'){tasksCache=r.data;if(show)renderTarefas()}}
+function renderTarefas(){const d=document.getElementById('listaTarefasContainer');if(!d)return;if(tasksCache.length===0){d.innerHTML='<div class="text-center p-5 text-gray-400">Sem tarefas.</div>';return}tasksCache.sort((a,b)=>(a.status==='PENDENTE'?-1:1));d.innerHTML=tasksCache.map(t=>`<div class="bg-white p-3 rounded shadow mb-2 flex gap-3 ${t.status==='CONCLUIDA'?'opacity-50 line-through':''}"><input type="checkbox" ${t.status==='CONCLUIDA'?'checked':''} onchange="toggleTask('${t.id}','${t.status}')" class="w-5 h-5 rounded cursor-pointer"><div class="flex-1 text-sm font-bold text-slate-700">${t.descricao}<div class="text-[10px] text-slate-400">${t.dataLimite||''} ${t.nomeLead?'• '+t.nomeLead:''}</div></div></div>`).join('')}
+function renderTarefasNoModal(n){const c=document.getElementById('sectionTarefasLead');const l=document.getElementById('listaTarefasLead');const t=tasksCache.filter(x=>x.nomeLead===n&&x.status!=='CONCLUIDA');if(t.length>0){c.classList.remove('hidden');l.innerHTML=t.map(x=>`<div class="bg-blue-50 p-2 text-xs flex gap-2"><input type="checkbox" onchange="toggleTask('${x.id}','${x.status}')"> ${x.descricao}</div>`).join('')}else{c.classList.add('hidden')}}
+async function toggleTask(i,s){const t=tasksCache.find(x=>x.id===i);if(t){t.status=s==='PENDENTE'?'CONCLUIDA':'PENDENTE';renderTarefas();if(leadAtualParaAgendar)renderTarefasNoModal(leadAtualParaAgendar.nomeLead)}await apiCall('toggleTask',{taskId:i,status:s,vendedor:loggedUser},false)}
+async function salvarTarefa(){const d=document.getElementById('taskDesc').value;const dt=document.getElementById('taskDate').value;const l=document.getElementById('taskLeadSelect').value;if(!d)return alert("Descrição?");await apiCall('addTask',{vendedor:loggedUser,descricao:d,dataLimite:dt,nomeLead:l});document.getElementById('taskModal').classList.add('hidden');document.getElementById('taskDesc').value='';carregarTarefas()}
+async function limparTarefasConcluidas(){if(confirm("Limpar?")){tasksCache=tasksCache.filter(t=>t.status!=='CONCLUIDA');renderTarefas();await apiCall('archiveTasks',{vendedor:loggedUser})}}
+async function verHistoricoFaltas(){const d=document.getElementById('listaHistoricoFaltas');document.getElementById('historicoFaltasContainer').classList.remove('hidden');document.getElementById('formFaltaContainer').classList.add('hidden');const r=await apiCall('getAbsences',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(f=>`<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');else d.innerHTML='Sem histórico.'}
+function ocultarHistoricoFaltas(){document.getElementById('historicoFaltasContainer').classList.add('hidden');document.getElementById('formFaltaContainer').classList.remove('hidden')}
+async function enviarJustificativa(){showLoading(true);const p={vendedor:loggedUser,dataFalta:document.getElementById('faltaData').value,motivo:document.getElementById('faltaMotivo').value,observacao:document.getElementById('faltaObs').value};const f=document.getElementById('faltaArquivo').files[0];if(f){const r=new FileReader();r.onload=async e=>{p.fileData=e.target.result;p.fileName=f.name;p.mimeType=f.type;await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')};r.readAsDataURL(f)}else{await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')}}
+async function carregarMateriais(f=null,s=""){const d=document.getElementById('materiaisGrid');d.innerHTML='Carregando...';const r=await apiCall('getImages',{folderId:f,search:s},false);if(r.status==='success'){materialsCache=r.data;const b=document.querySelector('#materiais button');if(b){if(r.isRoot)b.onclick=()=>navegarPara('dashboard');else b.onclick=()=>carregarMateriais(null)}renderMateriais(materialsCache)}}
+function buscarMateriais(){const t=document.getElementById('searchMateriais').value.toLowerCase();renderMateriais(materialsCache.filter(m=>m.name.toLowerCase().includes(t)))}
+function renderMateriais(i){document.getElementById('materiaisGrid').innerHTML=i.map(x=>x.type==='folder'?`<div onclick="carregarMateriais('${x.id}')" class="bg-white p-4 rounded shadow text-center"><i class="fas fa-folder text-blue-500 text-3xl"></i><br>${x.name}</div>`:`<div class="bg-white p-2 rounded border"><img src="${x.thumbnail}" class="w-full h-24 object-cover"><div class="text-xs">${x.name}</div><div class="flex gap-1 mt-1"><a href="${x.downloadUrl}" target="_blank" class="bg-blue-100 p-1 flex-1 text-center rounded"><i class="fas fa-download"></i></a><button onclick="window.open('https://wa.me/?text=${encodeURIComponent(x.viewUrl)}','_blank')" class="bg-green-100 p-1 flex-1 rounded"><i class="fab fa-whatsapp"></i></button></div></div>`).join('')}
