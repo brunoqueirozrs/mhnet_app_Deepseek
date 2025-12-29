@@ -1,11 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V120 (FINAL PATCHED)
+ * MHNET VENDAS - LÓGICA V121 (ADMIN & NAV FIX)
  * ============================================================
- * 📝 RESUMO DAS CORREÇÕES:
- * 1. Botões Inferiores: Adicionada função 'verTodosLeads' para o botão Carteira.
- * 2. Admin: Verificação robusta para 'BRUNO GARCIA QUEIROZ' (carrega todos os leads).
- * 3. Navegação: Botão de voltar e fluxo de telas revisados.
+ * 📝 UPDATE:
+ * - Admin: Normalização de nome para garantir acesso total aos leads.
+ * - Navegação: Função 'verTodosLeads' exposta globalmente.
+ * - UX: Ajuste no carregamento para evitar telas brancas.
  * ============================================================
  */
 
@@ -26,19 +26,19 @@ let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 let chatHistoryData = [];
 
-// Nome do Admin para verificação (Ajuste conforme necessário)
-const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
+// Nome do Admin para verificação (Deve ser igual ao do Backend)
+const ADMIN_NAME_CANONICAL = "Bruno Garcia Queiroz";
 
-// Função auxiliar para verificar se é admin
+// Função auxiliar para verificar se é admin (Case Insensitive)
 function isAdminUser() {
-    return loggedUser && loggedUser.trim().toUpperCase() === ADMIN_NAME_CHECK;
+    return loggedUser && loggedUser.trim().toUpperCase() === ADMIN_NAME_CANONICAL.toUpperCase();
 }
 
 // ============================================================
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V120 - Ready");
+    console.log("🚀 MHNET App V121 - Inicializando");
     
     carregarVendedores();
     
@@ -73,11 +73,10 @@ function initApp() {
         const btnConf = document.getElementById('btnAdminSettings');
         if(btnConf) btnConf.classList.remove('hidden');
         
-        // Garante que o painel de gestor no dashboard apareça se já tiver cache
         const panel = document.getElementById('adminPanel');
         if(panel) panel.classList.remove('hidden');
         
-        console.log("👑 Modo Admin Ativado para:", loggedUser);
+        console.log("👑 Modo Admin Ativado");
     }
     
     atualizarDataCabecalho();
@@ -87,6 +86,10 @@ function initApp() {
 }
 
 function navegarPara(pageId) {
+    // Scroll para o topo ao mudar de página
+    const scroller = document.getElementById('main-scroll');
+    if(scroller) scroller.scrollTo(0,0);
+
     document.querySelectorAll('.page').forEach(el => {
         el.style.display = 'none';
         el.classList.remove('fade-in');
@@ -98,9 +101,6 @@ function navegarPara(pageId) {
         setTimeout(() => target.classList.add('fade-in'), 10);
     }
     
-    const scroller = document.getElementById('main-scroll');
-    if(scroller) scroller.scrollTo(0,0);
-
     // Hooks de Página
     if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
     if (pageId === 'tarefas') renderTarefas(); 
@@ -124,7 +124,6 @@ function navegarPara(pageId) {
             const status = document.getElementById('leadStatus'); if(status) status.value = 'Novo';
             const dest = document.getElementById('leadVendedorDestino'); if(dest) dest.value = '';
             
-            // Se for admin, mostra o campo de encaminhamento no cadastro também
             if(isAdminUser()) {
                 document.getElementById('divEncaminhar')?.classList.remove('hidden');
             }
@@ -134,7 +133,7 @@ function navegarPara(pageId) {
     if (pageId === 'faltas') ocultarHistoricoFaltas();
 }
 
-// --- FUNÇÃO FALTANTE: Botão "Carteira" no Menu Inferior ---
+// --- FUNÇÃO GLOBAL: Botão "Carteira" no Menu Inferior ---
 window.verTodosLeads = function() {
     navegarPara('gestaoLeads');
     
@@ -173,7 +172,6 @@ function filtrarLeadsHoje() {
     }
     
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    
     renderListaLeads(leadsHoje);
 }
 
@@ -226,14 +224,16 @@ async function carregarLeads(showLoader = true) {
         return;
     }
 
-    const res = await apiCall('getLeads', { vendedor: loggedUser }, showLoader);
+    // NORMALIZAÇÃO DE ADMIN: Envia o nome exato esperado pelo backend se for admin
+    const userToSend = isAdminUser() ? ADMIN_NAME_CANONICAL : loggedUser;
+
+    const res = await apiCall('getLeads', { vendedor: userToSend }, showLoader);
     if (res && res.status === 'success') {
         leadsCache = res.data || [];
         leadsCache.sort((a, b) => b._linha - a._linha);
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
         
         // Se o backend confirmar que é admin, garante visibilidade do painel
-        // O Backend V110 já deve retornar isAdmin: true se for o Bruno
         if (res.isAdmin || isAdminUser()) {
              document.getElementById('adminPanel')?.classList.remove('hidden');
         }
@@ -599,7 +599,7 @@ async function apiCall(route, payload, show=true) {
     if (!navigator.onLine && isWriteOperation(route)) {
         adicionarAFila(route, payload);
         if(show) showLoading(false);
-        if(route === 'toggleTask') return { status: 'success', local: true }; // Otimista
+        if (route === 'toggleTask') return { status: 'success', local: true }; // Otimista
         return { status: 'success', local: true, message: 'Offline Salvo' };
     }
     try {
