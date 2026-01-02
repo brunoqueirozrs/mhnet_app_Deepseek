@@ -1,11 +1,13 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V130 (FINAL CLICK FIX)
+ * MHNET VENDAS - LÓGICA V132 (FINAL FIX)
  * ============================================================
- * 📝 CORREÇÕES:
- * 1. CLIQUE NO CARD: Função 'abrirLeadDetalhes' blindada e exposta.
- * 2. MODAL SEGURO: Proteção contra campos nulos.
- * 3. SYNC: Mantida sincronia com Backend V110 e Index V126.
+ * 📝 CORREÇÕES APLICADAS:
+ * 1. TAREFAS: Layout Todoist e lógica de conclusão.
+ * 2. CARTEIRA: Função 'verTodosLeads' limpa filtros corretamente.
+ * 3. EDITAR: Proteção contra nulos (IDs corrigidos).
+ * 4. FALTAS: Correção de IDs de container (classList error).
+ * 5. MATERIAIS: Navegação de pastas restaurada.
  * ============================================================
  */
 
@@ -24,7 +26,6 @@ let currentFolderId = null;
 let editingLeadIndex = null;
 let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
-let chatHistoryData = [];
 
 // Configuração Admin
 const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
@@ -38,11 +39,9 @@ function isAdminUser() {
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V130 - Inicializando...");
+    console.log("🚀 MHNET App V132 - Inicializando...");
     
-    // EXPORTAÇÃO GLOBAL (CRUCIAL)
     exporFuncoesGlobais();
-    
     carregarVendedores();
     
     const saved = localStorage.getItem('mhnet_leads_cache');
@@ -67,7 +66,7 @@ function exporFuncoesGlobais() {
     window.filtrarPorStatus = filtrarPorStatus;
     window.carregarLeads = carregarLeads;
     window.renderLeads = renderLeads;
-    window.abrirLeadDetalhes = abrirLeadDetalhes; // ESSENCIAL
+    window.abrirLeadDetalhes = abrirLeadDetalhes;
     window.fecharLeadModal = fecharLeadModal;
     window.editarLeadAtual = editarLeadAtual;
     window.excluirLead = excluirLead;
@@ -138,29 +137,37 @@ function navegarPara(pageId) {
     const scroller = document.getElementById('main-scroll');
     if(scroller) scroller.scrollTo(0,0);
 
+    // Hooks
     if (pageId === 'dashboard') { atualizarDashboard(); verificarAgendamentosHoje(); }
     if (pageId === 'tarefas') renderTarefas(); 
     if (pageId === 'indicadores') abrirIndicadores();
     
     if (pageId === 'gestaoLeads') {
         const busca = document.getElementById('searchLead');
+        // Reseta apenas se não estiver num modo de filtro
         if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
-            busca.value = "";
-            busca.placeholder = "Buscar nome, bairro, telefone...";
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btnFilterTodos')?.classList.add('active');
-            renderLeads(); 
+            renderLeads();
         }
     }
     
     if (pageId === 'cadastroLead') {
+        // Se for novo cadastro, limpa
         if (editingLeadIndex === null) {
-            document.querySelectorAll('#cadastroLead input, #cadastroLead textarea').forEach(el => el.value = '');
-            if(isAdminUser()) document.getElementById('divEncaminhar')?.classList.remove('hidden');
+            limparFormularioCadastro();
         }
     }
     if (pageId === 'materiais' && !currentFolderId) setTimeout(() => carregarMateriais(null), 100);
     if (pageId === 'faltas') ocultarHistoricoFaltas();
+}
+
+function limparFormularioCadastro() {
+    const inputs = document.querySelectorAll('#cadastroLead input, #cadastroLead textarea, #cadastroLead select');
+    inputs.forEach(el => {
+        if(el.id === 'leadStatus') el.value = 'Novo';
+        else if(el.id === 'leadInteresse') el.value = 'Médio';
+        else el.value = '';
+    });
+    if(isAdminUser()) document.getElementById('divEncaminhar')?.classList.remove('hidden');
 }
 
 // ============================================================
@@ -168,8 +175,7 @@ function navegarPara(pageId) {
 // ============================================================
 
 function verTodosLeads() {
-    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-    document.getElementById('gestaoLeads').style.display = 'block';
+    navegarPara('gestaoLeads');
     
     const input = document.getElementById('searchLead');
     if(input) { 
@@ -177,8 +183,16 @@ function verTodosLeads() {
         input.placeholder = "Buscar nome, bairro, telefone..."; 
     }
     
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('btnFilterTodos')?.classList.add('active');
+    // Reseta botões
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.remove('active', 'bg-[#00aeef]', 'text-white');
+        b.classList.add('bg-white', 'text-slate-500');
+    });
+    const btnTodos = document.getElementById('btnFilterTodos');
+    if(btnTodos) {
+        btnTodos.classList.add('active', 'bg-[#00aeef]', 'text-white');
+        btnTodos.classList.remove('bg-white', 'text-slate-500');
+    }
     
     renderLeads();
 }
@@ -187,21 +201,14 @@ function filtrarLeadsHoje() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje));
     
-    if (leadsHoje.length === 0) { 
-        alert("📅 Nenhum lead cadastrado hoje!"); 
-        return; 
-    }
+    if (leadsHoje.length === 0) { alert("📅 Nenhum lead hoje!"); return; }
     
-    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-    document.getElementById('gestaoLeads').style.display = 'block';
-    
+    navegarPara('gestaoLeads');
     const input = document.getElementById('searchLead');
-    if(input) {
-        input.value = "";
-        input.placeholder = `📅 Filtrado: Hoje (${leadsHoje.length})`;
-    }
+    if(input) { input.value = ""; input.placeholder = `📅 Hoje (${leadsHoje.length})`; }
     
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    // Limpa ativos
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white'));
     renderListaLeads(leadsHoje);
 }
 
@@ -209,32 +216,29 @@ function filtrarRetornos() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
     
-    if (retornos.length === 0) { 
-        alert("Nenhum retorno hoje."); 
-        return; 
-    }
+    if (retornos.length === 0) { alert("Nenhum retorno hoje."); return; }
     
-    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
-    document.getElementById('gestaoLeads').style.display = 'block';
-
+    navegarPara('gestaoLeads');
     const input = document.getElementById('searchLead');
-    if(input) {
-        input.value = "";
-        input.placeholder = `🔔 Retornos (${retornos.length})`;
-    }
+    if(input) { input.value = ""; input.placeholder = `🔔 Retornos (${retornos.length})`; }
     renderListaLeads(retornos);
 }
 
 function filtrarPorStatus(status) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.remove('active', 'bg-[#00aeef]', 'text-white');
+        b.classList.add('bg-white', 'text-slate-500');
+    });
     
     const idMap = {
         'Todos': 'btnFilterTodos', 'Novo': 'btnFilterNovo', 'Em Negociação': 'btnFilterNegociação',
         'Agendado': 'btnFilterAgendado', 'Venda Fechada': 'btnFilterVendaFechada', 'Perda': 'btnFilterPerda'
     };
-    
     const btn = document.getElementById(idMap[status]) || event.target;
-    if(btn) btn.classList.add('active');
+    if(btn) {
+        btn.classList.add('active', 'bg-[#00aeef]', 'text-white');
+        btn.classList.remove('bg-white', 'text-slate-500');
+    }
     
     const input = document.getElementById('searchLead');
     if(input) input.value = "";
@@ -247,12 +251,9 @@ function filtrarPorStatus(status) {
 }
 
 async function carregarLeads(showLoader = true) {
-    if(!navigator.onLine) { 
-        if(document.getElementById('listaLeadsGestao')) renderLeads(); 
-        return; 
-    }
+    if(!navigator.onLine) { if(document.getElementById('listaLeadsGestao')) renderLeads(); return; }
 
-    const userToSend = isAdminUser() ? ADMIN_NAME_CHECK : loggedUser;
+    const userToSend = isAdminUser() ? "Bruno Garcia Queiroz" : loggedUser;
     const res = await apiCall('getLeads', { vendedor: userToSend }, showLoader);
     
     if (res && res.status === 'success') {
@@ -260,9 +261,7 @@ async function carregarLeads(showLoader = true) {
         leadsCache.sort((a, b) => b._linha - a._linha);
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
         
-        if (isAdminUser()) {
-             document.getElementById('adminPanel')?.classList.remove('hidden');
-        }
+        if (isAdminUser()) document.getElementById('adminPanel')?.classList.remove('hidden');
         
         if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
             renderLeads();
@@ -279,8 +278,7 @@ function renderLeads() {
     const lista = leadsCache.filter(l => 
         String(l.nomeLead || '').toLowerCase().includes(term) || 
         String(l.bairro || '').toLowerCase().includes(term) || 
-        String(l.telefone || '').includes(term) ||
-        String(l.cidade || '').toLowerCase().includes(term)
+        String(l.telefone || '').includes(term)
     );
     renderListaLeads(lista);
 }
@@ -307,7 +305,6 @@ function criarCardLead(l, index) {
     
     const nome = String(l.nomeLead || 'Sem Nome');
     const bairro = String(l.bairro || '-');
-    const cidade = String(l.cidade || '-');
     const prov = String(l.provedor || '');
 
     return `
@@ -315,7 +312,7 @@ function criarCardLead(l, index) {
         <div class="flex justify-between items-start">
             <div>
                 <div class="font-bold text-slate-800 text-lg leading-tight">${nome}</div>
-                <div class="text-xs text-slate-500 mt-1">${bairro} • ${cidade}</div>
+                <div class="text-xs text-slate-500 mt-1">${bairro}</div>
             </div>
             <div class="flex flex-col items-end gap-1">
                 <span class="text-[10px] px-2 py-1 rounded-full ${badgeColor}">${l.status || 'Novo'}</span>
@@ -326,17 +323,16 @@ function criarCardLead(l, index) {
 }
 
 // ============================================================
-// 4. DETALHES LEAD (MODAL SEGURO - FIX NULL)
+// 4. DETALHES LEAD E EDIÇÃO (FIX TYPE ERROR)
 // ============================================================
+
 function abrirLeadDetalhes(index) {
     const l = leadsCache[index];
-    if(!l) return console.error("Lead inválido:", index);
-    
+    if(!l) return;
     leadAtualParaAgendar = l;
     
-    // Funções de preenchimento seguro
-    const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = String(txt || ''); };
-    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = String(val || ''); };
+    const setText = (id, v) => { const el = document.getElementById(id); if(el) el.innerText = v || ''; }
+    const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; }
 
     setText('modalLeadNome', l.nomeLead);
     setText('modalLeadBairro', l.bairro);
@@ -362,10 +358,6 @@ function abrirLeadDetalhes(index) {
         }
     }
 
-    // Botões Dinâmicos
-    const btnWhats = document.getElementById('btnModalWhats');
-    if(btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${String(l.telefone).replace(/\D/g,'')}`, '_blank');
-    
     const containerRaioX = document.getElementById('containerRaioX');
     if(containerRaioX) containerRaioX.innerHTML = `<button onclick="raioXConcorrencia()" class="ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] shadow">Raio-X</button>`;
 
@@ -380,20 +372,47 @@ function abrirLeadDetalhes(index) {
             }
         }
     } else {
-        const area = document.getElementById('adminEncaminharArea');
-        if(area) area.classList.add('hidden');
+        document.getElementById('adminEncaminharArea')?.classList.add('hidden');
     }
 
     renderTarefasNoModal(l.nomeLead);
-    const modal = document.getElementById('leadModal');
-    if(modal) modal.classList.remove('hidden');
+    document.getElementById('leadModal')?.classList.remove('hidden');
+}
+
+// CORREÇÃO DO ERRO TYPE ERROR EM 'editarLeadAtual'
+function editarLeadAtual() {
+    if (!leadAtualParaAgendar) return;
+    const l = leadAtualParaAgendar;
+    
+    // Helper seguro
+    const safeSet = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
+    safeSet('leadNome', l.nomeLead);
+    safeSet('leadTelefone', l.telefone);
+    safeSet('leadEndereco', l.endereco);
+    safeSet('leadBairro', l.bairro);
+    safeSet('leadCidade', l.cidade);
+    safeSet('leadProvedor', l.provedor);
+    safeSet('leadObs', l.observacao);
+    
+    const s = document.getElementById('leadStatus'); 
+    if(s) s.value = l.status || "Novo";
+    
+    // Se admin, garante que o campo encaminhar esteja visível
+    if (isAdminUser()) document.getElementById('divEncaminhar')?.classList.remove('hidden');
+    
+    editingLeadIndex = leadsCache.indexOf(l);
+    fecharLeadModal();
+    navegarPara('cadastroLead'); // Isso agora limpa o form se for novo, ou mantém se for edição (pois index != null)
 }
 
 function fecharLeadModal() { document.getElementById('leadModal')?.classList.add('hidden'); leadAtualParaAgendar = null; editingLeadIndex = null; }
 
 async function salvarEdicaoModal() {
     if (!leadAtualParaAgendar) return;
-    
     const s = document.getElementById('modalStatusFunil')?.value || "Novo";
     const o = document.getElementById('modalLeadObs')?.value || "";
     const d = document.getElementById('agendarData')?.value;
@@ -404,7 +423,6 @@ async function salvarEdicaoModal() {
         const [a, m, day] = d.split('-');
         leadAtualParaAgendar.agendamento = `${day}/${m}/${a} ${document.getElementById('agendarHora')?.value || '09:00'}`;
     }
-    
     localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
     if(document.getElementById('gestaoLeads').style.display !== 'none') renderLeads();
     
@@ -420,8 +438,9 @@ async function salvarEdicaoModal() {
 }
 
 // ============================================================
-// 5. TAREFAS
+// 5. TAREFAS (TODOIST STYLE)
 // ============================================================
+
 async function carregarTarefas(show = true) {
     if(!navigator.onLine && tasksCache.length > 0) { if(show) renderTarefas(); return; }
     const res = await apiCall('getTasks', { vendedor: loggedUser }, false);
@@ -430,32 +449,87 @@ async function carregarTarefas(show = true) {
         if(show) renderTarefas();
     }
 }
+
 function renderTarefas() {
     const div = document.getElementById('listaTarefasContainer');
     if (!div) return;
-    if (tasksCache.length === 0) { div.innerHTML = `<div class="text-center p-8 text-gray-400">Nenhuma tarefa pendente.</div>`; return; }
+    
+    if (tasksCache.length === 0) {
+        div.innerHTML = `<div class="text-center p-8 text-gray-400">Nenhuma tarefa pendente.</div>`;
+        return;
+    }
+    
     tasksCache.sort((a, b) => (a.status === 'PENDENTE' ? -1 : 1));
-    div.innerHTML = tasksCache.map(t => `<div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 mb-2 ${t.status==='CONCLUIDA'?'opacity-50 line-through':''}"><input type="checkbox" ${t.status==='CONCLUIDA'?'checked':''} onchange="toggleTask('${t.id}', '${t.status}')" class="w-5 h-5 rounded cursor-pointer"><div class="flex-1 text-sm font-bold text-slate-700">${t.descricao}<div class="text-[10px] text-slate-400 mt-1">${t.dataLimite||''} ${t.nomeLead?'• '+t.nomeLead:''}</div></div></div>`).join('');
+
+    div.innerHTML = tasksCache.map(t => {
+        const checked = t.status === "CONCLUIDA" ? "checked" : "";
+        const opacity = t.status === "CONCLUIDA" ? "opacity-50" : "";
+        const strike = t.status === "CONCLUIDA" ? "line-through text-slate-400" : "text-slate-800";
+        
+        return `
+        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start gap-3 mb-2 transition-all ${opacity}">
+            <div onclick="toggleTask('${t.id}', '${t.status}')" class="mt-1 w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center cursor-pointer ${t.status === 'CONCLUIDA' ? 'bg-green-500 border-green-500' : 'hover:border-blue-500'}">
+                ${t.status === 'CONCLUIDA' ? '<i class="fas fa-check text-white text-xs"></i>' : ''}
+            </div>
+            <div class="flex-1">
+                <div class="text-sm font-bold ${strike}">${t.descricao}</div>
+                <div class="text-[10px] text-slate-400 mt-1 flex gap-2">
+                    ${t.dataLimite ? `<span class="${t.status !== 'CONCLUIDA' ? 'text-red-400' : ''}"><i class="far fa-calendar"></i> ${t.dataLimite}</span>` : ''}
+                    ${t.nomeLead ? `<span class="bg-blue-50 text-blue-500 px-1 rounded">👤 ${t.nomeLead}</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
 }
+
 function renderTarefasNoModal(nomeLead) {
     const container = document.getElementById('sectionTarefasLead');
     const lista = document.getElementById('listaTarefasLead');
     if(!container || !lista) return;
+
     const tarefas = tasksCache.filter(t => t.nomeLead === nomeLead && t.status !== 'CONCLUIDA');
-    if (tarefas.length > 0) { container.classList.remove('hidden'); lista.innerHTML = tarefas.map(t => `<div class="bg-white p-2 rounded border border-slate-200 flex items-center gap-2"><input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4"><span class="text-xs text-slate-700">${t.descricao}</span></div>`).join(''); } else { container.classList.add('hidden'); }
+    
+    if (tarefas.length > 0) {
+        container.classList.remove('hidden');
+        lista.innerHTML = tarefas.map(t => `
+            <div class="bg-white p-2 rounded border border-slate-200 flex items-center gap-2">
+                <input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4 rounded-full border-slate-300">
+                <span class="text-xs text-slate-700">${t.descricao}</span>
+            </div>
+        `).join('');
+    } else {
+        container.classList.add('hidden');
+    }
 }
+
 async function toggleTask(id, currentStatus) {
     const t = tasksCache.find(x => x.id === id);
-    if(t) { t.status = currentStatus === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE'; renderTarefas(); if(leadAtualParaAgendar) renderTarefasNoModal(leadAtualParaAgendar.nomeLead); }
+    if(t) { 
+        t.status = currentStatus === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE'; 
+        renderTarefas(); 
+        if(leadAtualParaAgendar) renderTarefasNoModal(leadAtualParaAgendar.nomeLead); 
+    }
     await apiCall('toggleTask', { taskId: id, status: currentStatus, vendedor: loggedUser }, false);
-    carregarTarefas(false);
 }
-function abrirModalTarefa() { document.getElementById('taskModal').classList.remove('hidden'); const s=document.getElementById('taskLeadSelect');s.innerHTML='<option value="">Nenhum</option>';leadsCache.forEach(l=>{s.innerHTML+=`<option value="${l.nomeLead}">${l.nomeLead}</option>`}); }
+
+function abrirModalTarefa() {
+    document.getElementById('taskModal').classList.remove('hidden');
+    const sel = document.getElementById('taskLeadSelect');
+    if(sel) {
+        sel.innerHTML = '<option value="">Nenhum (Avulso)</option>';
+        leadsCache.forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l.nomeLead; opt.innerText = l.nomeLead; sel.appendChild(opt);
+        });
+    }
+}
+
 async function salvarTarefa() {
     const desc = document.getElementById('taskDesc').value;
     const date = document.getElementById('taskDate').value;
     const leadVal = document.getElementById('taskLeadSelect').value;
     if(!desc) return alert("Digite a descrição.");
+    
     showLoading(true);
     await apiCall('addTask', { vendedor: loggedUser, descricao: desc, dataLimite: date, nomeLead: leadVal });
     showLoading(false);
@@ -463,23 +537,24 @@ async function salvarTarefa() {
     document.getElementById('taskDesc').value = '';
     carregarTarefas();
 }
+
 async function limparTarefasConcluidas() {
     if(!confirm("Limpar concluídas?")) return;
     tasksCache = tasksCache.filter(t => t.status !== 'CONCLUIDA');
     renderTarefas();
     await apiCall('archiveTasks', { vendedor: loggedUser });
     showLoading(false);
-    carregarTarefas();
 }
 
 // ============================================================
-// 6. MATERIAIS & FALTAS
+// 6. MATERIAIS, FALTAS E UTILS
 // ============================================================
 async function carregarMateriais(f=null, s="") {
     const div = document.getElementById('materiaisGrid');
     if (!div) return;
     currentFolderId = f; 
     div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Carregando...</div>';
+    
     try {
         const res = await apiCall('getImages', { folderId: f, search: s }, false);
         if (res && res.status === 'success' && res.data) {
@@ -496,42 +571,67 @@ async function carregarMateriais(f=null, s="") {
         div.innerHTML = `<div class="col-span-2 text-center text-red-400">Erro ao carregar.</div>`;
     }
 }
-function buscarMateriais() { const t = document.getElementById('searchMateriais').value.toLowerCase(); renderMateriais(materialsCache.filter(m => m.name.toLowerCase().includes(t))); }
+
+function buscarMateriais() {
+    const term = document.getElementById('searchMateriais').value.toLowerCase();
+    const filtrados = materialsCache.filter(m => m.name.toLowerCase().includes(term));
+    renderMateriais(filtrados);
+}
+
 function renderMateriais(items) {
     const div = document.getElementById('materiaisGrid');
     if(items.length === 0) { div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Vazio.</div>'; return; }
+    
     div.innerHTML = items.map(item => {
         if (item.type === 'folder') {
             return `<div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36"><i class="fas fa-folder text-5xl text-[#00aeef]"></i><span class="text-xs font-bold text-slate-600 text-center line-clamp-2">${item.name}</span></div>`;
         } else {
-            return `<div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative"><div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div><div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div><div class="flex gap-2"><a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a><button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button></div></div>`;
+            return `
+            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative">
+                <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div>
+                <div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div>
+                <div class="flex gap-2">
+                    <a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a>
+                    <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button>
+                </div>
+            </div>`;
         }
     }).join('');
 }
 
-// --- FALTAS ---
+// --- FALTAS (CORRIGIDO CLASSLIST ERROR) ---
 async function verHistoricoFaltas() {
     const div = document.getElementById('listaHistoricoFaltas');
     document.getElementById('historicoFaltasContainer').classList.remove('hidden');
-    document.getElementById('formFaltaContainer').classList.add('hidden');
+    
+    // Verificação de segurança para o container do formulário
+    const formContainer = document.getElementById('formFaltaContainer');
+    if(formContainer) formContainer.classList.add('hidden');
+    
     div.innerHTML = '<div class="text-center p-5">Carregando...</div>';
+    
     const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
     if (res.status === 'success' && res.data.length > 0) {
         div.innerHTML = res.data.map(f => `<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');
     } else div.innerHTML = '<div class="text-center text-xs">Sem histórico.</div>';
 }
+
 function ocultarHistoricoFaltas() {
     document.getElementById('historicoFaltasContainer').classList.add('hidden');
-    document.getElementById('formFaltaContainer').classList.remove('hidden');
+    const formContainer = document.getElementById('formFaltaContainer');
+    if(formContainer) formContainer.classList.remove('hidden');
 }
+
 async function enviarJustificativa() {
     const dt = document.getElementById('faltaData').value;
     const mt = document.getElementById('faltaMotivo').value;
     const ob = document.getElementById('faltaObs').value;
     if(!dt || !mt) return alert("Preencha data e motivo.");
+    
     showLoading(true);
     const payload = { vendedor: loggedUser, dataFalta: dt, motivo: mt, observacao: ob };
     const file = document.getElementById('faltaArquivo').files[0];
+    
     if(file) {
         const r = new FileReader();
         r.onload = async function(e) { payload.fileData = e.target.result; payload.fileName = file.name; payload.mimeType = file.type; await apiCall('registerAbsence', payload); showLoading(false); alert("Enviado!"); navegarPara('dashboard'); };
@@ -551,7 +651,7 @@ async function apiCall(route, payload, show=true) {
     if (!navigator.onLine && isWriteOperation(route)) {
         adicionarAFila(route, payload);
         if(show) showLoading(false);
-        if (route === 'toggleTask') return { status: 'success', local: true };
+        if (route === 'toggleTask') return { status: 'success', local: true }; // Otimista
         return { status: 'success', local: true, message: 'Offline Salvo' };
     }
     try {
@@ -575,11 +675,22 @@ function logout(){localStorage.removeItem('loggedUser');location.reload()}
 function atualizarDataCabecalho(){document.getElementById('headerDate').innerText=new Date().toLocaleDateString('pt-BR')}
 function atualizarDashboard(){const h=new Date().toLocaleDateString('pt-BR');document.getElementById('statLeads').innerText=leadsCache.filter(l=>l.timestamp&&l.timestamp.includes(h)).length}
 function verificarAgendamentosHoje(){const h=new Date().toLocaleDateString('pt-BR');const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));if(r.length>0)document.getElementById('lembreteBanner').classList.remove('hidden');else document.getElementById('lembreteBanner').classList.add('hidden')}
-function editarLeadAtual(){if(!leadAtualParaAgendar)return;const l=leadAtualParaAgendar;document.getElementById('leadNome').value=l.nomeLead;document.getElementById('leadTelefone').value=l.telefone;document.getElementById('leadEndereco').value=l.endereco;document.getElementById('leadBairro').value=l.bairro;document.getElementById('leadCidade').value=l.cidade;document.getElementById('leadProvedor').value=l.provedor;document.getElementById('leadObs').value=l.observacao;const s=document.getElementById('leadStatus');if(s)s.value=l.status||"Novo";if(isAdminUser())document.getElementById('divEncaminhar').classList.remove('hidden');editingLeadIndex=leadsCache.indexOf(l);fecharLeadModal();navegarPara('cadastroLead')}
-async function enviarLead(){const p={vendedor:loggedUser,nomeLead:document.getElementById('leadNome').value,telefone:document.getElementById('leadTelefone').value,endereco:document.getElementById('leadEndereco').value,bairro:document.getElementById('leadBairro').value,cidade:document.getElementById('leadCidade').value,provedor:document.getElementById('leadProvedor').value,interesse:document.getElementById('leadInteresse').value,status:document.getElementById('leadStatus').value,observacao:document.getElementById('leadObs').value,novoVendedor:document.getElementById('leadVendedorDestino')?.value||""};let r='addLead';if(editingLeadIndex!==null){r='updateLeadFull';p._linha=leadsCache[editingLeadIndex]._linha;p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead}else if(p.novoVendedor){r='forwardLead';p.origem=loggedUser}const res=await apiCall(r,p);if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")}
+async function enviarLead() {
+    const p={vendedor:loggedUser, nomeLead:document.getElementById('leadNome').value, telefone:document.getElementById('leadTelefone').value, endereco:document.getElementById('leadEndereco').value, bairro:document.getElementById('leadBairro').value, cidade:document.getElementById('leadCidade').value, provedor:document.getElementById('leadProvedor').value, interesse:document.getElementById('leadInteresse').value, status:document.getElementById('leadStatus').value, observacao:document.getElementById('leadObs').value, novoVendedor:document.getElementById('leadVendedorDestino')?.value||""};
+    let r='addLead'; 
+    if(editingLeadIndex!==null){ r='updateLeadFull'; p._linha=leadsCache[editingLeadIndex]._linha; p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead; }
+    else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; }
+    
+    const res=await apiCall(r,p);
+    if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")
+}
+
+// ADMIN
 function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
 async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
 async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
+
+// IA & OUTROS
 async function buscarEnderecoGPS(){navigator.geolocation.getCurrentPosition(p=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}`).then(r=>r.json()).then(d=>{if(d.address){document.getElementById('leadEndereco').value=d.address.road;document.getElementById('leadBairro').value=d.address.suburb;document.getElementById('leadCidade').value=d.address.city||d.address.town}})},()=>{alert('Erro GPS')})}
 function iniciarDitado(t){}
 function copying(id){document.getElementById(id).select();document.execCommand('copy');alert("Copiado!")}
