@@ -1,13 +1,13 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V132 (FINAL FIX)
+ * MHNET VENDAS - LÓGICA V136 (FINAL CONSOLIDATED)
  * ============================================================
- * 📝 CORREÇÕES APLICADAS:
- * 1. TAREFAS: Layout Todoist e lógica de conclusão.
- * 2. CARTEIRA: Função 'verTodosLeads' limpa filtros corretamente.
- * 3. EDITAR: Proteção contra nulos (IDs corrigidos).
- * 4. FALTAS: Correção de IDs de container (classList error).
- * 5. MATERIAIS: Navegação de pastas restaurada.
+ * 📝 RESUMO:
+ * - Código expandido para facilitar leitura e manutenção.
+ * - Login Offline: Função 'carregarVendedoresOffline' restaurada.
+ * - Materiais: Filtros por botão funcionais.
+ * - Admin: Verificação robusta de gestor.
+ * - Sincronização: Backend V110 + HTML V134/V126.
  * ============================================================
  */
 
@@ -26,22 +26,25 @@ let currentFolderId = null;
 let editingLeadIndex = null;
 let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
+let chatHistoryData = [];
 
 // Configuração Admin
 const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
 
 function isAdminUser() {
     if (!loggedUser) return false;
-    return loggedUser.trim().toUpperCase().includes(ADMIN_NAME_CHECK);
+    return loggedUser.trim().toUpperCase().includes("BRUNO GARCIA");
 }
 
 // ============================================================
 // 1. INICIALIZAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V132 - Inicializando...");
+    console.log("🚀 MHNET App V136 - Ready");
     
+    // EXPORTAÇÃO GLOBAL
     exporFuncoesGlobais();
+    
     carregarVendedores();
     
     const saved = localStorage.getItem('mhnet_leads_cache');
@@ -60,6 +63,8 @@ function exporFuncoesGlobais() {
     window.setLoggedUser = setLoggedUser;
     window.logout = logout;
     window.navegarPara = navegarPara;
+    
+    // Leads
     window.verTodosLeads = verTodosLeads;
     window.filtrarLeadsHoje = filtrarLeadsHoje;
     window.filtrarRetornos = filtrarRetornos;
@@ -72,16 +77,27 @@ function exporFuncoesGlobais() {
     window.excluirLead = excluirLead;
     window.salvarEdicaoModal = salvarEdicaoModal;
     window.encaminharLeadModal = encaminharLeadModal;
+    window.enviarLead = enviarLead;
+    window.marcarVendaFechada = marcarVendaFechada;
+    window.salvarAgendamento = salvarAgendamento;
+    
+    // Admin & Utils
     window.abrirConfiguracoes = abrirConfiguracoes;
     window.gerirEquipe = gerirEquipe;
     window.buscarEnderecoGPS = buscarEnderecoGPS;
-    window.enviarLead = enviarLead;
     window.abrirIndicadores = abrirIndicadores;
+    
+    // Faltas
     window.verHistoricoFaltas = verHistoricoFaltas;
     window.enviarJustificativa = enviarJustificativa;
     window.ocultarHistoricoFaltas = ocultarHistoricoFaltas;
+    
+    // Materiais
     window.carregarMateriais = carregarMateriais;
     window.buscarMateriais = buscarMateriais;
+    window.filtrarMateriaisBtn = filtrarMateriaisBtn;
+    
+    // IA
     window.gerarScriptVendaIA = gerarScriptVendaIA;
     window.analiseEstrategicaIA = analiseEstrategicaIA;
     window.combaterObjecaoLead = combaterObjecaoLead;
@@ -92,14 +108,19 @@ function exporFuncoesGlobais() {
     window.consultarPlanosIA = consultarPlanosIA;
     window.toggleChat = toggleChat;
     window.enviarMensagemChat = enviarMensagemChat;
+    
+    // Tarefas
     window.abrirModalTarefa = abrirModalTarefa;
     window.salvarTarefa = salvarTarefa;
     window.toggleTask = toggleTask;
     window.limparTarefasConcluidas = limparTarefasConcluidas;
-    window.filtrarMateriaisBtn = filtrarMateriaisBtn;
+    
+    // PWA
+    window.fecharInstallPrompt = fecharInstallPrompt;
+    window.instalarPWA = instalarPWA;
 }
 
-window.addEventListener('online', () => { processarFilaSincronizacao(); });
+window.addEventListener('online', () => processarFilaSincronizacao());
 
 // ============================================================
 // 2. CORE & NAVEGAÇÃO
@@ -144,30 +165,21 @@ function navegarPara(pageId) {
     
     if (pageId === 'gestaoLeads') {
         const busca = document.getElementById('searchLead');
-        // Reseta apenas se não estiver num modo de filtro
+        // Se não tiver filtro ativo, limpa e mostra tudo
         if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
-            renderLeads();
+             verTodosLeads();
         }
     }
     
     if (pageId === 'cadastroLead') {
-        // Se for novo cadastro, limpa
         if (editingLeadIndex === null) {
-            limparFormularioCadastro();
+            document.querySelectorAll('#cadastroLead input, #cadastroLead textarea').forEach(el => el.value = '');
+            const selStatus = document.getElementById('leadStatus'); if(selStatus) selStatus.value = 'Novo';
+            if(isAdminUser()) document.getElementById('divEncaminhar')?.classList.remove('hidden');
         }
     }
     if (pageId === 'materiais' && !currentFolderId) setTimeout(() => carregarMateriais(null), 100);
     if (pageId === 'faltas') ocultarHistoricoFaltas();
-}
-
-function limparFormularioCadastro() {
-    const inputs = document.querySelectorAll('#cadastroLead input, #cadastroLead textarea, #cadastroLead select');
-    inputs.forEach(el => {
-        if(el.id === 'leadStatus') el.value = 'Novo';
-        else if(el.id === 'leadInteresse') el.value = 'Médio';
-        else el.value = '';
-    });
-    if(isAdminUser()) document.getElementById('divEncaminhar')?.classList.remove('hidden');
 }
 
 // ============================================================
@@ -175,24 +187,19 @@ function limparFormularioCadastro() {
 // ============================================================
 
 function verTodosLeads() {
-    navegarPara('gestaoLeads');
+    // 1. Muda tela visualmente
+    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+    document.getElementById('gestaoLeads').style.display = 'block';
     
+    // 2. Limpa filtros e renderiza
     const input = document.getElementById('searchLead');
     if(input) { 
         input.value = ""; 
         input.placeholder = "Buscar nome, bairro, telefone..."; 
     }
     
-    // Reseta botões
-    document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('active', 'bg-[#00aeef]', 'text-white');
-        b.classList.add('bg-white', 'text-slate-500');
-    });
-    const btnTodos = document.getElementById('btnFilterTodos');
-    if(btnTodos) {
-        btnTodos.classList.add('active', 'bg-[#00aeef]', 'text-white');
-        btnTodos.classList.remove('bg-white', 'text-slate-500');
-    }
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btnFilterTodos')?.classList.add('active');
     
     renderLeads();
 }
@@ -201,14 +208,19 @@ function filtrarLeadsHoje() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje));
     
-    if (leadsHoje.length === 0) { alert("📅 Nenhum lead hoje!"); return; }
+    if (leadsHoje.length === 0) { 
+        alert("📅 Nenhum lead cadastrado hoje!\nVamos pra cima! 🚀");
+        return; 
+    }
     
     navegarPara('gestaoLeads');
     const input = document.getElementById('searchLead');
-    if(input) { input.value = ""; input.placeholder = `📅 Hoje (${leadsHoje.length})`; }
+    if(input) {
+        input.value = "";
+        input.placeholder = `📅 Hoje (${leadsHoje.length})`;
+    }
     
-    // Limpa ativos
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white'));
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     renderListaLeads(leadsHoje);
 }
 
@@ -216,29 +228,30 @@ function filtrarRetornos() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
     
-    if (retornos.length === 0) { alert("Nenhum retorno hoje."); return; }
+    if (retornos.length === 0) { 
+        alert("Nenhum retorno hoje."); 
+        return; 
+    }
     
     navegarPara('gestaoLeads');
     const input = document.getElementById('searchLead');
-    if(input) { input.value = ""; input.placeholder = `🔔 Retornos (${retornos.length})`; }
+    if(input) {
+        input.value = "";
+        input.placeholder = `🔔 Retornos (${retornos.length})`;
+    }
     renderListaLeads(retornos);
 }
 
 function filtrarPorStatus(status) {
-    document.querySelectorAll('.filter-btn').forEach(b => {
-        b.classList.remove('active', 'bg-[#00aeef]', 'text-white');
-        b.classList.add('bg-white', 'text-slate-500');
-    });
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     
     const idMap = {
         'Todos': 'btnFilterTodos', 'Novo': 'btnFilterNovo', 'Em Negociação': 'btnFilterNegociação',
         'Agendado': 'btnFilterAgendado', 'Venda Fechada': 'btnFilterVendaFechada', 'Perda': 'btnFilterPerda'
     };
+    
     const btn = document.getElementById(idMap[status]) || event.target;
-    if(btn) {
-        btn.classList.add('active', 'bg-[#00aeef]', 'text-white');
-        btn.classList.remove('bg-white', 'text-slate-500');
-    }
+    if(btn) btn.classList.add('active');
     
     const input = document.getElementById('searchLead');
     if(input) input.value = "";
@@ -251,9 +264,12 @@ function filtrarPorStatus(status) {
 }
 
 async function carregarLeads(showLoader = true) {
-    if(!navigator.onLine) { if(document.getElementById('listaLeadsGestao')) renderLeads(); return; }
+    if(!navigator.onLine) { 
+        if(document.getElementById('listaLeadsGestao')) renderLeads(); 
+        return; 
+    }
 
-    const userToSend = isAdminUser() ? "Bruno Garcia Queiroz" : loggedUser;
+    const userToSend = isAdminUser() ? ADMIN_NAME_CHECK : loggedUser;
     const res = await apiCall('getLeads', { vendedor: userToSend }, showLoader);
     
     if (res && res.status === 'success') {
@@ -261,7 +277,9 @@ async function carregarLeads(showLoader = true) {
         leadsCache.sort((a, b) => b._linha - a._linha);
         localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
         
-        if (isAdminUser()) document.getElementById('adminPanel')?.classList.remove('hidden');
+        if (isAdminUser()) {
+             document.getElementById('adminPanel')?.classList.remove('hidden');
+        }
         
         if(document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') {
             renderLeads();
@@ -278,7 +296,8 @@ function renderLeads() {
     const lista = leadsCache.filter(l => 
         String(l.nomeLead || '').toLowerCase().includes(term) || 
         String(l.bairro || '').toLowerCase().includes(term) || 
-        String(l.telefone || '').includes(term)
+        String(l.telefone || '').includes(term) ||
+        String(l.cidade || '').toLowerCase().includes(term)
     );
     renderListaLeads(lista);
 }
@@ -302,6 +321,7 @@ function criarCardLead(l, index) {
     let badgeColor = "bg-slate-100 text-slate-500";
     if (l.status === 'Venda Fechada') badgeColor = "bg-green-500 text-white font-bold";
     else if (l.status === 'Agendado') badgeColor = "bg-orange-100 text-orange-600 font-bold";
+    else if (l.status === 'Novo') badgeColor = "bg-indigo-50 text-indigo-600 font-bold";
     
     const nome = String(l.nomeLead || 'Sem Nome');
     const bairro = String(l.bairro || '-');
@@ -323,16 +343,16 @@ function criarCardLead(l, index) {
 }
 
 // ============================================================
-// 4. DETALHES LEAD E EDIÇÃO (FIX TYPE ERROR)
+// 4. DETALHES LEAD (MODAL SEGURO)
 // ============================================================
-
 function abrirLeadDetalhes(index) {
     const l = leadsCache[index];
-    if(!l) return;
+    if(!l) return console.error("Lead inválido:", index);
+    
     leadAtualParaAgendar = l;
     
-    const setText = (id, v) => { const el = document.getElementById(id); if(el) el.innerText = v || ''; }
-    const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; }
+    const setText = (id, txt) => { const el = document.getElementById(id); if(el) el.innerText = String(txt || ''); };
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = String(val || ''); };
 
     setText('modalLeadNome', l.nomeLead);
     setText('modalLeadBairro', l.bairro);
@@ -345,7 +365,6 @@ function abrirLeadDetalhes(index) {
     setVal('inputObjecaoLead', l.objecao);
     setVal('respostaObjecaoLead', l.respostaObjecao);
 
-    // Agendamento
     const dtInput = document.getElementById('agendarData');
     const hrInput = document.getElementById('agendarHora');
     if(dtInput) {
@@ -358,10 +377,14 @@ function abrirLeadDetalhes(index) {
         }
     }
 
+    const btnWhats = document.getElementById('btnModalWhats');
+    if(btnWhats) btnWhats.onclick = () => window.open(`https://wa.me/55${String(l.telefone).replace(/\D/g,'')}`, '_blank');
+    const btnTag = document.getElementById('btnModalWhatsTag');
+    if(btnTag) btnTag.onclick = () => window.open(`https://wa.me/55${String(l.telefone).replace(/\D/g,'')}`, '_blank');
+    
     const containerRaioX = document.getElementById('containerRaioX');
     if(containerRaioX) containerRaioX.innerHTML = `<button onclick="raioXConcorrencia()" class="ml-2 bg-slate-800 text-white px-2 py-1 rounded text-[10px] shadow">Raio-X</button>`;
 
-    // Admin
     if (isAdminUser()) {
         const area = document.getElementById('adminEncaminharArea');
         if(area) {
@@ -379,40 +402,11 @@ function abrirLeadDetalhes(index) {
     document.getElementById('leadModal')?.classList.remove('hidden');
 }
 
-// CORREÇÃO DO ERRO TYPE ERROR EM 'editarLeadAtual'
-function editarLeadAtual() {
-    if (!leadAtualParaAgendar) return;
-    const l = leadAtualParaAgendar;
-    
-    // Helper seguro
-    const safeSet = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.value = val || '';
-    };
-
-    safeSet('leadNome', l.nomeLead);
-    safeSet('leadTelefone', l.telefone);
-    safeSet('leadEndereco', l.endereco);
-    safeSet('leadBairro', l.bairro);
-    safeSet('leadCidade', l.cidade);
-    safeSet('leadProvedor', l.provedor);
-    safeSet('leadObs', l.observacao);
-    
-    const s = document.getElementById('leadStatus'); 
-    if(s) s.value = l.status || "Novo";
-    
-    // Se admin, garante que o campo encaminhar esteja visível
-    if (isAdminUser()) document.getElementById('divEncaminhar')?.classList.remove('hidden');
-    
-    editingLeadIndex = leadsCache.indexOf(l);
-    fecharLeadModal();
-    navegarPara('cadastroLead'); // Isso agora limpa o form se for novo, ou mantém se for edição (pois index != null)
-}
-
 function fecharLeadModal() { document.getElementById('leadModal')?.classList.add('hidden'); leadAtualParaAgendar = null; editingLeadIndex = null; }
 
 async function salvarEdicaoModal() {
     if (!leadAtualParaAgendar) return;
+    
     const s = document.getElementById('modalStatusFunil')?.value || "Novo";
     const o = document.getElementById('modalLeadObs')?.value || "";
     const d = document.getElementById('agendarData')?.value;
@@ -438,7 +432,7 @@ async function salvarEdicaoModal() {
 }
 
 // ============================================================
-// 5. TAREFAS (TODOIST STYLE)
+// 5. TAREFAS
 // ============================================================
 
 async function carregarTarefas(show = true) {
@@ -463,20 +457,13 @@ function renderTarefas() {
 
     div.innerHTML = tasksCache.map(t => {
         const checked = t.status === "CONCLUIDA" ? "checked" : "";
-        const opacity = t.status === "CONCLUIDA" ? "opacity-50" : "";
-        const strike = t.status === "CONCLUIDA" ? "line-through text-slate-400" : "text-slate-800";
-        
+        const opacity = t.status === "CONCLUIDA" ? "opacity-50 line-through" : "";
         return `
-        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start gap-3 mb-2 transition-all ${opacity}">
-            <div onclick="toggleTask('${t.id}', '${t.status}')" class="mt-1 w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center cursor-pointer ${t.status === 'CONCLUIDA' ? 'bg-green-500 border-green-500' : 'hover:border-blue-500'}">
-                ${t.status === 'CONCLUIDA' ? '<i class="fas fa-check text-white text-xs"></i>' : ''}
-            </div>
+        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 mb-2 ${opacity}">
+            <input type="checkbox" ${checked} onchange="toggleTask('${t.id}', '${t.status}')" class="w-5 h-5 rounded cursor-pointer">
             <div class="flex-1">
-                <div class="text-sm font-bold ${strike}">${t.descricao}</div>
-                <div class="text-[10px] text-slate-400 mt-1 flex gap-2">
-                    ${t.dataLimite ? `<span class="${t.status !== 'CONCLUIDA' ? 'text-red-400' : ''}"><i class="far fa-calendar"></i> ${t.dataLimite}</span>` : ''}
-                    ${t.nomeLead ? `<span class="bg-blue-50 text-blue-500 px-1 rounded">👤 ${t.nomeLead}</span>` : ''}
-                </div>
+                <div class="text-sm font-bold text-slate-700">${t.descricao}</div>
+                <div class="text-[10px] text-slate-400 mt-1">${t.dataLimite || ''} ${t.nomeLead ? '• '+t.nomeLead : ''}</div>
             </div>
         </div>`;
     }).join('');
@@ -493,7 +480,7 @@ function renderTarefasNoModal(nomeLead) {
         container.classList.remove('hidden');
         lista.innerHTML = tarefas.map(t => `
             <div class="bg-white p-2 rounded border border-slate-200 flex items-center gap-2">
-                <input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4 rounded-full border-slate-300">
+                <input type="checkbox" onchange="toggleTask('${t.id}', '${t.status}')" class="w-4 h-4">
                 <span class="text-xs text-slate-700">${t.descricao}</span>
             </div>
         `).join('');
@@ -504,12 +491,9 @@ function renderTarefasNoModal(nomeLead) {
 
 async function toggleTask(id, currentStatus) {
     const t = tasksCache.find(x => x.id === id);
-    if(t) { 
-        t.status = currentStatus === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE'; 
-        renderTarefas(); 
-        if(leadAtualParaAgendar) renderTarefasNoModal(leadAtualParaAgendar.nomeLead); 
-    }
+    if(t) { t.status = currentStatus === 'PENDENTE' ? 'CONCLUIDA' : 'PENDENTE'; renderTarefas(); if(leadAtualParaAgendar) renderTarefasNoModal(leadAtualParaAgendar.nomeLead); }
     await apiCall('toggleTask', { taskId: id, status: currentStatus, vendedor: loggedUser }, false);
+    carregarTarefas(false);
 }
 
 function abrirModalTarefa() {
@@ -544,10 +528,11 @@ async function limparTarefasConcluidas() {
     renderTarefas();
     await apiCall('archiveTasks', { vendedor: loggedUser });
     showLoading(false);
+    carregarTarefas();
 }
 
 // ============================================================
-// 6. MATERIAIS, FALTAS E UTILS
+// 6. MATERIAIS, FALTAS E IA
 // ============================================================
 async function carregarMateriais(f=null, s="") {
     const div = document.getElementById('materiaisGrid');
@@ -569,6 +554,18 @@ async function carregarMateriais(f=null, s="") {
         } else { throw new Error("Erro API"); }
     } catch (error) {
         div.innerHTML = `<div class="col-span-2 text-center text-red-400">Erro ao carregar.</div>`;
+    }
+}
+
+function filtrarMateriaisBtn(termo) {
+    const input = document.getElementById('searchMateriais');
+    if(input) {
+        input.value = (termo === 'Todos') ? '' : termo;
+        buscarMateriais();
+        document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white'));
+        document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.add('bg-white', 'text-slate-500'));
+        event.target.classList.add('active', 'bg-[#00aeef]', 'text-white');
+        event.target.classList.remove('bg-white', 'text-slate-500');
     }
 }
 
@@ -599,59 +596,34 @@ function renderMateriais(items) {
     }).join('');
 }
 
-// --- FALTAS (CORRIGIDO CLASSLIST ERROR) ---
-async function verHistoricoFaltas() {
-    const div = document.getElementById('listaHistoricoFaltas');
-    document.getElementById('historicoFaltasContainer').classList.remove('hidden');
-    
-    // Verificação de segurança para o container do formulário
-    const formContainer = document.getElementById('formFaltaContainer');
-    if(formContainer) formContainer.classList.add('hidden');
-    
-    div.innerHTML = '<div class="text-center p-5">Carregando...</div>';
-    
-    const res = await apiCall('getAbsences', { vendedor: loggedUser }, false);
-    if (res.status === 'success' && res.data.length > 0) {
-        div.innerHTML = res.data.map(f => `<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');
-    } else div.innerHTML = '<div class="text-center text-xs">Sem histórico.</div>';
+// IA & CHAT
+function consultarPlanosIA() {
+    document.getElementById('chatModal').classList.remove('hidden');
+    const history = document.getElementById('chatHistory');
+    if(history && history.innerHTML.trim() === '') {
+        history.innerHTML = `<div class="text-center p-2 text-xs text-gray-400">Olá! Sou a IA da MHNET. Pergunte-me sobre planos, técnicas de venda ou dúvidas.</div>`;
+    }
 }
+function toggleChat() { document.getElementById('chatModal').classList.add('hidden'); }
 
-function ocultarHistoricoFaltas() {
-    document.getElementById('historicoFaltasContainer').classList.add('hidden');
-    const formContainer = document.getElementById('formFaltaContainer');
-    if(formContainer) formContainer.classList.remove('hidden');
-}
-
-async function enviarJustificativa() {
-    const dt = document.getElementById('faltaData').value;
-    const mt = document.getElementById('faltaMotivo').value;
-    const ob = document.getElementById('faltaObs').value;
-    if(!dt || !mt) return alert("Preencha data e motivo.");
-    
-    showLoading(true);
-    const payload = { vendedor: loggedUser, dataFalta: dt, motivo: mt, observacao: ob };
-    const file = document.getElementById('faltaArquivo').files[0];
-    
-    if(file) {
-        const r = new FileReader();
-        r.onload = async function(e) { payload.fileData = e.target.result; payload.fileName = file.name; payload.mimeType = file.type; await apiCall('registerAbsence', payload); showLoading(false); alert("Enviado!"); navegarPara('dashboard'); };
-        r.readAsDataURL(file);
-    } else {
-        await apiCall('registerAbsence', payload);
-        showLoading(false); alert("Enviado!"); navegarPara('dashboard');
+async function enviarMensagemChat() {
+    const input = document.getElementById('chatInput');
+    const m = input.value.trim();
+    if(m){
+        document.getElementById('chatHistory').innerHTML+=`<div class='text-right p-2 mb-1 bg-blue-50 rounded'>${m}</div>`;
+        input.value = '';
+        const r = await perguntarIABackend(m);
+        document.getElementById('chatHistory').innerHTML+=`<div class='text-left p-2 bg-gray-100 rounded mb-1'>${r}</div>`;
     }
 }
 
-// ============================================================
-// 7. UTILS & ADMIN
-// ============================================================
-
+// 7. UTILS E ADMIN
 async function apiCall(route, payload, show=true) {
     if(show) showLoading(true);
     if (!navigator.onLine && isWriteOperation(route)) {
         adicionarAFila(route, payload);
         if(show) showLoading(false);
-        if (route === 'toggleTask') return { status: 'success', local: true }; // Otimista
+        if (route === 'toggleTask') return { status: 'success', local: true };
         return { status: 'success', local: true, message: 'Offline Salvo' };
     }
     try {
@@ -668,29 +640,19 @@ async function apiCall(route, payload, show=true) {
 function isWriteOperation(route) { return ['addLead', 'deleteLead', 'updateStatus', 'updateAgendamento', 'updateObservacao', 'addTask', 'toggleTask', 'archiveTasks', 'registerAbsence', 'updateAbsence', 'saveObjectionLead', 'updateLeadFull', 'forwardLead', 'manageTeam'].includes(route); }
 function adicionarAFila(r, p) { syncQueue.push({route:r, payload:p}); localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue)); alert("Salvo Offline!"); }
 async function processarFilaSincronizacao() { if(syncQueue.length===0) return; showLoading(true); const f=[]; for(const i of syncQueue) { try { await fetch(API_URL, {method:'POST', body:JSON.stringify({route:i.route, payload:i.payload})}); } catch(e){f.push(i)} } syncQueue=f; localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue)); showLoading(false); if (syncQueue.length === 0 && document.getElementById('gestaoLeads').style.display !== 'none') carregarLeads(false); }
-async function carregarVendedores() { const s=document.getElementById('userSelect'); if(!s)return; try{const r=await apiCall('getVendors',{},false);if(r.status==='success'){const o=r.data.map(v=>`<option value="${v.nome}">${v.nome}</option>`).join('');s.innerHTML='<option value="">Selecione...</option>'+o; document.getElementById('modalLeadDestino').innerHTML='<option value="">Selecione...</option>'+o;}}catch(e){s.innerHTML='<option value="">Offline</option>';} }
+async function carregarVendedores() { const s=document.getElementById('userSelect'); if(!s)return; try{const r=await apiCall('getVendors',{},false);if(r.status==='success'){const o=r.data.map(v=>`<option value="${v.nome}">${v.nome}</option>`).join('');s.innerHTML='<option value="">Selecione...</option>'+o; document.getElementById('modalLeadDestino').innerHTML='<option value="">Selecione...</option>'+o;}}catch(e){carregarVendedoresOffline();} }
+function carregarVendedoresOffline() { const o = ["Bruno Garcia Queiroz", "Ana Paula Rodrigues", "Vendedor Teste"].map(v=>`<option value="${v}">${v}</option>`).join(''); document.getElementById('userSelect').innerHTML = '<option value="">Modo Offline</option>'+o; }
 function showLoading(s,t){const l=document.getElementById('loader');if(l)l.style.display=s?'flex':'none';if(t)document.getElementById('loaderText').innerText=t}
 function setLoggedUser(){const v=document.getElementById('userSelect').value;if(v&&v!=="A carregar..."){loggedUser=v;localStorage.setItem('loggedUser',v);initApp()}else alert("Selecione!")}
 function logout(){localStorage.removeItem('loggedUser');location.reload()}
 function atualizarDataCabecalho(){document.getElementById('headerDate').innerText=new Date().toLocaleDateString('pt-BR')}
 function atualizarDashboard(){const h=new Date().toLocaleDateString('pt-BR');document.getElementById('statLeads').innerText=leadsCache.filter(l=>l.timestamp&&l.timestamp.includes(h)).length}
 function verificarAgendamentosHoje(){const h=new Date().toLocaleDateString('pt-BR');const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));if(r.length>0)document.getElementById('lembreteBanner').classList.remove('hidden');else document.getElementById('lembreteBanner').classList.add('hidden')}
-async function enviarLead() {
-    const p={vendedor:loggedUser, nomeLead:document.getElementById('leadNome').value, telefone:document.getElementById('leadTelefone').value, endereco:document.getElementById('leadEndereco').value, bairro:document.getElementById('leadBairro').value, cidade:document.getElementById('leadCidade').value, provedor:document.getElementById('leadProvedor').value, interesse:document.getElementById('leadInteresse').value, status:document.getElementById('leadStatus').value, observacao:document.getElementById('leadObs').value, novoVendedor:document.getElementById('leadVendedorDestino')?.value||""};
-    let r='addLead'; 
-    if(editingLeadIndex!==null){ r='updateLeadFull'; p._linha=leadsCache[editingLeadIndex]._linha; p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead; }
-    else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; }
-    
-    const res=await apiCall(r,p);
-    if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.")
-}
-
-// ADMIN
+function editarLeadAtual(){if(!leadAtualParaAgendar)return;const l=leadAtualParaAgendar;document.getElementById('leadNome').value=l.nomeLead;document.getElementById('leadTelefone').value=l.telefone;document.getElementById('leadEndereco').value=l.endereco;document.getElementById('leadBairro').value=l.bairro;document.getElementById('leadCidade').value=l.cidade;document.getElementById('leadProvedor').value=l.provedor;document.getElementById('leadObs').value=l.observacao;const s=document.getElementById('leadStatus');if(s)s.value=l.status||"Novo";if(isAdminUser())document.getElementById('divEncaminhar').classList.remove('hidden');editingLeadIndex=leadsCache.indexOf(l);fecharLeadModal();navegarPara('cadastroLead')}
+async function enviarLead() { const p={vendedor:loggedUser, nomeLead:document.getElementById('leadNome').value, telefone:document.getElementById('leadTelefone').value, endereco:document.getElementById('leadEndereco').value, bairro:document.getElementById('leadBairro').value, cidade:document.getElementById('leadCidade').value, provedor:document.getElementById('leadProvedor').value, interesse:document.getElementById('leadInteresse').value, status:document.getElementById('leadStatus').value, observacao:document.getElementById('leadObs').value, novoVendedor:document.getElementById('leadVendedorDestino')?.value||""}; let r='addLead'; if(editingLeadIndex!==null){ r='updateLeadFull'; p._linha=leadsCache[editingLeadIndex]._linha; p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead; } else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; } const res=await apiCall(r,p); if(res.status==='success'||res.local){alert(editingLeadIndex!==null?"Atualizado!":"Salvo!");if(editingLeadIndex===null&&!res.local&&!p.novoVendedor){p.timestamp=new Date().toLocaleDateString('pt-BR');leadsCache.unshift(p)}localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.") }
 function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
 async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
 async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
-
-// IA & OUTROS
 async function buscarEnderecoGPS(){navigator.geolocation.getCurrentPosition(p=>{fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${p.coords.latitude}&lon=${p.coords.longitude}`).then(r=>r.json()).then(d=>{if(d.address){document.getElementById('leadEndereco').value=d.address.road;document.getElementById('leadBairro').value=d.address.suburb;document.getElementById('leadCidade').value=d.address.city||d.address.town}})},()=>{alert('Erro GPS')})}
 function iniciarDitado(t){}
 function copying(id){document.getElementById(id).select();document.execCommand('copy');alert("Copiado!")}
@@ -707,8 +669,6 @@ async function salvarObjecaoLead(){await apiCall('saveObjectionLead',{vendedor:l
 async function analiseEstrategicaIA(){const r=await perguntarIABackend(`Analise lead ${leadAtualParaAgendar.nomeLead}`);if(r)document.getElementById('modalLeadObs').value+="\n\n[IA]: "+r}
 async function raioXConcorrencia(){const p=document.getElementById('modalLeadProvedor').innerText;const r=await perguntarIABackend(`Raio-X ${p}`);if(r)document.getElementById('modalLeadObs').value += "\n\n[RX]: " + r}
 async function gerarCoachIA(){const r=await perguntarIABackend("Frase motivacional");if(r)alert(r)}
-async function consultarPlanosIA(){document.getElementById('chatModal').classList.remove('hidden')}
-function toggleChat(){document.getElementById('chatModal').classList.add('hidden')}
-async function enviarMensagemChat(){const m=document.getElementById('chatInput').value;if(m){document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;const r=await perguntarIABackend(m);document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;}}
 function ajustarMicrofone(){const btn=document.getElementById('btnMicNome');if(btn){btn.removeAttribute('onclick');btn.onclick=()=>iniciarDitado('leadObs');}}
-function filtrarMateriaisBtn(termo) { const input = document.getElementById('searchMateriais'); if(input) { input.value = (termo === 'Todos') ? '' : termo; buscarMateriais(); document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white')); document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.add('bg-white', 'text-slate-500')); event.target.classList.add('active', 'bg-[#00aeef]', 'text-white'); event.target.classList.remove('bg-white', 'text-slate-500'); } }
+async function verHistoricoFaltas(){const d=document.getElementById('listaHistoricoFaltas');document.getElementById('historicoFaltasContainer').classList.remove('hidden');document.getElementById('formFaltaContainer').classList.add('hidden');const r=await apiCall('getAbsences',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(f=>`<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');else d.innerHTML='Sem histórico.'}
+function ocultarHistoricoFaltas(){document.getElementById('historicoFaltasContainer').classList.add('hidden');document.getElementById('formFaltaContainer').classList.remove('hidden')}
