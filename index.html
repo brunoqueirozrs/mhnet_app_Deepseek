@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* Animações e Utilitários */
+        /* --- ESTILOS GERAIS --- */
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
@@ -33,15 +33,15 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         body { height: 100dvh; overscroll-behavior-y: none; background-color: #f8fafc; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         
-        /* Inputs Personalizados */
+        /* Inputs */
         .input-padrao { width: 100%; padding: 0.8rem; border: 1px solid #e2e8f0; border-radius: 0.8rem; outline: none; transition: all 0.2s; -webkit-appearance: none; background: white; color: #1e293b; font-weight: 500; font-size: 0.95rem; }
         .input-padrao:focus { border-color: #00aeef; box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15); }
         .label-padrao { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 0.4rem; display: block; }
         
-        /* Menu Inferior fixo e visível */
-        .glass-nav { background: rgba(255, 255, 255, 0.98); border-top: 1px solid #e2e8f0; padding-bottom: env(safe-area-inset-bottom); backdrop-filter: blur(10px); }
+        /* Menu Inferior */
+        .glass-nav { background: rgba(255, 255, 255, 0.98); border-top: 1px solid #e2e8f0; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item:active { transform: scale(0.95); transition: transform 0.1s; }
-        
+
         /* Funil Visual */
         .funnel-step { margin: 0 auto; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.75rem; clip-path: polygon(5% 0, 95% 0, 85% 100%, 15% 100%); text-shadow: 0 1px 2px rgba(0,0,0,0.2); margin-bottom: 2px; }
         .funnel-1 { width: 100%; height: 40px; background: #60a5fa; }
@@ -82,7 +82,7 @@
                 <i class="fas fa-sync"></i> Tentar reconectar
             </div>
         </div>
-        <p class="text-white/30 text-xs mt-8 font-mono">Versão Final V134</p>
+        <p class="text-white/30 text-xs mt-8 font-mono">Versão Final V136</p>
     </div>
 
     <!-- BANNER DE INSTALAÇÃO PWA -->
@@ -245,7 +245,6 @@
             <!-- TELA MATERIAIS -->
             <div id="materiais" class="page hidden fade-in">
                 <div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 active:scale-90"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div>
-                <!-- Filtros Rápidos -->
                 <div class="flex gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
                     <button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]">Todos</button>
                     <button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm">500MB</button>
@@ -268,21 +267,19 @@
             <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex justify-center items-end sm:items-center">
                 <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
                 <div class="bg-white w-full sm:w-[450px] sm:rounded-3xl rounded-t-[2.5rem] p-6 relative shadow-2xl slide-up max-h-[95vh] overflow-y-auto">
-                    <div class="flex justify-between items-center mb-6"><button onclick="excluirLead()" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-100"><i class="fas fa-trash-alt"></i></button><button onclick="editarLeadAtual()" class="bg-slate-100 text-slate-700 px-5 py-2.5 rounded-xl flex items-center gap-2 font-bold text-sm hover:bg-slate-200 active:scale-95 transition border-2 border-slate-200 shadow-md"><i class="fas fa-pen"></i> EDITAR DADOS</button></div>
+                    <div class="flex justify-between items-center mb-6"><button onclick="excluirLead()" class="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-100"><i class="fas fa-trash-alt"></i></button><button onclick="editarLeadAtual()" class="w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:text-[#00aeef] border border-slate-200"><i class="fas fa-pen"></i></button></div>
                     <div class="mb-6 pr-2"><h3 id="modalLeadNome" class="text-2xl font-black text-slate-800 leading-tight mb-3">Nome</h3><div class="flex flex-wrap gap-2"><span class="tag-info text-blue-500"><i class="fas fa-map-marker-alt"></i> <span id="modalLeadBairro">Bairro</span></span><span class="tag-info text-blue-500"><i class="fas fa-city"></i> <span id="modalLeadCidade">Cidade</span></span><span class="tag-info text-green-600 bg-green-50 border-green-100 cursor-pointer" id="btnModalWhatsTag"><i class="fab fa-whatsapp text-green-500"></i> <span id="modalLeadTelefone">Tel</span></span></div></div>
                     <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 mb-4"><div><span class="label-padrao mb-0">Provedor</span><span id="modalLeadProvedor" class="font-bold text-slate-700">--</span></div><div id="containerRaioX"></div></div>
                     
-                    <!-- Area Encaminhamento (Admin) -->
+                    <!-- ADMIN: Encaminhamento -->
                     <div id="adminEncaminharArea" class="hidden mb-4 p-3 bg-yellow-50 rounded-xl border border-yellow-200"><label class="label-padrao text-yellow-700">Encaminhar Lead</label><div class="flex gap-2"><select id="modalLeadDestino" class="input-padrao bg-white text-sm h-10 w-full"><option value="">Selecione...</option></select><button onclick="encaminharLeadModal()" class="bg-yellow-500 text-white w-12 rounded-lg shadow flex items-center justify-center active:scale-95"><i class="fas fa-share"></i></button></div></div>
                     
-                    <!-- Tarefas Vinculadas -->
+                    <!-- TAREFAS VINCULADAS -->
                     <div id="sectionTarefasLead" class="hidden mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100"><label class="label-padrao text-blue-800 mb-2">Tarefas Pendentes</label><div id="listaTarefasLead" class="space-y-2"></div></div>
-
+                    
                     <div class="mb-4"><label class="label-padrao">Status do Funil</label><select id="modalStatusFunil" onchange="salvarStatusFunil()" class="input-padrao h-12 text-sm font-bold bg-white border-blue-200 text-slate-700"><option value="Novo">Novo</option><option value="Em Negociação">Em Negociação</option><option value="Agendado">Visita Agendada</option><option value="Venda Fechada">✅ Venda Fechada</option><option value="Perda">❌ Perda / Cancelado</option></select></div>
                     <div class="mb-6 bg-blue-50 p-4 rounded-2xl border border-blue-100"><label class="label-padrao text-blue-800 mb-2 flex items-center gap-2"><i class="fas fa-calendar-alt"></i> Agendar Retorno</label><div class="flex gap-2 mb-2"><input type="date" id="agendarData" class="flex-1 input-padrao text-sm"><input type="time" id="agendarHora" class="w-24 input-padrao text-sm"></div></div>
-                    
                     <div class="grid grid-cols-2 gap-3 mt-4 mb-6"><button onclick="salvarEdicaoModal()" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 text-sm uppercase">ATUALIZAR LEAD</button><div class="flex gap-2"><button onclick="gerarScriptVendaIA()" class="w-12 bg-purple-100 text-purple-600 font-bold py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center text-lg"><i class="fas fa-magic"></i></button><button id="btnModalWhats" class="flex-1 bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm uppercase"><i class="fab fa-whatsapp text-lg"></i> Chamar</button></div></div>
-                    
                     <div class="mt-4 pt-4 border-t border-slate-100"><div class="flex justify-between items-center mb-2"><label class="label-padrao">Observações / IA</label><button onclick="analiseEstrategicaIA()" class="text-[10px] text-purple-600 font-bold">✨ Estratégia IA</button></div><textarea id="modalLeadObs" rows="3" class="w-full bg-slate-50 text-sm rounded-xl p-3 border border-slate-200 mb-2"></textarea><label class="label-padrao mt-4 text-red-700">Quebra de Objeção</label><div class="flex gap-2 mb-2"><input type="text" id="inputObjecaoLead" class="input-padrao h-9 text-sm" placeholder="Ex: Preço"><button onclick="combaterObjecaoLead()" class="bg-red-500 text-white w-10 rounded-lg"><i class="fas fa-magic"></i></button></div><textarea id="respostaObjecaoLead" rows="2" class="w-full bg-white text-sm rounded-xl p-2 border border-red-100"></textarea></div>
                     <button onclick="fecharLeadModal()" class="w-full p-4 mt-6 rounded-xl border border-slate-200 font-bold text-slate-400 text-sm">Cancelar / Fechar</button>
                 </div>
@@ -313,16 +310,14 @@
                 });
         }
         
-        // Helper para filtros de Materiais
+        // Helper para filtros de Materiais (Botões)
         function filtrarMateriaisBtn(termo) {
             const input = document.getElementById('searchMateriais');
             if(input) {
                 input.value = (termo === 'Todos') ? '' : termo;
                 buscarMateriais();
-                // Visual
                 document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.remove('active', 'bg-[#00aeef]', 'text-white'));
                 document.querySelectorAll('#materiais .filter-btn').forEach(b => b.classList.add('bg-white', 'text-slate-500'));
-                
                 event.target.classList.add('active', 'bg-[#00aeef]', 'text-white');
                 event.target.classList.remove('bg-white', 'text-slate-500');
             }
