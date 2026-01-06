@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MHNET Gestor</title>
+    <!-- Evitar Cache de versões antigas -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <title>MHNET Gestor 2.0</title>
     
     <!-- Configurações PWA -->
     <link rel="manifest" href="manifest.json">
@@ -22,7 +27,7 @@
     <style>
         body { 
             height: 100dvh; 
-            background-color: #f0f4f8; /* Fundo mais suave */
+            background-color: #f0f4f8; /* Fundo moderno */
             font-family: 'Inter', sans-serif; 
             overscroll-behavior-y: none; 
         }
@@ -34,12 +39,11 @@
         .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* Scroll */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
         /* Menu Flutuante (Glassmorphism) */
         .glass-nav { 
-            background: rgba(255, 255, 255, 0.85); 
+            background: rgba(255, 255, 255, 0.9); 
             backdrop-filter: blur(12px); 
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5);
@@ -98,7 +102,7 @@
 <body class="text-slate-800 font-sans flex flex-col overflow-hidden select-none">
 
     <!-- ============================================ -->
-    <!-- TELA DE LOGIN (MODERNA) -->
+    <!-- TELA DE LOGIN (MODERNA & SEGURA) -->
     <!-- ============================================ -->
     <div id="userMenu" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-8 fade-in">
         <div class="absolute top-0 left-0 w-full h-1/2 bg-[#004c99] rounded-b-[3rem]"></div>
@@ -109,7 +113,7 @@
                     <i class="fas fa-wifi text-4xl text-[#004c99]"></i>
                 </div>
                 <h2 class="text-2xl font-black text-slate-800 mb-2">Bem-vindo</h2>
-                <p class="text-slate-400 text-sm mb-8">Gestão de Vendas MHNET</p>
+                <p class="text-slate-400 text-sm mb-8">Gestão de Vendas MHNET 2.0</p>
                 
                 <div class="relative mb-4">
                     <select id="userSelect" class="w-full p-4 bg-slate-50 rounded-2xl border-none text-lg font-bold text-slate-700 outline-none appearance-none text-center shadow-inner">
@@ -120,16 +124,17 @@
                     </div>
                 </div>
 
-                <button onclick="if(window.setLoggedUser){window.setLoggedUser()}else{alert('Aguarde o sistema...')}" class="w-full bg-[#004c99] text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform hover:shadow-xl hover:bg-blue-800">
+                <!-- Botão com Fallback de Login -->
+                <button onclick="tentarLogin()" class="w-full bg-[#004c99] text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform hover:shadow-xl hover:bg-blue-800">
                     ACESSAR CONTA
                 </button>
                 
                 <div onclick="window.location.reload(true)" class="mt-6 text-xs text-slate-400 font-medium cursor-pointer flex items-center justify-center gap-2 hover:text-blue-600">
-                    <i class="fas fa-sync-alt"></i> Problemas? Recarregar
+                    <i class="fas fa-sync-alt"></i> Problemas? Recarregar App
                 </div>
             </div>
         </div>
-        <p class="absolute bottom-6 text-slate-300 text-xs">V137 • Design Premium</p>
+        <p class="absolute bottom-6 text-slate-300 text-xs">V138 • Layout Moderno</p>
     </div>
 
     <!-- BANNER PWA (FLUTUANTE) -->
@@ -278,12 +283,12 @@
             <div id="gestaoLeads" class="page hidden fade-in">
                 <div class="flex items-center justify-between mb-4"><button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 active:scale-90"><i class="fas fa-arrow-left"></i></button><h2 class="text-xl font-bold text-[#004c99]">Carteira</h2><button onclick="carregarLeads()" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 shadow-sm"><i class="fas fa-sync text-xs"></i></button></div>
                 <div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
-                    <button onclick="filtrarPorStatus('Todos')" class="filter-btn active" id="btnFilterTodos">Todos</button>
-                    <button onclick="filtrarPorStatus('Novo')" class="filter-btn" id="btnFilterNovo">Novos</button>
-                    <button onclick="filtrarPorStatus('Em Negociação')" class="filter-btn" id="btnFilterNegociação">Negociação</button>
-                    <button onclick="filtrarPorStatus('Agendado')" class="filter-btn" id="btnFilterAgendado">Agendados</button>
-                    <button onclick="filtrarPorStatus('Venda Fechada')" class="filter-btn" id="btnFilterVendaFechada">Vendas</button>
-                    <button onclick="filtrarPorStatus('Perda')" class="filter-btn" id="btnFilterPerda">Perdidos</button>
+                    <button onclick="filtrarPorStatus('Todos')" class="filter-btn active px-4 py-1.5 rounded-full bg-[#00aeef] text-white text-xs font-bold whitespace-nowrap shadow-sm border border-[#00aeef]" id="btnFilterTodos">Todos</button>
+                    <button onclick="filtrarPorStatus('Novo')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterNovo">Novos</button>
+                    <button onclick="filtrarPorStatus('Em Negociação')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterNegociação">Negociação</button>
+                    <button onclick="filtrarPorStatus('Agendado')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterAgendado">Agendados</button>
+                    <button onclick="filtrarPorStatus('Venda Fechada')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterVendaFechada">Vendas</button>
+                    <button onclick="filtrarPorStatus('Perda')" class="filter-btn px-4 py-1.5 rounded-full bg-white text-slate-500 text-xs font-bold whitespace-nowrap border shadow-sm" id="btnFilterPerda">Perdidos</button>
                 </div>
                 <div class="bg-white p-2 rounded-xl border border-slate-200 flex items-center gap-3 mb-4 shadow-sm focus-within:border-blue-500 transition">
                     <i class="fas fa-search text-slate-400 ml-2"></i>
@@ -407,30 +412,60 @@
 
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=138"></script>
     <script>
-        // Registro SW
-        if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
-            navigator.serviceWorker.register('./sw.js').catch(console.log);
+        // Função de Login de Segurança (Fallback)
+        function tentarLogin() {
+            const sel = document.getElementById('userSelect');
+            if (sel && sel.value) {
+                if (window.setLoggedUser) {
+                    window.setLoggedUser();
+                } else {
+                    alert("O sistema ainda está carregando. Tente novamente em 2 segundos.");
+                }
+            } else {
+                alert("Selecione um vendedor.");
+            }
         }
-        
-        // Helper para datas no Header
-        const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-        const hoje = new Date();
-        document.getElementById('headerDateDay').innerText = hoje.getDate();
-        document.getElementById('headerDateMonth').innerText = meses[hoje.getMonth()];
-        
-        // Fallback de Login
+    
+        // Fallback de Login Offline imediato
         window.addEventListener('load', () => {
              const s = document.getElementById('userSelect');
-             if(s && s.options.length <= 1) { setTimeout(() => { if(s.options.length <= 1) { const OFF = ["Bruno Garcia Queiroz", "Ana Paula Rodrigues", "Vendedor Teste"]; s.innerHTML = '<option value="">Modo Offline (Selecione)</option>' + OFF.map(n => `<option value="${n}">${n}</option>`).join(''); } }, 3000); }
+             if(s && s.options.length <= 1) {
+                 setTimeout(() => {
+                     if(s.options.length <= 1) {
+                         const OFF = ["Bruno Garcia Queiroz", "Ana Paula Rodrigues", "Vendedor Teste"];
+                         s.innerHTML = '<option value="">Modo Offline (Selecione)</option>' + OFF.map(n => `<option value="${n}">${n}</option>`).join('');
+                     }
+                 }, 3000); 
+             }
         });
         
-        // PWA Prompt
+        // PWA Install Prompt
         let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('installPrompt')?.classList.remove('hidden'); });
-        async function instalarPWA() { if(deferredPrompt) { deferredPrompt.prompt(); const {outcome} = await deferredPrompt.userChoice; if(outcome==='accepted') document.getElementById('installPrompt').classList.add('hidden'); deferredPrompt=null; } }
-        function fecharInstallPrompt() { document.getElementById('installPrompt').classList.add('hidden'); }
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const prompt = document.getElementById('installPrompt');
+            if (prompt) prompt.classList.remove('hidden');
+        });
+
+        async function instalarPWA() {
+            if (!deferredPrompt) {
+                alert('App já instalado ou não disponível para este navegador.');
+                return;
+            }
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                fecharInstallPrompt();
+            }
+            deferredPrompt = null;
+        }
+
+        function fecharInstallPrompt() {
+            document.getElementById('installPrompt').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
