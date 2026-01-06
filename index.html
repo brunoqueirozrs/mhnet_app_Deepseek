@@ -104,7 +104,7 @@
                 <i class="fas fa-sync-alt"></i> Problemas? Recarregar
             </div>
         </div>
-        <p class="absolute bottom-8 text-white/40 text-xs font-mono">Versão Final V142</p>
+        <p class="absolute bottom-8 text-white/40 text-xs font-mono">Versão Final V143</p>
     </div>
 
     <!-- BANNER PWA -->
@@ -126,7 +126,7 @@
     <!-- ============================================ -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative bg-[#f0f4f8]">
         
-        <!-- HEADER HERO (Modificado) -->
+        <!-- HEADER HERO -->
         <header class="bg-[#004c99] text-white pt-safe-top pb-6 px-6 shadow-xl rounded-b-[2.5rem] z-20 shrink-0 relative overflow-hidden">
             <!-- Deco -->
             <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-overlay filter blur-3xl opacity-20 -mr-16 -mt-16"></div>
@@ -141,21 +141,22 @@
                         <h1 id="userInfo" class="font-bold text-xl leading-tight truncate max-w-[180px]">Vendedor</h1>
                     </div>
                 </div>
+                
                 <div class="flex gap-2">
                     <button id="btnAdminSettings" onclick="abrirConfiguracoes()" class="hidden w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center active:scale-90 transition hover:bg-white/20 backdrop-blur-sm"><i class="fas fa-cog text-sm"></i></button>
                     <button onclick="logout()" class="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center active:scale-90 transition hover:bg-red-500/30 backdrop-blur-sm border border-red-500/10"><i class="fas fa-power-off text-sm"></i></button>
                 </div>
             </div>
             
-            <!-- Resumo Rápido -->
+            <!-- Resumo Rápido (Corrigido IDs) -->
             <div class="mt-6 flex gap-6 text-sm relative z-10">
                 <div>
-                    <span class="block text-2xl font-black" id="headerDateDay">--</span>
-                    <span class="text-blue-200 text-xs font-bold uppercase" id="headerDateMonth">Mês</span>
+                    <span class="block text-2xl font-black" id="headerDate">--</span>
+                    <span class="text-blue-200 text-xs font-bold uppercase">Hoje</span>
                 </div>
                 <div class="h-10 w-px bg-white/10"></div>
                 <div>
-                    <span class="block text-2xl font-black" id="statLeadsHeader">0</span>
+                    <span class="block text-2xl font-black" id="statLeads">0</span>
                     <span class="text-blue-200 text-xs font-bold uppercase">Leads Hoje</span>
                 </div>
             </div>
@@ -206,6 +207,7 @@
 
                 <!-- Cards Status -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Filtra Hoje -->
                     <div onclick="filtrarLeadsHoje()" class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between h-32 cursor-pointer active:scale-95 transition hover:shadow-md relative overflow-hidden">
                         <div class="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-2 -mt-2"></div>
                         <i class="fas fa-filter text-blue-500 text-xl relative z-10"></i>
@@ -215,6 +217,7 @@
                         </div>
                     </div>
                     
+                    <!-- Minha Carteira -->
                     <div onclick="verTodosLeads()" class="bg-[#00aeef] p-5 rounded-3xl shadow-lg shadow-blue-500/20 flex flex-col justify-between h-32 cursor-pointer active:scale-95 transition relative overflow-hidden group">
                         <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
                         <div class="w-10 h-10 bg-white/20 text-white rounded-xl flex items-center justify-center backdrop-blur-sm"><i class="fas fa-address-book"></i></div>
@@ -280,7 +283,7 @@
                     <div class="bg-white p-6 rounded-t-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100">
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <h3 id="modalLeadNome" class="text-xl font-black text-slate-800 leading-tight">Nome do Lead</h3>
+                                <h3 id="modalLeadNome" class="text-xl font-black text-slate-800 leading-tight w-3/4">Nome do Lead</h3>
                                 <div class="flex gap-2 mt-2">
                                     <span class="tag-info bg-slate-100 text-slate-600"><i class="fas fa-map-marker-alt"></i> <span id="modalLeadBairro"></span></span>
                                     <span class="tag-info bg-green-50 text-green-600 cursor-pointer hover:bg-green-100" id="btnModalWhatsTag"><i class="fab fa-whatsapp"></i> <span id="modalLeadTelefone"></span></span>
@@ -289,7 +292,7 @@
                             <button onclick="fecharLeadModal()" class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-200"><i class="fas fa-times"></i></button>
                         </div>
                         <div class="flex gap-2">
-                             <button onclick="editarLeadAtual()" class="flex-1 bg-slate-50 text-slate-700 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-xs border border-slate-200 active:scale-95 transition hover:bg-slate-100"><i class="fas fa-pen"></i> EDITAR DADOS</button>
+                             <button onclick="editarLeadAtual()" class="flex-1 bg-slate-50 text-slate-700 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-xs border border-slate-200 active:scale-95 transition hover:bg-slate-100"><i class="fas fa-pen mr-1"></i> EDITAR DADOS</button>
                              <button onclick="excluirLead()" class="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100 active:scale-95 transition hover:bg-red-100"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
@@ -304,7 +307,7 @@
                             <div id="containerRaioX"></div>
                         </div>
 
-                        <!-- OBSERVAÇÕES (MOVIDO PARA CIMA) -->
+                        <!-- OBSERVAÇÕES -->
                         <div>
                             <div class="flex justify-between items-center mb-2">
                                 <label class="label-padrao mb-0">Observações / Histórico</label>
@@ -327,7 +330,7 @@
                             <div>
                                 <label class="label-padrao">Status do Funil</label>
                                 <div class="relative">
-                                    <select id="modalStatusFunil" onchange="salvarStatusFunil()" class="input-padrao h-14 text-base font-bold pl-12 bg-white appearance-none border-2">
+                                    <select id="modalStatusFunil" class="input-padrao h-14 text-base font-bold pl-12 bg-white appearance-none border-2">
                                         <option value="Novo">Novo Lead</option>
                                         <option value="Em Negociação">Em Negociação</option>
                                         <option value="Agendado">Visita Agendada</option>
@@ -363,12 +366,12 @@
                 </div>
             </div>
 
-            <!-- TELA FALTAS (LISTA COMPLETA) -->
-            <div id="faltas" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 transition"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Justificativa</h2></div><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-5"><button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl mb-2 flex items-center justify-center gap-2 text-xs hover:bg-slate-200 transition"><i class="fas fa-history"></i> VER HISTÓRICO</button><div id="formFaltaContainer"><label class="label-padrao">Data da Ocorrência</label><input type="date" id="faltaData" class="input-padrao mb-4"><label class="label-padrao">Tipo de Solicitação</label><select id="faltaMotivo" class="input-padrao bg-white mb-4 text-sm font-bold text-slate-700"><option value="">Selecione...</option><option value="FOLGA PRGRAMADA (BANCO DE HORAS)">FOLGA PRGRAMADA (BANCO DE HORAS)</option><option value="CONSULTA MÉDICA">CONSULTA MÉDICA</option><option value="SOLICITAÇÃO DE SAIDA EMERGENCIA">SOLICITAÇÃO DE SAIDA EMERGENCIA</option><option value="ENCAMINHAMENTO DE ATESTADO">ENCAMINHAMENTO DE ATESTADO</option><option value="ENCAMINHAMENTO DE COMPARECIMENTO">ENCAMINHAMENTO DE COMPARECIMENTO</option><option value="FALTA SEM JUSTIFICATIVA">FALTA SEM JUSTIFICATIVA</option><option value="AJUSTE DE PONTO">AJUSTE DE PONTO</option><option value="BENEFÍCIO - DAY OFF">BENEFÍCIO - DAY OFF</option><option value="PROBLEMAS NO APLICATIVO">PROBLEMAS NO APLICATIVO</option><option value="OUTROS">OUTROS</option></select><label class="label-padrao">Observação</label><textarea id="faltaObs" class="input-padrao mb-4" rows="3" placeholder="Detalhes..."></textarea><label class="label-padrao text-blue-600">ANEXAR COMPROVANTE/DOCUMENTO</label><input type="file" id="faltaArquivo" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-6"><button onclick="enviarJustificativa()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-blue-600">ENVIAR SOLICITAÇÃO</button></div></div><div id="historicoFaltasContainer" class="hidden mt-6 pb-24"><button onclick="ocultarHistoricoFaltas()" class="text-xs text-blue-500 mb-4 font-bold uppercase hover:underline flex items-center gap-1"><i class="fas fa-arrow-left"></i> Voltar ao Formulário</button><div id="listaHistoricoFaltas" class="space-y-3"></div></div></div>
+            <!-- TELA FALTAS -->
+            <div id="faltas" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100 transition"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Justificativa</h2></div><div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-5"><button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl mb-2 flex items-center justify-center gap-2 text-xs hover:bg-slate-200 transition"><i class="fas fa-history"></i> VER HISTÓRICO</button><div id="formFaltaContainer"><label class="label-padrao">Data da Ocorrência</label><input type="date" id="faltaData" class="input-padrao mb-4"><label class="label-padrao">Tipo de Solicitação</label><select id="faltaMotivo" class="input-padrao bg-white mb-4 text-sm font-bold text-slate-700"><option value="">Selecione...</option><option>FOLGA PROGRAMADA (BANCO DE HORAS)</option><option>CONSULTA MÉDICA</option><option>SOLICITAÇÃO DE SAIDA EMERGENCIA</option><option>ENCAMINHAMENTO DE ATESTADO</option><option>ENCAMINHAMENTO DE COMPARECIMENTO</option><option>FALTA SEM JUSTIFICATIVA</option><option>AJUSTE DE PONTO</option><option>BENEFÍCIO - DAY OFF</option><option>PROBLEMAS NO APLICATIVO</option><option>OUTROS</option></select><label class="label-padrao">Observação</label><textarea id="faltaObs" class="input-padrao mb-4" rows="3" placeholder="Detalhes..."></textarea><label class="label-padrao text-blue-600">ANEXAR COMPROVANTE/DOCUMENTO</label><input type="file" id="faltaArquivo" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-6"><button onclick="enviarJustificativa()" class="w-full bg-[#00aeef] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-blue-600">ENVIAR SOLICITAÇÃO</button></div></div><div id="historicoFaltasContainer" class="hidden mt-6 pb-24"><button onclick="ocultarHistoricoFaltas()" class="text-xs text-blue-500 mb-4 font-bold uppercase hover:underline flex items-center gap-1"><i class="fas fa-arrow-left"></i> Voltar ao Formulário</button><div id="listaHistoricoFaltas" class="space-y-3"></div></div></div>
             
             <!-- Outras Telas: Materiais, Tarefas, etc. (Mantidos) -->
             <div id="tarefas" class="page hidden fade-in"><div class="flex justify-between items-center mb-6"><div class="flex items-center gap-4"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Tarefas</h2></div><button onclick="abrirModalTarefa()" class="w-10 h-10 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700"><i class="fas fa-plus"></i></button></div><div id="listaTarefasContainer" class="space-y-3 pb-24"></div></div>
-            <div id="materiais" class="page hidden fade-in"><div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div><div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar"><button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active">Todos</button><button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn">500MB</button><button onclick="filtrarMateriaisBtn('700mb')" class="filter-btn">700MB</button><button onclick="filtrarMateriaisBtn('Móvel')" class="filter-btn">Móvel</button><button onclick="filtrarMateriaisBtn('Combo')" class="filter-btn">Combos</button><button onclick="filtrarMateriaisBtn('TV')" class="filter-btn">TV</button><button onclick="filtrarMateriaisBtn('Câmera')" class="filter-btn">Câmera</button></div><div class="bg-white p-3 rounded-xl border mb-4 flex items-center gap-3 shadow-sm"><i class="fas fa-search text-slate-400"></i><input id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-sm bg-transparent" placeholder="Buscar artes, planos..."></div><div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20"></div></div>
+            <div id="materiais" class="page hidden fade-in"><div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div><div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar"><button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active">Todos</button><button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn">500MB</button><button onclick="filtrarMateriaisBtn('700mb')" class="filter-btn">700MB</button><button onclick="filtrarMateriaisBtn('Móvel')" class="filter-btn">Móvel</button><button onclick="filtrarMateriaisBtn('Combo')" class="filter-btn">Combos</button><button onclick="filtrarMateriaisBtn('TV')" class="filter-btn">TV</button><button onclick="filtrarMateriaisBtn('Câmera')" class="filter-btn">Câmera</button></div><div class="bg-white p-3 rounded-xl border mb-4 flex items-center gap-3 shadow-sm"><i class="fas fa-search text-slate-400 ml-2"></i><input id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-sm bg-transparent" placeholder="Buscar artes, planos..."></div><div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20"></div></div>
             <div id="objecoes" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Objeções</h2></div><div class="bg-white p-6 rounded-2xl shadow-sm border space-y-4"><p class="text-sm font-bold text-slate-500">O que o cliente disse?</p><textarea id="inputObjecaoGeral" class="input-padrao min-h-[120px]" placeholder="Ex: A fidelidade é muito alta..."></textarea><button onclick="combaterObjecaoGeral()" class="w-full bg-red-500 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-red-600 transition">COMBATER AGORA</button><div id="resultadoObjecaoGeral" class="hidden mt-4 p-5 bg-blue-50 rounded-xl text-sm leading-relaxed shadow-inner border border-blue-100"></div></div></div>
             <div id="indicadores" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Funil</h2></div><div class="bg-white p-6 rounded-2xl shadow-sm text-center border border-slate-100"><h3 id="indMes" class="text-lg font-bold text-[#004c99]">--</h3><p class="text-xs text-slate-400 mb-6 font-bold uppercase tracking-wider">Ciclo Comercial</p><div class="flex flex-col gap-2 my-6"><div class="funnel-step funnel-1 shadow-sm"><span id="funnelLeads">0</span> Leads</div><div class="funnel-step funnel-2 shadow-sm"><span id="funnelNegociacao">0</span> Negoc</div><div class="funnel-step funnel-3 shadow-md"><span id="funnelVendas">0</span> Vendas</div></div><div class="flex justify-between text-xs font-bold text-slate-500 pt-4 border-t border-slate-100"><span>META: <span id="indMeta" class="text-slate-800 text-sm">--</span></span><span>FECHADO: <span id="indRealizado" class="text-green-600 text-sm">--</span></span></div></div></div>
 
@@ -382,7 +385,7 @@
         <!-- MENU INFERIOR FLUTUANTE (GLASS) -->
         <nav class="fixed bottom-6 left-4 right-4 glass-nav rounded-2xl shadow-2xl flex justify-around items-center h-16 z-50 border border-white/50">
             <button onclick="navegarPara('dashboard')" class="nav-item w-16 flex flex-col items-center gap-1 text-[#004c99] active:scale-90 transition"><i class="fas fa-home text-xl"></i></button>
-            <button onclick="navegarPara('cadastroLead')" class="relative -top-6 bg-[#00aeef] w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl border-4 border-[#f0f4f8] active:scale-90 transition transform hover:-translate-y-1"><i class="fas fa-plus text-2xl"></i></button>
+            <button onclick="navegarPara('cadastroLead')" class="relative -top-6 bg-[#00aeef] w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl border-4 border-[#f8fafc] active:scale-90 transition transform hover:-translate-y-1"><i class="fas fa-plus text-2xl"></i></button>
             <button onclick="verTodosLeads()" class="nav-item w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-[#004c99] active:scale-90 transition"><i class="fas fa-address-book text-xl"></i></button>
         </nav>
         
