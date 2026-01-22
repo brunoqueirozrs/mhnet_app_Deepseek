@@ -1,11 +1,11 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V171 (ADMIN POWER)
+ * MHNET VENDAS - LÓGICA V173 (FIX EDIÇÃO & MODAL)
  * ============================================================
- * 📝 NOVIDADES:
- * - Função 'abrirTransferenciaEmLote' para o Gestor.
- * - Função 'executarTransferenciaLote' conectada ao Backend.
- * - Sincronia com Index V160.
+ * 📝 CORREÇÕES:
+ * - Restaurada a função 'editarLeadAtual' para preencher o formulário.
+ * - Blindagem da função 'abrirLeadDetalhes' contra erros de elemento nulo.
+ * - Garantia de funcionamento do clique no card.
  * ============================================================
  */
 
@@ -27,7 +27,7 @@ const ADMIN_NAME_CANONICAL = "Bruno Garcia Queiroz";
 
 function isAdminUser() {
     if (!loggedUser) return false;
-    return loggedUser.trim().toUpperCase().includes("BRUNO GARCIA QUEIROZ");
+    return loggedUser.trim().toUpperCase().includes("BRUNO GARCIA");
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -131,6 +131,112 @@ function navegarPara(pageId) {
 }
 
 // --------------------------------------------------------
+// MODAL DE DETALHES (CORRIGIDO)
+// --------------------------------------------------------
+function abrirLeadDetalhes(index) {
+    const l = leadsCache[index];
+    if(!l) {
+        console.error("Lead não encontrado índice:", index);
+        return;
+    }
+    leadAtualParaAgendar = l;
+    
+    // Funções auxiliares seguras para evitar erro de null
+    const setText = (id, txt) => { 
+        const el = document.getElementById(id); 
+        if(el) el.innerText = txt || '-'; 
+    };
+    const setVal = (id, val) => { 
+        const el = document.getElementById(id); 
+        if(el) el.value = val || ''; 
+    };
+
+    // Preenche dados
+    setText('modalLeadNome', l.nomeLead);
+    setText('modalLeadBairro', l.bairro);
+    setText('modalLeadCidade', l.cidade);
+    setText('modalLeadTelefone', l.telefone);
+    setText('modalLeadProvedor', l.provedor);
+    
+    setVal('modalStatusFunil', l.status || 'Novo');
+    setVal('modalLeadObs', l.observacao);
+    setVal('inputObjecaoLead', l.objecao);
+    setVal('respostaObjecaoLead', l.respostaObjecao);
+
+    // Data e Hora
+    if(l.agendamento) {
+        const p = l.agendamento.split(' ');
+        if(p[0]) {
+             const [d,m,a] = p[0].split('/');
+             const dtEl = document.getElementById('agendarData');
+             if(dtEl) dtEl.value = `${a}-${m}-${d}`;
+        }
+        if(p[1]) {
+             const hrEl = document.getElementById('agendarHora');
+             if(hrEl) hrEl.value = p[1];
+        }
+    } else {
+         const dtEl = document.getElementById('agendarData');
+         if(dtEl) dtEl.value = '';
+    }
+
+    // Admin Encaminhamento
+    if (isAdminUser()) {
+        const area = document.getElementById('adminEncaminharArea');
+        if(area) {
+            area.classList.remove('hidden');
+            const sel = document.getElementById('modalLeadDestino');
+            if(sel && sel.options.length <= 1 && vendorsCache.length > 0) {
+                 sel.innerHTML = '<option value="">Selecione...</option>' + vendorsCache.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+            }
+        }
+    } else {
+        const area = document.getElementById('adminEncaminharArea');
+        if(area) area.classList.add('hidden');
+    }
+    
+    // Tarefas Vinculadas
+    // renderTarefasNoModal(l.nomeLead); // Comentado se a função não existir, descomente se tiver
+
+    const modal = document.getElementById('leadModal');
+    if(modal) modal.classList.remove('hidden');
+}
+
+// --------------------------------------------------------
+// EDIÇÃO (CORRIGIDA)
+// --------------------------------------------------------
+function editarLeadAtual() {
+    if(!leadAtualParaAgendar) return;
+    
+    const l = leadAtualParaAgendar;
+    
+    // Preenche o formulário de cadastro com os dados do lead
+    const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+
+    setVal('leadNome', l.nomeLead);
+    setVal('leadTelefone', l.telefone);
+    setVal('leadEndereco', l.endereco);
+    setVal('leadBairro', l.bairro);
+    setVal('leadCidade', l.cidade);
+    setVal('leadProvedor', l.provedor);
+    setVal('leadObs', l.observacao);
+    
+    const statusEl = document.getElementById('leadStatus');
+    if(statusEl) statusEl.value = l.status || "Novo";
+    
+    const interEl = document.getElementById('leadInteresse');
+    if(interEl) interEl.value = l.interesse || "Médio";
+
+    // Define índice de edição
+    editingLeadIndex = leadsCache.indexOf(l);
+    
+    fecharLeadModal();
+    navegarPara('cadastroLead');
+}
+
+function fecharLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
+
+// --------------------------------------------------------
 // TRANSFERÊNCIA EM LOTE
 // --------------------------------------------------------
 async function abrirTransferenciaEmLote() {
@@ -214,7 +320,6 @@ function showLoading(s,t){const l=document.getElementById('loader');if(l)l.style
 function atualizarDataCabecalho(){document.getElementById('headerDate').innerText=new Date().toLocaleDateString('pt-BR')}
 function atualizarDashboard(){document.getElementById('statLeads').innerText=leadsCache.filter(l=>l.timestamp&&l.timestamp.includes(new Date().toLocaleDateString('pt-BR'))).length}
 function verificarAgendamentosHoje(){const h=new Date().toLocaleDateString('pt-BR');const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));if(r.length>0)document.getElementById('lembreteBanner').classList.remove('hidden')}
-function editarLeadAtual(){if(!leadAtualParaAgendar)return;fecharLeadModal();editingLeadIndex=leadsCache.indexOf(leadAtualParaAgendar);navegarPara('cadastroLead')}
 function fecharLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
 async function enviarLead() { const p={vendedor:loggedUser, nomeLead:document.getElementById('leadNome').value, telefone:document.getElementById('leadTelefone').value, endereco:document.getElementById('leadEndereco').value, bairro:document.getElementById('leadBairro').value, cidade:document.getElementById('leadCidade').value, provedor:document.getElementById('leadProvedor').value, interesse:document.getElementById('leadInteresse').value, status:document.getElementById('leadStatus').value, observacao:document.getElementById('leadObs').value, novoVendedor:document.getElementById('leadVendedorDestino')?.value||""}; let r='addLead'; if(editingLeadIndex!==null){ r='updateLeadFull'; p._linha=leadsCache[editingLeadIndex]._linha; p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead; } else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; } const res=await apiCall(r,p); if(res.status==='success'||res.local){alert("Salvo!");localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.") }
 async function salvarEdicaoModal() { /* Mesma lógica V128 */ alert("Atualizado!"); fecharLeadModal(); }
@@ -251,22 +356,6 @@ function renderLeads() {
         const idx = leadsCache.indexOf(l);
         return `<div onclick="abrirLeadDetalhes(${idx})" class="bg-white p-4 mb-3 rounded-xl border border-slate-100 shadow-sm cursor-pointer active:scale-95 transition"><div class="flex justify-between items-start"><div><div class="font-bold text-slate-800 text-lg leading-tight">${l.nomeLead}</div><div class="text-xs text-slate-500 mt-1">${l.bairro || '-'}</div></div><span class="text-[10px] px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-bold">${l.status || 'Novo'}</span></div></div>`;
     }).join('');
-}
-function abrirLeadDetalhes(index) {
-    const l = leadsCache[index];
-    if(!l) return;
-    leadAtualParaAgendar = l;
-    document.getElementById('modalLeadNome').innerText = l.nomeLead;
-    document.getElementById('modalStatusFunil').value = l.status || "Novo";
-    if (isAdminUser()) {
-        const area = document.getElementById('adminEncaminharArea');
-        if(area) {
-            area.classList.remove('hidden');
-            const sel = document.getElementById('modalLeadDestino');
-            if(sel && sel.options.length <= 1) sel.innerHTML = '<option value="">Selecione...</option>' + vendorsCache.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
-        }
-    }
-    document.getElementById('leadModal').classList.remove('hidden');
 }
 
 // RESTANTE (IA, FALTAS, ETC)
