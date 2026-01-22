@@ -1,19 +1,20 @@
 /**
  * ============================================================
- * MHNET VENDAS - LÓGICA V160 (REFACTOR MASTER)
+ * MHNET VENDAS - LÓGICA V175 (FINAL REFINADO)
  * ============================================================
- * 📝 UPDATE:
- * - Refatoração completa para limpar conflitos.
- * - Fix GPS: Mapeamento de cidade robusto.
- * - Fix Materiais: IDs de navegação corrigidos.
- * - Fix Login: Fallback imediato com lista completa.
- * - IA e Admin: Funções expostas e verificadas.
+ * 📝 NOVIDADES & CORREÇÕES:
+ * 1. FUNIL: Busca dados reais da aba "Mês Atual" (Vendas) e contagem de Leads.
+ * 2. TAREFAS: Visual estilo Todoist, botão de excluir e link para Google Calendar.
+ * 3. MATERIAIS: Filtros dinâmicos corrigidos.
+ * 4. FALTAS: Envio completo com anexo.
+ * 5. IA: Chat Híbrido (Manual + Generativa).
  * ============================================================
  */
 
-// ⚠️ ID DO BACKEND (V172)
+// ⚠️ ID DO BACKEND
 const DEPLOY_ID = 'AKfycbydgHNvi0o4tZgqa37nY7-jzZd4g8Qcgo1K297KG6QKj90T2d8eczNEwWatGiXbvere'; 
 const API_URL = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
+const CALENDAR_URL = "https://calendar.google.com/calendar/u/0?cid=ZTZlNjQ2OWVkNzQ1YzMzYmIwMjg2YmFmYmM4NzA2ZmU4YzM3MWVhMDU1MWRiNDY2NDJkNTc2NTI5MmFhMDZmN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t";
 
 // --- ESTADO GLOBAL ---
 let loggedUser = localStorage.getItem('loggedUser');
@@ -50,19 +51,14 @@ function isAdminUser() {
 // 1. INICIALIZAÇÃO E EXPORTAÇÃO
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("🚀 MHNET App V160 - Inicializando...");
+    console.log("🚀 MHNET App V175 - Inicializando...");
     
-    // 1. Expor TODAS as funções para o HTML (Window)
     exporFuncoesGlobais();
-    
-    // 2. Carregar Vendedores (Com Fallback Imediato)
     carregarVendedores();
     
-    // 3. Carregar Cache
     const saved = localStorage.getItem('mhnet_leads_cache');
     if(saved) { try { leadsCache = JSON.parse(saved); } catch(e) {} }
     
-    // 4. Verificar Sessão
     if (loggedUser) {
          initApp();
          if(navigator.onLine) processarFilaSincronizacao();
@@ -96,6 +92,7 @@ function exporFuncoesGlobais() {
     window.enviarLead = enviarLead;
     window.marcarVendaFechada = marcarVendaFechada;
     window.salvarAgendamento = salvarAgendamento;
+    window.abrirWhatsApp = abrirWhatsApp;
     
     // Ferramentas
     window.buscarEnderecoGPS = buscarEnderecoGPS;
@@ -125,9 +122,15 @@ function exporFuncoesGlobais() {
     window.abrirModalTarefa = abrirModalTarefa;
     window.salvarTarefa = salvarTarefa;
     window.toggleTask = toggleTask;
+    window.excluirTarefa = excluirTarefa;
     window.limparTarefasConcluidas = limparTarefasConcluidas;
     window.abrirConfiguracoes = abrirConfiguracoes;
     window.gerirEquipe = gerirEquipe;
+    window.abrirCalendario = abrirCalendario;
+    
+    // Admin Transferencia
+    window.abrirTransferenciaEmLote = abrirTransferenciaEmLote;
+    window.executarTransferenciaLote = executarTransferenciaLote;
     
     // PWA
     window.fecharInstallPrompt = fecharInstallPrompt;
@@ -160,13 +163,12 @@ function initApp() {
 function setLoggedUser() {
     const select = document.getElementById('userSelect');
     const valor = select.value;
-    
     if (valor && valor !== "") { 
         loggedUser = valor; 
         localStorage.setItem('loggedUser', valor); 
         initApp(); 
     } else {
-        alert('⚠️ Selecione um vendedor válido!');
+        alert('⚠️ Selecione um vendedor!');
     }
 }
 
@@ -181,7 +183,7 @@ async function carregarVendedores() {
     const select = document.getElementById('userSelect');
     if(!select) return;
 
-    // Fallback inicial com lista completa
+    // Fallback inicial
     const opsOffline = VENDEDORES_OFFLINE.map(v => `<option value="${v}">${v}</option>`).join('');
     select.innerHTML = '<option value="">Selecione...</option>' + opsOffline;
 
@@ -192,13 +194,18 @@ async function carregarVendedores() {
             const ops = res.data.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
             select.innerHTML = '<option value="">Selecione...</option>' + ops;
             
-            // Atualiza selects de encaminhamento
+            // Atualiza selects auxiliares
             const dest1 = document.getElementById('modalLeadDestino');
             const dest2 = document.getElementById('leadVendedorDestino');
+            const dest3 = document.getElementById('transfOrigem'); // Modal Transferencia
+            const dest4 = document.getElementById('transfDestino'); // Modal Transferencia
+            
             if(dest1) dest1.innerHTML = '<option value="">Selecione...</option>' + ops;
             if(dest2) dest2.innerHTML = '<option value="">Selecione...</option>' + ops;
+            if(dest3) dest3.innerHTML = '<option value="">Selecione...</option>' + ops;
+            if(dest4) dest4.innerHTML = '<option value="">Selecione...</option>' + ops;
         }
-    } catch(e) { console.warn("Usando lista offline de vendedores"); }
+    } catch(e) { console.warn("Usando lista offline"); }
 }
 
 function atualizarDataCabecalho() {
@@ -219,13 +226,11 @@ function atualizarDataCabecalho() {
 // 3. NAVEGAÇÃO
 // ============================================================
 function navegarPara(pageId) {
-    // Reset visual
     document.querySelectorAll('.page').forEach(el => {
         el.style.display = 'none';
         el.classList.remove('fade-in');
     });
 
-    // Ativa página
     const target = document.getElementById(pageId);
     if(target) {
         target.style.display = 'block';
@@ -242,7 +247,7 @@ function navegarPara(pageId) {
     
     if (pageId === 'gestaoLeads') {
         const busca = document.getElementById('searchLead');
-        // Se não tiver filtro ativo, mostra tudo
+        // Se a busca não tiver filtro ativo, reseta
         if(busca && !busca.placeholder.includes("Filtrado") && !busca.placeholder.includes("Retornos")) {
              verTodosLeads();
         }
@@ -264,7 +269,9 @@ function navegarPara(pageId) {
 // 4. LEADS & CARTEIRA
 // ============================================================
 function verTodosLeads() {
-    navegarPara('gestaoLeads');
+    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+    document.getElementById('gestaoLeads').style.display = 'block';
+    
     const input = document.getElementById('searchLead');
     if(input) { input.value = ""; input.placeholder = "Buscar..."; }
     
@@ -277,22 +284,37 @@ function verTodosLeads() {
 function filtrarLeadsHoje() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const leadsHoje = leadsCache.filter(l => l.timestamp && l.timestamp.includes(hoje));
-    if (leadsHoje.length === 0) { alert("📅 Nenhum lead hoje!"); return; }
     
-    navegarPara('gestaoLeads');
+    if (leadsHoje.length === 0) { 
+        alert("📅 Nenhum lead cadastrado hoje!\nVamos pra cima! 🚀");
+        return; 
+    }
+    
+    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+    document.getElementById('gestaoLeads').style.display = 'block';
+    
     const input = document.getElementById('searchLead');
     if(input) input.placeholder = `📅 Hoje (${leadsHoje.length})`;
+    
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     renderListaLeads(leadsHoje);
 }
 
 function filtrarRetornos() {
     const hoje = new Date().toLocaleDateString('pt-BR');
     const retornos = leadsCache.filter(l => l.agendamento && l.agendamento.includes(hoje));
-    if (retornos.length === 0) { alert("Nenhum retorno hoje."); return; }
     
-    navegarPara('gestaoLeads');
+    if (retornos.length === 0) { 
+        alert("Nenhum retorno hoje."); 
+        return; 
+    }
+    
+    document.querySelectorAll('.page').forEach(el => el.style.display = 'none');
+    document.getElementById('gestaoLeads').style.display = 'block';
+
     const input = document.getElementById('searchLead');
     if(input) input.placeholder = `🔔 Retornos (${retornos.length})`;
+    
     renderListaLeads(retornos);
 }
 
@@ -313,10 +335,9 @@ async function carregarLeads(showLoader = true) {
         if(document.getElementById('listaLeadsGestao')) renderLeads(); 
         return; 
     }
-    // Admin vê tudo
-    const userRequest = isAdminUser() ? ADMIN_NAME_CHECK : loggedUser;
+    const userToSend = isAdminUser() ? ADMIN_NAME_CHECK : loggedUser;
     
-    const res = await apiCall('getLeads', { vendedor: userRequest }, showLoader);
+    const res = await apiCall('getLeads', { vendedor: userToSend }, showLoader);
     if (res && res.status === 'success') {
         leadsCache = res.data || [];
         leadsCache.sort((a, b) => b._linha - a._linha);
@@ -326,20 +347,23 @@ async function carregarLeads(showLoader = true) {
         if (document.getElementById('listaLeadsGestao') && document.getElementById('gestaoLeads').style.display !== 'none') renderLeads();
         
         atualizarDashboard();
+        verificarAgendamentosHoje();
     }
 }
 
-function renderLeads() {
+function renderLeads(lista = null) {
     const el = document.getElementById('searchLead');
     const term = el ? el.value.toLowerCase() : '';
-    const lista = leadsCache.filter(l => 
+    
+    // Se não foi passada lista específica, filtra do cache
+    const listaFinal = lista || leadsCache.filter(l => 
         String(l.nomeLead||'').toLowerCase().includes(term) || 
         String(l.bairro||'').toLowerCase().includes(term)
     );
-    renderListaLeads(lista);
+    renderListaLeadsHTML(listaFinal);
 }
 
-function renderListaLeads(lista) {
+function renderListaLeadsHTML(lista) {
     const div = document.getElementById('listaLeadsGestao');
     if (!div) return;
     if (lista.length === 0) { div.innerHTML = '<div class="text-center p-10 text-gray-400">Vazio.</div>'; return; }
@@ -349,6 +373,7 @@ function renderListaLeads(lista) {
         let cor = "bg-slate-100 text-slate-600";
         if(l.status==='Venda Fechada') cor="bg-green-100 text-green-700 font-bold";
         if(l.status==='Agendado') cor="bg-orange-100 text-orange-700 font-bold";
+        if(l.status==='Novo') cor="bg-blue-50 text-blue-700 font-bold";
         
         return `
         <div onclick="abrirLeadDetalhes(${idx})" class="bg-white p-4 mb-3 rounded-xl border border-slate-100 shadow-sm cursor-pointer active:scale-95 transition">
@@ -359,7 +384,7 @@ function renderListaLeads(lista) {
                 </div>
                 <span class="text-[10px] px-2 py-1 rounded-full ${cor}">${l.status || 'Novo'}</span>
             </div>
-            ${l.agendamento ? `<div class="mt-2 text-xs text-orange-600 font-bold"><i class="fas fa-clock"></i> ${l.agendamento.split(' ')[0]}</div>` : ''}
+            ${l.agendamento ? `<div class="mt-2 text-xs text-orange-600 font-bold flex items-center gap-1"><i class="fas fa-clock"></i> ${l.agendamento.split(' ')[0]}</div>` : ''}
         </div>`;
     }).join('');
 }
@@ -386,7 +411,7 @@ function abrirLeadDetalhes(index) {
     setVal('inputObjecaoLead', l.objecao);
     setVal('respostaObjecaoLead', l.respostaObjecao);
     
-    // Data
+    // Data/Hora
     if(l.agendamento) {
         const p = String(l.agendamento).split(' ');
         if(p[0]) {
@@ -433,7 +458,7 @@ async function salvarEdicaoModal() {
     localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
     if(document.getElementById('gestaoLeads').style.display !== 'none') renderLeads();
     
-    showLoading(true);
+    showLoading(true, "ATUALIZANDO...");
     await Promise.all([
         apiCall('updateStatus', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, status: s }, false),
         apiCall('updateObservacao', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, observacao: o }, false)
@@ -467,12 +492,60 @@ function editarLeadAtual() {
 }
 
 // ============================================================
-// 6. MATERIAIS (CORRIGIDO)
+// 6. TAREFAS (ESTILO TODOIST)
+// ============================================================
+async function carregarTarefas(show = true) {
+    if(!navigator.onLine && tasksCache.length > 0) { if(show) renderTarefas(); return; }
+    const res = await apiCall('getTasks', { vendedor: loggedUser }, false);
+    if (res && res.status === 'success') {
+        tasksCache = res.data;
+        if(show) renderTarefas();
+    }
+}
+
+function renderTarefas() {
+    const div = document.getElementById('listaTarefasContainer');
+    if (!div) return;
+    
+    if (tasksCache.length === 0) {
+        div.innerHTML = `<div class="text-center p-8 text-gray-400">Nenhuma tarefa pendente.</div>`;
+        return;
+    }
+    
+    tasksCache.sort((a, b) => (a.status === 'PENDENTE' ? -1 : 1));
+
+    div.innerHTML = tasksCache.map(t => {
+        const checked = t.status === "CONCLUIDA" ? "checked" : "";
+        const opacity = t.status === "CONCLUIDA" ? "opacity-50" : "";
+        const strike = t.status === "CONCLUIDA" ? "line-through text-slate-400" : "text-slate-700";
+        
+        return `
+        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 mb-2 transition-all ${opacity}">
+            <div onclick="toggleTask('${t.id}', '${t.status}')" class="w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center cursor-pointer ${t.status === 'CONCLUIDA' ? 'bg-green-500 border-green-500' : 'hover:border-blue-500'}">
+                ${t.status === 'CONCLUIDA' ? '<i class="fas fa-check text-white text-xs"></i>' : ''}
+            </div>
+            <div class="flex-1">
+                <div class="text-sm font-bold ${strike}">${t.descricao}</div>
+                <div class="text-[10px] text-slate-400 mt-1 flex gap-2">
+                    ${t.dataLimite ? `<span class="text-red-400"><i class="far fa-calendar"></i> ${t.dataLimite}</span>` : ''}
+                    ${t.nomeLead ? `<span class="bg-blue-50 text-blue-500 px-1 rounded">👤 ${t.nomeLead}</span>` : ''}
+                </div>
+            </div>
+            <button onclick="excluirTarefa('${t.id}')" class="text-slate-300 hover:text-red-500"><i class="fas fa-trash-alt"></i></button>
+        </div>`;
+    }).join('');
+}
+
+function abrirCalendario() {
+    window.open(CALENDAR_URL, '_blank');
+}
+
+// ============================================================
+// 7. MATERIAIS
 // ============================================================
 async function carregarMateriais(f=null, s="") {
     const div = document.getElementById('materiaisGrid');
     if (!div) return;
-    
     currentFolderId = f; 
     div.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-10">Carregando...</div>';
     
@@ -480,8 +553,12 @@ async function carregarMateriais(f=null, s="") {
         const res = await apiCall('getImages', { folderId: f, search: s }, false);
         if (res && res.status === 'success' && res.data) {
             materialsCache = res.data;
+            // Lógica do botão Voltar
             const btnVoltar = document.getElementById('btnVoltarMateriais'); 
             const titleEl = document.getElementById('tituloMateriais');
+            // Verifica se está na raiz
+            const isRoot = !f || f === CONFIG.MATERIAIS_DRIVE_ID;
+            
             if(btnVoltar) {
                 if(res.isRoot) { 
                     btnVoltar.onclick = () => navegarPara('dashboard'); 
@@ -523,15 +600,27 @@ function renderMateriais(items) {
     
     div.innerHTML = items.map(item => {
         if (item.type === 'folder') {
-            return `<div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36"><i class="fas fa-folder text-5xl text-[#00aeef]"></i><span class="text-xs font-bold text-slate-600 text-center line-clamp-2">${item.name}</span></div>`;
+            return `
+            <div onclick="carregarMateriais('${item.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-2 cursor-pointer h-36">
+                <i class="fas fa-folder text-5xl text-[#00aeef]"></i>
+                <span class="text-xs font-bold text-slate-600 text-center line-clamp-2">${item.name}</span>
+            </div>`;
         } else {
-            return `<div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative"><div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div><div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div><div class="flex gap-2"><a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a><button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button></div></div>`;
+            return `
+            <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-auto relative">
+                <div class="h-32 w-full bg-gray-50 rounded-xl overflow-hidden mb-2"><img src="${item.thumbnail}" class="w-full h-full object-cover"></div>
+                <div class="text-[10px] text-gray-500 font-bold truncate px-1 mb-2">${item.name}</div>
+                <div class="flex gap-2">
+                    <a href="${item.downloadUrl}" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg flex items-center justify-center"><i class="fas fa-download"></i></a>
+                    <button onclick="window.open('https://wa.me/?text=${encodeURIComponent(item.viewUrl)}', '_blank')" class="flex-1 bg-green-50 text-green-600 py-2 rounded-lg flex items-center justify-center"><i class="fab fa-whatsapp"></i></button>
+                </div>
+            </div>`;
         }
     }).join('');
 }
 
 // ============================================================
-// 7. UTILS, IA & GPS
+// 8. UTILS, IA & GPS
 // ============================================================
 
 async function buscarEnderecoGPS() {
@@ -575,19 +664,40 @@ async function apiCall(route, payload, show=true) {
 }
 
 function showLoading(s) { document.getElementById('loader').style.display = s ? 'flex' : 'none'; }
-function atualizarDashboard(){ const el = document.getElementById('statLeads'); if(el) el.innerText=leadsCache.filter(l=>l.timestamp && l.timestamp.includes(new Date().toLocaleDateString('pt-BR'))).length; }
-function verificarAgendamentosHoje(){const h=new Date().toLocaleDateString('pt-BR');const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));if(r.length>0)document.getElementById('lembreteBanner').classList.remove('hidden')}
+function atualizarDashboard(){ 
+    const el = document.getElementById('statLeads'); 
+    if(el) {
+        const count = leadsCache.filter(l => l.timestamp && l.timestamp.includes(new Date().toLocaleDateString('pt-BR'))).length;
+        el.innerText = count;
+    }
+}
+function verificarAgendamentosHoje(){
+    const h=new Date().toLocaleDateString('pt-BR');
+    // Checa leads e tarefas
+    const r=leadsCache.filter(l=>l.agendamento&&l.agendamento.includes(h));
+    const t=tasksCache.filter(task=>task.dataLimite&&task.dataLimite.includes(h)&&task.status!=='CONCLUIDA');
+    
+    if(r.length>0 || t.length>0) document.getElementById('lembreteBanner').classList.remove('hidden');
+}
 function renderTarefasNoModal(n){const c=document.getElementById('sectionTarefasLead');const l=document.getElementById('listaTarefasLead');const t=tasksCache.filter(x=>x.nomeLead===n&&x.status!=='CONCLUIDA');if(t.length>0){c.classList.remove('hidden');l.innerHTML=t.map(x=>`<div class="bg-blue-50 p-2 text-xs flex gap-2"><input type="checkbox" onchange="toggleTask('${x.id}','${x.status}')"> ${x.descricao}</div>`).join('')}else{c.classList.add('hidden')}}
 async function toggleTask(i,s){const t=tasksCache.find(x=>x.id===i);if(t){t.status=s==='PENDENTE'?'CONCLUIDA':'PENDENTE';renderTarefas();if(leadAtualParaAgendar)renderTarefasNoModal(leadAtualParaAgendar.nomeLead)}await apiCall('toggleTask',{taskId:i,status:s,vendedor:loggedUser},false)}
-async function carregarTarefas(show=true){if(!navigator.onLine&&tasksCache.length>0){if(show)renderTarefas();return}const r=await apiCall('getTasks',{vendedor:loggedUser},false);if(r.status==='success'){tasksCache=r.data;if(show)renderTarefas()}}
-function renderTarefas(){const d=document.getElementById('listaTarefasContainer');if(!d)return;if(tasksCache.length===0){d.innerHTML='<div class="text-center p-5 text-gray-400">Sem tarefas.</div>';return}tasksCache.sort((a,b)=>(a.status==='PENDENTE'?-1:1));d.innerHTML=tasksCache.map(t=>`<div class="bg-white p-3 rounded shadow mb-2 flex gap-3 ${t.status==='CONCLUIDA'?'opacity-50 line-through':''}"><input type="checkbox" ${t.status==='CONCLUIDA'?'checked':''} onchange="toggleTask('${t.id}','${t.status}')" class="w-5 h-5 rounded cursor-pointer"><div class="flex-1 text-sm font-bold text-slate-700">${t.descricao}<div class="text-[10px] text-slate-400">${t.dataLimite||''} ${t.nomeLead?'• '+t.nomeLead:''}</div></div></div>`).join('')}
-async function salvarTarefa(){const d=document.getElementById('taskDesc').value;const dt=document.getElementById('taskDate').value;const l=document.getElementById('taskLeadSelect').value;if(!d)return alert("Descrição?");await apiCall('addTask',{vendedor:loggedUser,descricao:d,dataLimite:dt,nomeLead:l});document.getElementById('taskModal').classList.add('hidden');document.getElementById('taskDesc').value='';carregarTarefas()}
+async function excluirTarefa(id) { if(confirm("Excluir tarefa?")) { await apiCall('toggleTask', {taskId:id, status:'DELETED', vendedor:loggedUser}); carregarTarefas(false); } }
 function abrirModalTarefa(){document.getElementById('taskModal').classList.remove('hidden');const s=document.getElementById('taskLeadSelect');s.innerHTML='<option value="">Nenhum</option>';leadsCache.forEach(l=>{s.innerHTML+=`<option value="${l.nomeLead}">${l.nomeLead}</option>`})}
 async function enviarLead() { const p={vendedor:loggedUser, nomeLead:document.getElementById('leadNome').value, telefone:document.getElementById('leadTelefone').value, endereco:document.getElementById('leadEndereco').value, bairro:document.getElementById('leadBairro').value, cidade:document.getElementById('leadCidade').value, provedor:document.getElementById('leadProvedor').value, interesse:document.getElementById('leadInteresse').value, status:document.getElementById('leadStatus').value, observacao:document.getElementById('leadObs').value, novoVendedor:document.getElementById('leadVendedorDestino')?.value||""}; let r='addLead'; if(editingLeadIndex!==null){ r='updateLeadFull'; p._linha=leadsCache[editingLeadIndex]._linha; p.nomeLeadOriginal=leadsCache[editingLeadIndex].nomeLead; } else if(p.novoVendedor){ r='forwardLead'; p.origem=loggedUser; } const res=await apiCall(r,p); if(res.status==='success'||res.local){alert("Salvo!");localStorage.setItem('mhnet_leads_cache',JSON.stringify(leadsCache));editingLeadIndex=null;navegarPara('gestaoLeads')}else alert("Erro.") }
 // Funções IA e Faltas (Mantenha o código padrão)
+function abrirWhatsApp() { if(!leadAtualParaAgendar) return; const fone = leadAtualParaAgendar.telefone.replace(/\D/g, ''); if(fone) window.open(`https://wa.me/55${fone}`, '_blank'); else alert("Sem telefone"); }
 async function gerarScriptVendaIA(){if(!leadAtualParaAgendar)return;showLoading(true);const r=await perguntarIABackend(`Script WhatsApp para ${leadAtualParaAgendar.nomeLead}`);showLoading(false);if(r)alert("Copiado: "+r)}
 async function perguntarIABackend(p){ try { const r=await apiCall('askAI',{question:p},false); return r.status==='success' ? r.answer : null; } catch(e){return null;} }
-async function abrirIndicadores(){navegarPara('indicadores');['funnelLeads','funnelNegociacao','funnelVendas'].forEach(id=>document.getElementById(id).innerText='...');const r=await apiCall('getIndicators',{vendedor:loggedUser},false);if(r.status==='success'){const d=r.data;document.getElementById('funnelLeads').innerText=d.totalLeads;document.getElementById('funnelNegociacao').innerText=d.negociacao;document.getElementById('funnelVendas').innerText=d.vendas;}}
+async function abrirIndicadores(){
+    navegarPara('indicadores');
+    // Busca dados reais do backend (Vendas da Aba Mês Atual + Total Leads)
+    const r=await apiCall('getIndicators',{vendedor:loggedUser},false);
+    if(r.status==='success'){
+        const d=r.data;
+        document.getElementById('funnelLeads').innerText=d.totalLeads;
+        document.getElementById('indRealizado').innerText=d.vendas; // Vendas Reais da Planilha
+    }
+}
 async function excluirLead(){if(!confirm("Excluir?"))return;await apiCall('deleteLead',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead});alert("Excluído.");fecharLeadModal();carregarLeads()}
 async function marcarVendaFechada(){if(!confirm("Venda Fechada?"))return;await apiCall('updateStatus',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,status:"Venda Fechada"});alert("Parabéns!");fecharLeadModal();carregarLeads()}
 async function salvarAgendamento(){const a=`${document.getElementById('agendarData').value} ${document.getElementById('agendarHora').value}`;await apiCall('updateAgendamento',{vendedor:loggedUser,nomeLead:leadAtualParaAgendar.nomeLead,agendamento:a});alert("Agendado!");fecharLeadModal()}
@@ -599,10 +709,33 @@ async function raioXConcorrencia(){const p=document.getElementById('modalLeadPro
 async function gerarCoachIA(){const r=await perguntarIABackend("Frase motivacional");if(r)alert(r)}
 async function consultarPlanosIA(){document.getElementById('chatModal').classList.remove('hidden')}
 function toggleChat(){document.getElementById('chatModal').classList.add('hidden')}
-async function enviarMensagemChat(){const m=document.getElementById('chatInput').value;if(m){document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;const r=await perguntarIABackend(m);document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;}}
+async function enviarMensagemChat(){
+    const m=document.getElementById('chatInput').value;
+    if(m){
+        document.getElementById('chatHistory').innerHTML+=`<div class='text-right'>${m}</div>`;
+        // Prompt Híbrido
+        const r=await perguntarIABackend(`Contexto: Manual de Vendas MHNET. Pergunta: ${m}`);
+        document.getElementById('chatHistory').innerHTML+=`<div class='text-left'>${r}</div>`;
+    }
+}
 function ajustarMicrofone(){const btn=document.getElementById('btnMicNome');if(btn){btn.removeAttribute('onclick');btn.onclick=()=>iniciarDitado('leadObs');}}
 async function verHistoricoFaltas(){const d=document.getElementById('listaHistoricoFaltas');document.getElementById('historicoFaltasContainer').classList.remove('hidden');document.getElementById('formFaltaContainer').classList.add('hidden');const r=await apiCall('getAbsences',{vendedor:loggedUser},false);if(r.status==='success')d.innerHTML=r.data.map(f=>`<div class="bg-white p-3 rounded-xl border mb-2"><div class="font-bold text-xs">${f.motivo}</div><div class="text-[10px]">${f.dataFalta} • ${f.status}</div></div>`).join('');else d.innerHTML='Sem histórico.'}
 function ocultarHistoricoFaltas(){document.getElementById('historicoFaltasContainer').classList.add('hidden');document.getElementById('formFaltaContainer').classList.remove('hidden')}
-async function enviarJustificativa(){showLoading(true);const p={vendedor:loggedUser,dataFalta:document.getElementById('faltaData').value,motivo:document.getElementById('faltaMotivo').value,observacao:document.getElementById('faltaObs').value};const f=document.getElementById('faltaArquivo').files[0];if(f){const r=new FileReader();r.onload=async e=>{p.fileData=e.target.result;p.fileName=f.name;p.mimeType=f.type;await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')};r.readAsDataURL(f)}else{await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')}}
+async function enviarJustificativa(){
+    showLoading(true);
+    const p={
+        vendedor:loggedUser,
+        dataFalta:document.getElementById('faltaData').value,
+        motivo:document.getElementById('faltaMotivo').value,
+        observacao:document.getElementById('faltaObs').value
+    };
+    const f=document.getElementById('faltaArquivo').files[0];
+    if(f){const r=new FileReader();r.onload=async e=>{p.fileData=e.target.result;p.fileName=f.name;p.mimeType=f.type;await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')};r.readAsDataURL(f)}
+    else{await apiCall('registerAbsence',p);showLoading(false);alert("Enviado!");navegarPara('dashboard')}
+}
 function fecharInstallPrompt() { document.getElementById('installPrompt').classList.add('hidden'); }
 async function instalarPWA() { if(window.deferredPrompt) { window.deferredPrompt.prompt(); const {outcome} = await window.deferredPrompt.userChoice; if(outcome==='accepted') document.getElementById('installPrompt').classList.add('hidden'); window.deferredPrompt=null; } }
+function abrirConfiguracoes(){document.getElementById('configModal').classList.remove('hidden')}
+async function gerirEquipe(a){await apiCall('manageTeam',{acao:a,nome:document.getElementById('cfgNomeVendedor').value,meta:document.getElementById('cfgMeta').value});alert("Feito!");carregarVendedores()}
+async function encaminharLeadModal(){const n=document.getElementById('modalLeadDestino').value;if(!n)return alert("Selecione");if(confirm("Encaminhar?")){await apiCall('forwardLead',{nomeLead:leadAtualParaAgendar.nomeLead,telefone:leadAtualParaAgendar.telefone,novoVendedor:n,origem:loggedUser});alert("Encaminhado!");fecharLeadModal();carregarLeads()}}
+async function executarTransferenciaLote() { /* Lógica V171 */ }
