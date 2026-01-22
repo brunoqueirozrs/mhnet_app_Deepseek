@@ -354,8 +354,6 @@ async function carregarLeads(showLoader = true) {
 function renderLeads(lista = null) {
     const el = document.getElementById('searchLead');
     const term = el ? el.value.toLowerCase() : '';
-    
-    // Se não foi passada lista específica, filtra do cache
     const listaFinal = lista || leadsCache.filter(l => 
         String(l.nomeLead||'').toLowerCase().includes(term) || 
         String(l.bairro||'').toLowerCase().includes(term)
@@ -382,7 +380,7 @@ function renderListaLeadsHTML(lista) {
                     <div class="font-bold text-slate-800 text-lg leading-tight">${l.nomeLead}</div>
                     <div class="text-xs text-slate-500 mt-1">${l.bairro || '-'} • ${l.cidade || '-'}</div>
                 </div>
-                <span class="text-[10px] px-2 py-1 rounded-full ${cor}">${l.status || 'Novo'}</span>
+                <span class="text-[10px] px-2 py-1 rounded-full font-bold ${cor}">${l.status || 'Novo'}</span>
             </div>
             ${l.agendamento ? `<div class="mt-2 text-xs text-orange-600 font-bold flex items-center gap-1"><i class="fas fa-clock"></i> ${l.agendamento.split(' ')[0]}</div>` : ''}
         </div>`;
@@ -435,6 +433,12 @@ function abrirLeadDetalhes(index) {
         else areaAdmin.classList.add('hidden');
     }
     
+    // Botão WhatsApp com OnClick explícito
+    const btnWhats = document.getElementById('btnModalWhats');
+    if(btnWhats) {
+        btnWhats.onclick = () => abrirWhatsApp();
+    }
+
     renderTarefasNoModal(l.nomeLead);
     document.getElementById('leadModal').classList.remove('hidden');
 }
@@ -458,7 +462,7 @@ async function salvarEdicaoModal() {
     localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
     if(document.getElementById('gestaoLeads').style.display !== 'none') renderLeads();
     
-    showLoading(true, "ATUALIZANDO...");
+    showLoading(true);
     await Promise.all([
         apiCall('updateStatus', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, status: s }, false),
         apiCall('updateObservacao', { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, observacao: o }, false)
