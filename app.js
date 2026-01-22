@@ -6,7 +6,7 @@
  * - Refatoração completa para limpar conflitos.
  * - Fix GPS: Mapeamento de cidade robusto.
  * - Fix Materiais: IDs de navegação corrigidos.
- * - Fix Login: Fallback imediato para evitar tela travada.
+ * - Fix Login: Fallback imediato com lista completa.
  * - IA e Admin: Funções expostas e verificadas.
  * ============================================================
  */
@@ -24,12 +24,21 @@ let materialsCache = [];
 let leadAtualParaAgendar = null; 
 let currentFolderId = null;
 let editingLeadIndex = null;
+let editingAbsenceIndex = null;
 let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 
 // Configuração Admin
 const ADMIN_NAME_CHECK = "BRUNO GARCIA QUEIROZ";
 const VENDEDORES_OFFLINE = [
-    "Bruno Garcia Queiroz", "Ana Paula Rodrigues", "Vendedor Teste"
+    "Bruno Garcia Queiroz", 
+    "Ana Paula Rodrigues", 
+    "Vitoria Caroline Baldez Rosales",
+    "João Vithor Sader",
+    "João Paulo da Silva Santos",
+    "Claudia Maria Semmler",
+    "Diulia Vitoria Machado Borges",
+    "Elton da Silva Rodrigo Gonçalves",
+    "Vendedor Teste"
 ];
 
 function isAdminUser() {
@@ -172,7 +181,7 @@ async function carregarVendedores() {
     const select = document.getElementById('userSelect');
     if(!select) return;
 
-    // Fallback inicial
+    // Fallback inicial com lista completa
     const opsOffline = VENDEDORES_OFFLINE.map(v => `<option value="${v}">${v}</option>`).join('');
     select.innerHTML = '<option value="">Selecione...</option>' + opsOffline;
 
