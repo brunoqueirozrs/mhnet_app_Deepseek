@@ -58,24 +58,28 @@
             <button onclick="if(window.setLoggedUser){window.setLoggedUser()}else{alert('Aguarde...')}" class="w-full bg-[#004c99] text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition">ENTRAR</button>
             <div onclick="window.location.reload(true)" class="mt-6 text-xs text-gray-400 cursor-pointer"><i class="fas fa-sync"></i> Recarregar</div>
         </div>
-        <p class="text-white/40 text-xs mt-8">V156 Compacto</p>
+        <p class="text-white/40 text-xs mt-8">V157 Compacto</p>
     </div>
 
     <!-- APP -->
     <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative">
         
-        <!-- HEADER COMPACTO (Reduzido em altura) -->
-        <header class="bg-[#004c99] text-white pt-4 pb-2 px-4 shadow-md flex justify-between items-center z-20 shrink-0">
-            <div class="flex flex-col justify-center">
-                <p class="text-[10px] text-blue-200 uppercase font-bold tracking-wider leading-none mb-0.5">Bem-vindo,</p>
-                <div class="flex items-center gap-2">
-                    <h1 id="userInfo" class="font-bold text-base leading-tight truncate max-w-[200px]">Vendedor</h1>
-                    <div class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+        <!-- HEADER ULTRA COMPACTO -->
+        <header class="bg-[#004c99] text-white h-14 px-4 shadow-md flex justify-between items-center z-20 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center text-xs font-bold border border-white/30">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <h1 id="userInfo" class="font-bold text-sm leading-none truncate max-w-[150px]">...</h1>
+                    <!-- DATA REINSERIDA AQUI PARA CORRIGIR O ERRO JS -->
+                    <span id="headerDate" class="text-[10px] text-blue-200 font-medium leading-none mt-0.5">--/--/----</span>
                 </div>
             </div>
+            
             <div class="flex gap-2">
-                <button id="btnAdminSettings" onclick="abrirConfiguracoes()" class="hidden w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center active:scale-90 transition"><i class="fas fa-cog text-xs"></i></button>
-                <button onclick="logout()" class="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center active:scale-90 border border-red-500/20 transition"><i class="fas fa-power-off text-xs"></i></button>
+                <button id="btnAdminSettings" onclick="abrirConfiguracoes()" class="hidden w-8 h-8 bg-white/10 rounded flex items-center justify-center active:scale-90"><i class="fas fa-cog text-xs"></i></button>
+                <button onclick="logout()" class="w-8 h-8 bg-red-500/20 rounded flex items-center justify-center active:scale-90 border border-red-500/20"><i class="fas fa-power-off text-xs"></i></button>
             </div>
         </header>
 
@@ -86,36 +90,36 @@
             <div id="dashboard" class="page fade-in">
                 <!-- Admin Panel -->
                 <div id="adminPanel" class="hidden bg-slate-800 text-white p-3 rounded-xl mb-4 shadow border-l-4 border-yellow-400 flex justify-between items-center">
-                    <span class="text-xs font-bold uppercase text-yellow-400"><i class="fas fa-crown mr-1"></i> Painel Gestor</span>
+                    <span class="text-xs font-bold uppercase text-yellow-400"><i class="fas fa-crown mr-1"></i> Gestor</span>
                     <button onclick="gerirEquipe('list')" class="text-[10px] bg-white/10 px-2 py-1 rounded">Ver Equipe</button>
                 </div>
 
                 <!-- Botão Funil -->
-                <button onclick="abrirIndicadores()" class="w-full bg-white border border-blue-100 p-4 rounded-xl shadow-sm mb-4 flex items-center justify-between active:scale-95 transition">
+                <button onclick="abrirIndicadores()" class="w-full bg-white border border-blue-100 p-3 rounded-xl shadow-sm mb-4 flex items-center justify-between active:scale-95 transition">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center"><i class="fas fa-chart-line"></i></div>
-                        <div class="text-left"><p class="text-xs text-slate-500 font-bold uppercase">Performance</p><p class="font-bold text-slate-800">Funil de Vendas</p></div>
+                        <div class="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center"><i class="fas fa-chart-line text-sm"></i></div>
+                        <div class="text-left"><p class="text-[10px] text-slate-500 font-bold uppercase">Performance</p><p class="font-bold text-sm text-slate-800">Funil de Vendas</p></div>
                     </div>
-                    <i class="fas fa-chevron-right text-slate-300"></i>
+                    <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
                 </button>
 
                 <div class="grid grid-cols-2 gap-3 mb-4">
-                    <div onclick="filtrarLeadsHoje()" class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 text-center active:scale-95">
-                        <div id="statLeads" class="text-3xl font-black text-[#004c99]">0</div>
+                    <div onclick="filtrarLeadsHoje()" class="bg-white p-3 rounded-xl shadow-sm border border-slate-100 text-center active:scale-95">
+                        <div id="statLeads" class="text-2xl font-black text-[#004c99]">0</div>
                         <div class="text-[10px] font-bold text-slate-400 uppercase">Leads Hoje</div>
                     </div>
-                    <div onclick="verTodosLeads()" class="bg-[#00aeef] p-4 rounded-xl shadow-md text-center text-white active:scale-95">
-                        <i class="fas fa-address-book text-2xl mb-1"></i>
+                    <div onclick="verTodosLeads()" class="bg-[#00aeef] p-3 rounded-xl shadow-md text-center text-white active:scale-95 flex flex-col items-center justify-center">
+                        <i class="fas fa-address-book text-xl mb-1"></i>
                         <div class="text-[10px] font-bold uppercase">Minha Carteira</div>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <button onclick="navegarPara('tarefas')" class="bg-white p-3 rounded-xl shadow-sm border flex flex-col items-center gap-1 active:scale-95">
-                        <i class="fas fa-check-square text-indigo-500 text-xl"></i><span class="text-xs font-bold">Tarefas</span>
+                        <i class="fas fa-check-square text-indigo-500 text-lg"></i><span class="text-xs font-bold text-slate-600">Tarefas</span>
                     </button>
                     <button onclick="navegarPara('materiais')" class="bg-white p-3 rounded-xl shadow-sm border flex flex-col items-center gap-1 active:scale-95">
-                        <i class="fas fa-folder-open text-orange-500 text-xl"></i><span class="text-xs font-bold">Materiais</span>
+                        <i class="fas fa-folder-open text-orange-500 text-lg"></i><span class="text-xs font-bold text-slate-600">Materiais</span>
                     </button>
                 </div>
                 
