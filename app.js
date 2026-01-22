@@ -27,7 +27,7 @@ const ADMIN_NAME_CANONICAL = "Bruno Garcia Queiroz";
 
 function isAdminUser() {
     if (!loggedUser) return false;
-    return loggedUser.trim().toUpperCase().includes("BRUNO GARCIA");
+    return loggedUser.trim().toUpperCase().includes("BRUNO GARCIA QUEIROZ");
 }
 
 document.addEventListener('DOMContentLoaded', () => {
