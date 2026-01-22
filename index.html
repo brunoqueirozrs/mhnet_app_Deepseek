@@ -5,682 +5,452 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MHNET Gestor 2.0</title>
     
+    <!-- Configurações PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#004c99">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MHNET">
     
+    <!-- Ícone -->
+    <link rel="apple-touch-icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/wifi.svg">
+
+    <!-- CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-        
-        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-        
+        * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { 
             height: 100dvh; 
             overscroll-behavior-y: none; 
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: #f0f4f8; /* Fundo limpo */
         }
         
-        /* Animações Suaves */
-        .fade-in { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        /* --- Animações --- */
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .slide-up { animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
         .scale-in { animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @keyframes scaleIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* --- Scrollbar --- */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Cards com Glassmorphism */
+        /* --- Glassmorphism (Vidro) --- */
+        .glass-nav { 
+            background: rgba(255, 255, 255, 0.9); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 -4px 20px rgba(0, 76, 153, 0.05);
+        }
+
         .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Botões Modernos */
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(102, 126, 234, 0.4); }
-        .btn-primary:active { transform: translateY(0); }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(17, 153, 142, 0.4); }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(235, 51, 73, 0.4); }
-        
-        /* Input Moderno */
-        .input-modern {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-        .input-modern:focus {
-            background: white;
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-            outline: none;
-        }
-        
-        /* Scrollbar Customizada */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(102, 126, 234, 0.5); border-radius: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(102, 126, 234, 0.8); }
-        
-        /* Tags de Status */
-        .tag { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 12px; letter-spacing: 0.5px; }
-        .tag-novo { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .tag-negociacao { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
-        .tag-fechado { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
-        .tag-agendado { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
-        
-        /* Loader Moderno */
-        .loader-ring { border: 3px solid rgba(102, 126, 234, 0.1); border-top-color: #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Cards de Ação */
-        .action-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-        .action-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-        }
-        .action-card:active { transform: translateY(-2px) scale(1); }
-        
-        /* Menu Inferior com Blur */
-        .bottom-nav {
             background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
         }
+
+        /* --- Inputs Modernos --- */
+        .input-modern { 
+            width: 100%; padding: 14px; 
+            border: 1px solid #e2e8f0; border-radius: 14px; 
+            background: #fff; color: #1e293b; font-weight: 600; font-size: 0.95rem; outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .input-modern:focus { border-color: #004c99; box-shadow: 0 0 0 3px rgba(0, 76, 153, 0.1); }
+
+        /* --- Botões e Filtros --- */
+        .btn-primary {
+            background: linear-gradient(135deg, #004c99 0%, #0078d4 100%);
+            color: white; transition: all 0.2s;
+        }
+        .btn-primary:active { transform: scale(0.96); }
+
+        .filter-btn { 
+            padding: 8px 16px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; 
+            background: white; color: #64748b; border: 1px solid #e2e8f0; transition: all 0.2s; white-space: nowrap;
+        }
+        .filter-btn.active { background: #004c99; color: white; border-color: #004c99; box-shadow: 0 4px 10px rgba(0, 76, 153, 0.2); }
         
-        /* Badge Floating */
-        .badge-float {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.5);
+        .tag-info { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; }
+
+        /* Loader */
+        #loadingOverlay {
+            position: fixed; inset: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
         }
+        #loadingOverlay.show { display: flex; animation: fadeIn 0.3s; }
+        .loader-ring {
+            width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top-color: #004c99;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="text-slate-800 select-none overflow-hidden">
 
-    <!-- ========== TELA DE LOGIN ========== -->
-    <div id="userMenu" class="fixed inset-0 z-[100] bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center p-6 fade-in">
-        <div class="glass-card p-8 rounded-3xl w-full max-w-md scale-in shadow-2xl">
-            <div class="text-center mb-8">
-                <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center shadow-lg">
-                    <i class="fas fa-wifi text-white text-3xl"></i>
-                </div>
-                <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">MHNET</h1>
-                <p class="text-gray-500 text-sm font-medium">Sistema de Gestão de Leads</p>
-            </div>
-
-            <select id="userSelect" class="w-full p-4 mb-6 rounded-2xl border-2 border-gray-200 text-center font-bold text-lg input-modern transition-all">
-                <option value="">Carregando vendedores...</option>
-            </select>
-            
-            <button onclick="setLoggedUser()" class="w-full btn-primary text-white font-bold py-4 rounded-2xl shadow-xl mb-4">
-                ENTRAR NO SISTEMA
-            </button>
-            
-            <button onclick="window.location.reload(true)" class="w-full py-3 text-gray-400 text-sm font-medium hover:text-gray-600 transition">
-                🔄 Recarregar Lista
-            </button>
-            
-            <p class="text-center text-xs text-gray-400 mt-8">Versão 2.0 - Sprint Final</p>
+    <!-- LOADING -->
+    <div id="loadingOverlay">
+        <div class="text-center">
+            <div class="loader-ring mb-4 mx-auto"></div>
+            <p id="loadingText" class="text-slate-600 font-bold text-xs tracking-[0.2em]">CARREGANDO</p>
         </div>
     </div>
 
-    <!-- ========== APP PRINCIPAL ========== -->
-    <div id="mainContent" class="hidden flex flex-col h-full">
+    <!-- ============================================ -->
+    <!-- TELA DE LOGIN (AZUL MHNET) -->
+    <!-- ============================================ -->
+    <div id="userMenu" class="fixed inset-0 z-[100] bg-[#004c99] flex flex-col items-center justify-center p-6 fade-in">
+        <!-- Detalhe de fundo -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+        <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-400 opacity-10 rounded-full blur-2xl -ml-10 -mb-10"></div>
+
+        <div class="glass-card p-8 rounded-3xl w-full max-w-sm text-center relative overflow-hidden scale-in shadow-2xl">
+            <div class="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm transform -rotate-3">
+                <i class="fas fa-wifi text-4xl text-[#004c99]"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 mb-1">Bem-vindo</h2>
+            <p class="text-slate-400 text-sm mb-8 font-medium">MHNET Gestor de Vendas</p>
+            
+            <div class="space-y-4">
+                <div class="relative">
+                    <select id="userSelect" class="w-full p-4 bg-slate-50 rounded-2xl border-none text-lg font-bold text-slate-700 text-center outline-none focus:ring-2 focus:ring-blue-100 appearance-none">
+                        <option value="">Carregando...</option>
+                    </select>
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                
+                <button onclick="if(window.setLoggedUser){window.setLoggedUser()}else{alert('Aguarde...')}" class="w-full btn-primary font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition">
+                    ENTRAR
+                </button>
+            </div>
+            
+            <div onclick="window.location.reload(true)" class="mt-6 text-xs text-slate-400 font-bold cursor-pointer flex items-center justify-center gap-2 hover:text-blue-600 transition">
+                <i class="fas fa-sync-alt"></i> Problemas? Recarregar
+            </div>
+        </div>
+        <p class="absolute bottom-8 text-white/40 text-xs font-mono">V180 • Master Glass</p>
+    </div>
+
+    <!-- BANNER PWA -->
+    <div id="installPrompt" class="hidden fixed bottom-28 left-4 right-4 z-[200] animate-in slide-in-from-bottom-10 fade-in duration-500">
+      <div class="bg-slate-900/95 backdrop-blur-md text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-700/50">
+        <div class="flex items-center gap-3">
+            <div class="bg-[#00aeef] w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg"><i class="fas fa-download"></i></div>
+            <div><p class="font-bold text-sm">Instalar App</p><p class="text-[10px] text-slate-300">Acesso rápido offline</p></div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="instalarPWA()" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold shadow-lg active:scale-90 transition">INSTALAR</button>
+            <button onclick="fecharInstallPrompt()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded-full"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- APP PRINCIPAL -->
+    <!-- ============================================ -->
+    <div id="mainContent" class="hidden flex-1 flex flex-col h-full relative bg-[#f0f4f8]">
         
-        <!-- HEADER COM GRADIENT -->
-        <header class="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-900 text-white pt-6 pb-4 px-6 shadow-2xl relative overflow-hidden">
-            <div class="absolute inset-0 bg-black/10"></div>
-            <div class="relative z-10">
-                <div class="flex justify-between items-center mb-3">
+        <!-- HEADER HERO (Azul Corporativo) -->
+        <header class="bg-[#004c99] text-white pt-safe-top pb-6 px-6 shadow-xl rounded-b-[2.5rem] z-20 shrink-0 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-overlay filter blur-3xl opacity-20 -mr-16 -mt-16"></div>
+            
+            <div class="flex justify-between items-start relative z-10 pt-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+                        <i class="fas fa-user text-lg text-white"></i>
+                    </div>
                     <div>
-                        <h1 class="text-2xl font-black tracking-tight">MHNET</h1>
-                        <div class="flex items-center gap-2 text-xs opacity-90 mt-1">
-                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                            <span id="userInfo" class="font-medium">Carregando...</span>
-                        </div>
+                        <p class="text-[10px] text-blue-200 font-bold uppercase tracking-widest mb-0.5">Bem-vindo,</p>
+                        <h1 id="userInfo" class="font-bold text-xl leading-tight truncate max-w-[180px]">Vendedor</h1>
                     </div>
-                    <div class="flex gap-3">
-                        <button onclick="abrirConfiguracoes()" id="btnAdminSettings" class="hidden w-11 h-11 bg-white/20 hover:bg-white/30 rounded-2xl flex items-center justify-center transition backdrop-blur">
-                            <i class="fas fa-cog text-lg"></i>
-                        </button>
-                        <button onclick="logout()" class="w-11 h-11 bg-white/20 hover:bg-white/30 rounded-2xl flex items-center justify-center transition backdrop-blur">
-                            <i class="fas fa-power-off text-lg"></i>
-                        </button>
-                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button id="btnAdminSettings" onclick="abrirConfiguracoes()" class="hidden w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center active:scale-90 transition hover:bg-white/20 backdrop-blur-sm"><i class="fas fa-cog text-sm"></i></button>
+                    <button onclick="logout()" class="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center active:scale-90 transition hover:bg-red-500/30 backdrop-blur-sm border border-red-500/10"><i class="fas fa-power-off text-sm"></i></button>
+                </div>
+            </div>
+            
+            <!-- Resumo Rápido -->
+            <div class="mt-6 flex gap-6 text-sm relative z-10">
+                <div>
+                    <span class="block text-2xl font-black" id="headerDateDay">--</span>
+                    <span class="text-blue-200 text-xs font-bold uppercase" id="headerDateMonth">Mês</span>
+                </div>
+                <div class="h-10 w-px bg-white/10"></div>
+                <div>
+                    <span class="block text-2xl font-black" id="statLeadsHeader">0</span>
+                    <span class="text-blue-200 text-xs font-bold uppercase">Leads Hoje</span>
                 </div>
             </div>
         </header>
 
         <!-- SCROLL AREA -->
-        <main id="main-scroll" class="flex-1 overflow-y-auto p-5 pb-28 custom-scroll">
+        <main id="main-scroll" class="flex-1 overflow-y-auto p-5 pb-32 no-scrollbar scroll-smooth -mt-6 relative z-10">
             
-            <!-- ========== DASHBOARD ========== -->
-            <div id="dashboard" class="page">
-                <!-- Badge Admin -->
-                <div id="adminPanel" class="hidden glass-card p-4 rounded-2xl mb-5 border-l-4 border-yellow-400 scale-in">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-yellow-400/20 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-crown text-yellow-600"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-black text-yellow-600 uppercase tracking-wider">Painel Gestor</p>
-                            <p class="text-xs text-gray-600 font-medium">Visualizando equipe completa</p>
-                        </div>
+            <!-- DASHBOARD -->
+            <div id="dashboard" class="page fade-in pt-2">
+                
+                <!-- Admin Panel (Visível só para Bruno) -->
+                <div id="adminPanel" class="hidden bg-slate-800 text-white p-4 rounded-2xl mb-6 shadow-lg border border-slate-700 flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2"><i class="fas fa-crown text-yellow-400"></i> <span class="font-bold text-xs uppercase tracking-wider">Painel Gestor</span></div>
+                        <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded backdrop-blur">Visão Global</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="gerirEquipe('list')" class="bg-slate-700 p-3 rounded-xl text-xs font-bold hover:bg-slate-600 transition">👥 Gerir Equipe</button>
+                        <button onclick="abrirTransferenciaEmLote()" class="bg-gradient-to-r from-orange-500 to-red-500 p-3 rounded-xl text-xs font-bold hover:opacity-90 transition">🔄 Transferir Leads</button>
                     </div>
                 </div>
 
-                <!-- Cards de Estatísticas -->
-                <div class="grid grid-cols-2 gap-4 mb-5">
-                    <div onclick="filtrarLeadsHoje()" class="glass-card p-6 rounded-2xl action-card relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-bl-full"></div>
-                        <div class="relative">
-                            <div id="statLeads" class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-1">0</div>
-                            <div class="text-xs font-bold text-gray-500 uppercase tracking-wide">Leads Hoje</div>
-                        </div>
-                    </div>
-
-                    <div onclick="verTodosLeads()" class="glass-card p-6 rounded-2xl action-card bg-gradient-to-br from-blue-600 to-purple-600 text-white relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-bl-full"></div>
-                        <div class="relative">
-                            <i class="fas fa-address-book text-3xl mb-2 opacity-90"></i>
-                            <div class="text-xs font-bold uppercase tracking-wide">Minha Carteira</div>
-                        </div>
-                    </div>
+                <!-- Botões Rápidos (Carrossel) -->
+                <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar mb-2">
+                    <button onclick="navegarPara('cadastroLead')" class="flex-shrink-0 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center w-28 h-28 active:scale-95 transition hover:shadow-md">
+                        <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-2"><i class="fas fa-user-plus"></i></div>
+                        <span class="text-xs font-bold text-slate-600">Novo Lead</span>
+                    </button>
+                    <button onclick="navegarPara('tarefas')" class="flex-shrink-0 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center w-28 h-28 active:scale-95 transition hover:shadow-md">
+                        <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-2"><i class="fas fa-check-square"></i></div>
+                        <span class="text-xs font-bold text-slate-600">Tarefas</span>
+                    </button>
+                    <button onclick="navegarPara('materiais')" class="flex-shrink-0 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center w-28 h-28 active:scale-95 transition hover:shadow-md">
+                        <div class="w-10 h-10 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mb-2"><i class="fas fa-folder-open"></i></div>
+                        <span class="text-xs font-bold text-slate-600">Materiais</span>
+                    </button>
                 </div>
 
-                <!-- Grid de Ferramentas -->
-                <div class="grid grid-cols-2 gap-4 mb-5">
-                    <div onclick="navegarPara('tarefas')" class="glass-card p-5 rounded-2xl action-card">
-                        <div class="flex flex-col items-center gap-2">
-                            <div class="w-12 h-12 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
-                                <i class="fas fa-check-square text-white text-xl"></i>
-                            </div>
-                            <span class="text-sm font-bold text-gray-700">Tarefas</span>
-                        </div>
-                    </div>
-
-                    <div onclick="navegarPara('faltas')" class="glass-card p-5 rounded-2xl action-card">
-                        <div class="flex flex-col items-center gap-2">
-                            <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                                <i class="fas fa-calendar-times text-white text-xl"></i>
-                            </div>
-                            <span class="text-sm font-bold text-gray-700">Faltas</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Botão Principal -->
-                <button onclick="navegarPara('cadastroLead')" class="w-full btn-primary text-white p-5 rounded-2xl shadow-2xl flex items-center justify-between mb-5 action-card">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                            <i class="fas fa-user-plus text-xl"></i>
+                <!-- Card Destaque: Funil -->
+                <button onclick="abrirIndicadores()" class="w-full bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-3xl shadow-xl mb-6 flex justify-between items-center active:scale-95 transition relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-32 h-full bg-white/5 skew-x-12 -mr-8"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-green-400 border border-white/10 shadow-inner">
+                            <i class="fas fa-chart-pie text-2xl"></i>
                         </div>
                         <div class="text-left">
-                            <p class="text-xs opacity-80 font-medium">Cadastrar</p>
-                            <p class="font-black text-lg">Novo Cliente</p>
+                            <div class="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Performance</div>
+                            <div class="text-xl font-black">Meu Funil</div>
                         </div>
                     </div>
-                    <i class="fas fa-chevron-right text-xl"></i>
+                    <i class="fas fa-chevron-right text-slate-500"></i>
                 </button>
 
-                <!-- Grid de Ações Secundárias -->
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="navegarPara('materiais')" class="glass-card p-4 rounded-2xl flex items-center gap-3 action-card">
-                        <i class="fas fa-images text-orange-500 text-2xl"></i>
-                        <span class="text-sm font-bold text-gray-700">Materiais</span>
-                    </button>
-
-                    <button onclick="navegarPara('objecoes')" class="glass-card p-4 rounded-2xl flex items-center gap-3 action-card">
-                        <i class="fas fa-shield-alt text-red-500 text-2xl"></i>
-                        <span class="text-sm font-bold text-gray-700">Objeções</span>
-                    </button>
-
-                    <button onclick="consultarPlanosIA()" class="glass-card p-4 rounded-2xl flex items-center gap-3 action-card">
-                        <i class="fas fa-robot text-blue-500 text-2xl"></i>
-                        <span class="text-sm font-bold text-gray-700">Chat IA</span>
-                    </button>
-
-                    <button onclick="abrirIndicadores()" class="glass-card p-4 rounded-2xl flex items-center gap-3 action-card">
-                        <i class="fas fa-chart-pie text-green-500 text-2xl"></i>
-                        <span class="text-sm font-bold text-gray-700">Funil</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- ========== GESTÃO DE LEADS ========== -->
-            <div id="gestaoLeads" class="page hidden">
-                <div class="flex items-center justify-between mb-5">
-                    <button onclick="navegarPara('dashboard')" class="w-11 h-11 glass-card rounded-2xl flex items-center justify-center action-card">
-                        <i class="fas fa-arrow-left text-gray-600"></i>
-                    </button>
-                    <h2 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Carteira de Leads</h2>
-                    <button onclick="carregarLeads(true)" class="w-11 h-11 glass-card rounded-2xl flex items-center justify-center action-card">
-                        <i class="fas fa-sync text-blue-600"></i>
-                    </button>
-                </div>
-
-                <!-- Filtros -->
-                <div class="flex gap-2 overflow-x-auto pb-3 mb-4 custom-scroll">
-                    <button onclick="filtrarPorStatus('Todos')" class="px-5 py-2 rounded-full font-bold text-xs bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg whitespace-nowrap filter-btn active" id="btnFilterTodos">Todos</button>
-                    <button onclick="filtrarPorStatus('Novo')" class="px-5 py-2 rounded-full font-bold text-xs glass-card text-gray-700 whitespace-nowrap filter-btn" id="btnFilterNovo">Novos</button>
-                    <button onclick="filtrarPorStatus('Em Negociação')" class="px-5 py-2 rounded-full font-bold text-xs glass-card text-gray-700 whitespace-nowrap filter-btn">Negociação</button>
-                    <button onclick="filtrarPorStatus('Venda Fechada')" class="px-5 py-2 rounded-full font-bold text-xs glass-card text-gray-700 whitespace-nowrap filter-btn">Vendas</button>
-                </div>
-
-                <!-- Busca -->
-                <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full p-4 mb-4 rounded-2xl input-modern text-sm font-medium" placeholder="🔍 Buscar cliente...">
-
-                <!-- Lista de Leads -->
-                <div id="listaLeadsGestao" class="space-y-3 pb-5"></div>
-            </div>
-
-            <!-- ========== CADASTRO DE LEAD ========== -->
-            <div id="cadastroLead" class="page hidden">
-                <div class="flex items-center gap-4 mb-5">
-                    <button onclick="navegarPara('dashboard')" class="w-11 h-11 glass-card rounded-2xl flex items-center justify-center action-card">
-                        <i class="fas fa-arrow-left text-gray-600"></i>
-                    </button>
-                    <h2 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Novo Lead</h2>
-                </div>
-
-                <div class="glass-card p-6 rounded-2xl space-y-4">
-                    <button onclick="buscarEnderecoGPS()" class="w-full btn-success text-white font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-3">
-                        <i class="fas fa-map-marker-alt text-xl"></i>
-                        USAR GPS LOCAL
-                    </button>
-
-                    <input type="text" id="leadNome" class="input-modern w-full p-4 rounded-2xl text-sm font-medium" placeholder="👤 Nome completo *">
-                    <input type="tel" id="leadTelefone" class="input-modern w-full p-4 rounded-2xl text-sm font-medium" placeholder="📱 WhatsApp *">
-                    <input type="text" id="leadEndereco" class="input-modern w-full p-4 rounded-2xl text-sm font-medium" placeholder="🏠 Endereço">
+                <!-- Cards Status -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div onclick="filtrarLeadsHoje()" class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between h-32 cursor-pointer active:scale-95 transition relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-2 -mt-2"></div>
+                        <i class="fas fa-filter text-blue-500 text-xl relative z-10"></i>
+                        <div>
+                            <div class="text-3xl font-black text-slate-800" id="statLeadsBody">0</div>
+                            <div class="text-xs font-bold text-slate-400 uppercase">Leads Hoje</div>
+                        </div>
+                    </div>
                     
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="leadBairro" class="input-modern p-4 rounded-2xl text-sm font-medium" placeholder="📍 Bairro">
-                        <input type="text" id="leadCidade" class="input-modern p-4 rounded-2xl text-sm font-medium" placeholder="🌎 Cidade">
+                    <div onclick="verTodosLeads()" class="bg-[#00aeef] p-5 rounded-3xl shadow-lg shadow-blue-500/20 flex flex-col justify-between h-32 cursor-pointer active:scale-95 transition relative overflow-hidden">
+                        <div class="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-2xl"></div>
+                        <div class="w-10 h-10 bg-white/20 text-white rounded-xl flex items-center justify-center backdrop-blur-sm"><i class="fas fa-address-book"></i></div>
+                        <div class="relative z-10">
+                            <div class="text-lg font-black text-white leading-tight">Minha<br>Carteira</div>
+                            <div class="text-[10px] text-blue-100 mt-1 font-medium underline">Ver todos &rarr;</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lembrete -->
+                <div id="lembreteBanner" class="hidden bg-white border-l-4 border-orange-500 p-4 mb-6 rounded-r-2xl shadow-sm flex items-center justify-between cursor-pointer active:bg-orange-50 transition" onclick="filtrarRetornos()">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-orange-100 text-orange-600 w-10 h-10 rounded-full flex items-center justify-center"><i class="fas fa-bell animate-bounce"></i></div>
+                        <div><p class="font-bold text-slate-800 text-sm">Atenção!</p><p id="lembreteTexto" class="text-xs text-slate-500">Retornos pendentes.</p></div>
+                    </div>
+                    <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
+                </div>
+
+                <!-- Ferramentas Secundárias -->
+                <div class="space-y-3">
+                    <button onclick="navegarPara('faltas')" class="w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 active:bg-slate-50 transition">
+                        <div class="w-10 h-10 bg-red-100 text-red-500 rounded-xl flex items-center justify-center"><i class="fas fa-calendar-times"></i></div>
+                        <div class="flex-1 text-left"><p class="font-bold text-sm text-slate-700">Justificar Falta</p><p class="text-[10px] text-slate-400">Envie atestados ou avisos</p></div>
+                        <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
+                    </button>
+                    
+                    <button onclick="navegarPara('objecoes')" class="w-full bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 active:bg-slate-50 transition">
+                        <div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center"><i class="fas fa-shield-alt"></i></div>
+                        <div class="flex-1 text-left"><p class="font-bold text-sm text-slate-700">Matriz de Objeções</p><p class="text-[10px] text-slate-400">Argumentos de venda IA</p></div>
+                        <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
+                    </button>
+                    
+                    <div class="grid grid-cols-2 gap-3 mt-2">
+                         <button onclick="gerarCoachIA()" class="bg-gradient-to-br from-purple-500 to-purple-700 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 font-bold text-sm"><i class="fas fa-trophy"></i> Coach</button>
+                         <button onclick="consultarPlanosIA()" class="bg-white text-blue-600 border border-blue-100 p-4 rounded-2xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2 font-bold text-sm"><i class="fas fa-robot"></i> Chat IA</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TELA LEADS -->
+            <div id="gestaoLeads" class="page hidden fade-in">
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="navegarPara('dashboard')" class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 active:scale-90"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-xl font-bold text-[#004c99]">Carteira</h2>
+                    <button onclick="carregarLeads(true)" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center active:scale-90 shadow-sm"><i class="fas fa-sync text-xs"></i></button>
+                </div>
+                
+                <div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar">
+                    <button onclick="filtrarPorStatus('Todos')" class="filter-btn active" id="btnFilterTodos">Todos</button>
+                    <button onclick="filtrarPorStatus('Novo')" class="filter-btn" id="btnFilterNovo">Novos</button>
+                    <button onclick="filtrarPorStatus('Em Negociação')" class="filter-btn" id="btnFilterNegociação">Negociação</button>
+                    <button onclick="filtrarPorStatus('Agendado')" class="filter-btn" id="btnFilterAgendado">Agendados</button>
+                    <button onclick="filtrarPorStatus('Venda Fechada')" class="filter-btn" id="btnFilterVendaFechada">Vendas</button>
+                    <button onclick="filtrarPorStatus('Perda')" class="filter-btn" id="btnFilterPerda">Perdidos</button>
+                </div>
+                
+                <div class="bg-white p-3 rounded-2xl border border-slate-200 flex items-center gap-3 mb-4 shadow-sm focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition">
+                    <i class="fas fa-search text-slate-400"></i>
+                    <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full outline-none text-sm font-medium text-slate-700 bg-transparent" placeholder="Buscar por nome, bairro, telefone...">
+                </div>
+                
+                <div id="listaLeadsGestao" class="space-y-3 pb-24"></div>
+            </div>
+
+            <!-- MODAL DETALHES LEAD -->
+            <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center">
+                <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
+                <div class="bg-[#f8fafc] w-full sm:w-[450px] sm:rounded-3xl rounded-t-[2.5rem] relative shadow-2xl slide-up max-h-[95vh] overflow-y-auto">
+                    <div class="bg-white p-6 rounded-t-[2.5rem] shadow-sm sticky top-0 z-10 border-b border-slate-100">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 id="modalLeadNome" class="text-xl font-black text-slate-800 leading-tight w-3/4">Nome do Lead</h3>
+                                <div class="flex gap-2 mt-2">
+                                    <span class="tag-info bg-slate-100 text-slate-600"><i class="fas fa-map-marker-alt"></i> <span id="modalLeadBairro"></span></span>
+                                    <span class="tag-info bg-green-50 text-green-600 cursor-pointer hover:bg-green-100" id="btnModalWhatsTag"><i class="fab fa-whatsapp"></i> <span id="modalLeadTelefone"></span></span>
+                                </div>
+                            </div>
+                            <button onclick="fecharLeadModal()" class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-200"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="flex gap-2">
+                             <button onclick="editarLeadAtual()" class="flex-1 bg-slate-50 text-slate-700 py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-xs border border-slate-200 active:scale-95 transition hover:bg-slate-100"><i class="fas fa-pen mr-1"></i> EDITAR DADOS</button>
+                             <button onclick="excluirLead()" class="w-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center border border-red-100 active:scale-95 transition hover:bg-red-100"><i class="fas fa-trash-alt"></i></button>
+                        </div>
                     </div>
 
-                    <input type="text" id="leadProvedor" class="input-modern w-full p-4 rounded-2xl text-sm font-medium" placeholder="📡 Provedor Atual">
-                    
-                    <select id="leadInteresse" class="input-modern w-full p-4 rounded-2xl text-sm font-bold">
-                        <option>🎯 Alto Interesse</option>
-                        <option selected>📊 Médio Interesse</option>
-                        <option>📉 Baixo Interesse</option>
-                    </select>
+                    <div class="p-6 space-y-6">
+                        <!-- Provedor + IA -->
+                        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Provedor Atual</p>
+                                <p id="modalLeadProvedor" class="font-bold text-slate-800 text-lg">--</p>
+                            </div>
+                            <div id="containerRaioX"></div>
+                        </div>
 
-                    <select id="leadStatus" class="input-modern w-full p-4 rounded-2xl text-sm font-bold">
-                        <option value="Novo">🆕 Novo</option>
-                        <option value="Em Negociação">💬 Em Negociação</option>
-                        <option value="Agendado">📅 Agendado</option>
-                    </select>
+                        <!-- OBSERVAÇÕES (TOPO) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <label class="label-padrao mb-0">Observações / Histórico</label>
+                                <button onclick="analiseEstrategicaIA()" class="text-[10px] font-bold text-white bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1 rounded-full shadow-sm active:scale-95 transition"><i class="fas fa-brain mr-1"></i> Analisar</button>
+                            </div>
+                            <textarea id="modalLeadObs" rows="4" class="input-modern w-full p-4 rounded-2xl text-sm" placeholder="Anote aqui os detalhes..."></textarea>
+                        </div>
+                        
+                        <!-- Admin Area (Oculta por padrão) -->
+                        <div id="adminEncaminharArea" class="hidden bg-yellow-50 p-4 rounded-2xl border-2 border-yellow-200">
+                            <label class="text-[10px] font-bold text-yellow-800 uppercase mb-2 block"><i class="fas fa-user-shield mr-1"></i> Gestão: Encaminhar Lead</label>
+                            <div class="flex gap-2"><select id="modalLeadDestino" class="input-padrao h-10 py-2 text-sm bg-white border-yellow-300"></select><button onclick="encaminharLeadModal()" class="bg-yellow-500 text-white w-12 rounded-xl shadow-md active:scale-95 flex items-center justify-center"><i class="fas fa-share"></i></button></div>
+                        </div>
 
-                    <div id="divEncaminhar" class="hidden glass-card p-4 rounded-2xl border-2 border-yellow-400">
-                        <label class="block text-xs font-black text-yellow-700 uppercase mb-2">👑 Encaminhar (Admin)</label>
-                        <select id="leadVendedorDestino" class="input-modern w-full p-3 rounded-xl text-sm font-bold">
-                            <option value="">Selecione o vendedor...</option>
+                        <!-- Tarefas -->
+                        <div id="sectionTarefasLead" class="hidden bg-blue-50 p-4 rounded-2xl border border-blue-100"><label class="text-[10px] font-bold text-blue-800 uppercase mb-2 block">Tarefas Pendentes</label><div id="listaTarefasLead" class="space-y-2"></div></div>
+
+                        <!-- Funil & Agenda -->
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label class="label-padrao">Status do Funil</label>
+                                <div class="relative">
+                                    <select id="modalStatusFunil" onchange="salvarStatusFunil()" class="input-padrao h-14 text-base font-bold pl-12 bg-white appearance-none border-2">
+                                        <option value="Novo">Novo Lead</option>
+                                        <option value="Em Negociação">Em Negociação</option>
+                                        <option value="Agendado">Visita Agendada</option>
+                                        <option value="Venda Fechada">✅ Venda Fechada</option>
+                                        <option value="Perda">❌ Perda / Cancelado</option>
+                                    </select>
+                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none"><i class="fas fa-filter"></i></div>
+                                </div>
+                            </div>
+                            <div class="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                                <label class="label-padrao text-orange-800 mb-2 flex items-center gap-2"><i class="fas fa-calendar-alt text-lg"></i> Agendar Retorno</label>
+                                <div class="flex gap-3"><input type="date" id="agendarData" class="flex-1 input-padrao text-sm h-11 py-2 border-orange-200"><input type="time" id="agendarHora" class="w-24 input-padrao text-sm h-11 py-2 border-orange-200"></div>
+                            </div>
+                        </div>
+
+                        <!-- Ações Principais -->
+                        <div class="grid grid-cols-1 gap-3 pt-2">
+                            <button onclick="salvarEdicaoModal()" class="w-full btn-primary font-bold py-4 rounded-2xl shadow-xl active:scale-95 text-sm tracking-wide">ATUALIZAR LEAD</button>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="gerarScriptVendaIA()" class="bg-purple-100 text-purple-700 font-bold py-3 rounded-2xl border border-purple-200 active:scale-95 text-xs flex items-center justify-center gap-2 transition hover:bg-purple-200"><i class="fas fa-magic text-lg"></i> Script IA</button>
+                                <button id="btnModalWhats" class="bg-green-500 text-white font-bold py-3 rounded-2xl shadow-lg active:scale-95 text-xs flex items-center justify-center gap-2 transition hover:bg-green-600"><i class="fab fa-whatsapp text-lg"></i> WhatsApp</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Objeções -->
+                        <div class="pt-6 border-t border-slate-200">
+                            <label class="label-padrao text-red-600 mb-2 block">Quebra de Objeção</label>
+                            <div class="flex gap-2 mb-3"><input type="text" id="inputObjecaoLead" class="input-padrao h-11 text-sm shadow-sm" placeholder="Ex: Preço alto..."><button onclick="combaterObjecaoLead()" class="bg-red-500 text-white w-12 rounded-xl shadow active:scale-95 transition hover:bg-red-600"><i class="fas fa-fist-raised"></i></button></div>
+                            <textarea id="respostaObjecaoLead" rows="3" class="w-full bg-slate-50 text-xs rounded-xl p-3 border border-slate-200 text-slate-600" readonly placeholder="A resposta da IA aparecerá aqui..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TELA FALTAS -->
+            <div id="faltas" class="page hidden fade-in">
+                <div class="flex items-center gap-4 mb-6">
+                    <button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button>
+                    <h2 class="text-xl font-bold text-[#004c99]">Justificativa</h2>
+                </div>
+                <div class="glass-card p-6 rounded-2xl space-y-5">
+                    <button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl mb-2 flex items-center justify-center gap-2 text-xs hover:bg-slate-200 transition"><i class="fas fa-history"></i> VER HISTÓRICO</button>
+                    <div id="formFaltaContainer">
+                        <label class="label-padrao">Data da Ocorrência</label>
+                        <input type="date" id="faltaData" class="input-padrao mb-4">
+                        <label class="label-padrao">Tipo de Solicitação</label>
+                        <select id="faltaMotivo" class="input-padrao bg-white mb-4 text-sm font-bold text-slate-700">
+                            <option value="">Selecione...</option>
+                            <option>FOLGA PROGRAMADA (BANCO DE HORAS)</option>
+                            <option>CONSULTA MÉDICA</option>
+                            <option>SOLICITAÇÃO DE SAIDA EMERGENCIA</option>
+                            <option>ENCAMINHAMENTO DE ATESTADO</option>
+                            <option>ENCAMINHAMENTO DE COMPARECIMENTO</option>
+                            <option>FALTA SEM JUSTIFICATIVA</option>
+                            <option>AJUSTE DE PONTO</option>
+                            <option>BENEFÍCIO - DAY OFF</option>
+                            <option>PROBLEMAS NO APLICATIVO</option>
+                            <option>OUTROS</option>
                         </select>
-                    </div>
-
-                    <textarea id="leadObs" rows="3" class="input-modern w-full p-4 rounded-2xl text-sm" placeholder="📝 Observações e anotações..."></textarea>
-
-                    <button onclick="enviarLead()" class="w-full btn-primary text-white font-black py-5 rounded-2xl shadow-2xl text-lg">
-                        💾 SALVAR LEAD
-                    </button>
-                </div>
-            </div>
-
-            <!-- ========== OUTRAS TELAS (PLACEHOLDER) ========== -->
-            <div id="tarefas" class="page hidden">
-                <div class="flex items-center justify-between mb-5">
-                    <h2 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Tarefas</h2>
-                    <button onclick="abrirModalTarefa()" class="w-11 h-11 btn-primary rounded-2xl flex items-center justify-center shadow-lg">
-                        <i class="fas fa-plus text-white"></i>
-                    </button>
-                </div>
-                <div id="listaTarefasContainer" class="space-y-3"></div>
-            </div>
-
-            <div id="faltas" class="page hidden">
-                <h2 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-pink-600 mb-5">Justificar Falta</h2>
-                <div class="glass-card p-6 rounded-2xl space-y-4">
-                    <input type="date" id="faltaData" class="input-modern w-full p-4 rounded-2xl">
-                    <select id="faltaMotivo" class="input-modern w-full p-4 rounded-2xl font-bold">
-                        <option>CONSULTA MÉDICA</option>
-                        <option>FOLGA PROGRAMADA</option>
-                        <option>OUTROS</option>
-                    </select>
-                    <textarea id="faltaObs" rows="3" class="input-modern w-full p-4 rounded-2xl" placeholder="Observações..."></textarea>
-                    <input type="file" id="faltaArquivo" class="w-full p-3 rounded-2xl border-2 border-dashed border-gray-300">
-                    <button onclick="enviarJustificativa()" class="w-full btn-danger text-white font-bold py-4 rounded-2xl shadow-xl">
-                        📤 ENVIAR JUSTIFICATIVA
-                    </button>
-                </div>
-            </div>
-
-            <div id="materiais" class="page hidden">
-                <h2 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600 mb-5">Materiais</h2>
-                <div id="materiaisGrid" class="grid grid-cols-2 gap-4"></div>
-            </div>
-
-            <div id="indicadores" class="page hidden">
-                <h2 class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-teal-600 mb-5">Funil de Vendas</h2>
-                <div class="glass-card p-8 rounded-2xl text-center">
-                    <div id="funnelLeads" class="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-teal-500 mb-2">0</div>
-                    <p class="text-sm font-bold text-gray-500 uppercase">Vendas no Mês</p>
-                </div>
-            </div>
-        </main>
-
-        <!-- MENU INFERIOR -->
-        <nav class="fixed bottom-0 left-0 right-0 bottom-nav flex justify-around items-center h-20 z-50 px-6">
-            <button onclick="navegarPara('dashboard')" class="flex flex-col items-center text-gray-400 hover:text-blue-600 transition">
-                <i class="fas fa-home text-2xl mb-1"></i>
-                <span class="text-[10px] font-bold">Início</span>
-            </button>
-            
-            <button onclick="navegarPara('cadastroLead')" class="relative -top-6 w-16 h-16 rounded-full btn-primary flex items-center justify-center text-white shadow-2xl border-4 border-white action-card">
-                <i class="fas fa-plus text-2xl"></i>
-            </button>
-            
-            <button onclick="verTodosLeads()" class="flex flex-col items-center text-gray-400 hover:text-purple-600 transition relative">
-                <i class="fas fa-address-book text-2xl mb-1"></i>
-                <span class="text-[10px] font-bold">Carteira</span>
-                <span id="badgeLeads" class="badge-float hidden">0</span>
-            </button>
-        </nav>
-    </div>
-
-    <!-- ========== MODAL DETALHES DO LEAD ========== -->
-    <div id="leadModal" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-        <div onclick="fecharLeadModal()" class="absolute inset-0"></div>
-        <div class="glass-card w-full sm:max-w-lg rounded-3xl relative slide-up max-h-[85vh] overflow-hidden flex flex-col">
-            
-            <!-- Header Fixo -->
-            <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white sticky top-0 z-10">
-                <div class="flex justify-between items-start mb-3">
-                    <h3 id="modalLeadNome" class="text-2xl font-black leading-tight">Nome do Lead</h3>
-                    <button onclick="fecharLeadModal()" class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-                <div class="flex gap-3 mb-3">
-                    <span class="tag tag-novo"><i class="fas fa-wifi mr-1"></i><span id="modalLeadProvedor">Provedor</span></span>
-                    <span class="tag tag-novo"><i class="fab fa-whatsapp mr-1"></i><span id="modalLeadTelefone">Telefone</span></span>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="editarLeadAtual()" class="flex-1 bg-white/20 hover:bg-white/30 py-3 rounded-xl font-bold text-sm transition">
-                        ✏️ EDITAR
-                    </button>
-                    <button onclick="excluirLead()" class="w-12 bg-red-500/20 hover:bg-red-500/30 rounded-xl transition">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Conteúdo com Scroll -->
-            <div class="flex-1 overflow-y-auto custom-scroll p-6 space-y-4">
-                <!-- Admin Encaminhamento -->
-                <div id="adminEncaminharArea" class="hidden glass-card p-4 rounded-2xl border-2 border-yellow-400">
-                    <label class="block text-xs font-black text-yellow-700 uppercase mb-2">👑 Encaminhar Lead</label>
-                    <div class="flex gap-2">
-                        <select id="modalLeadDestino" class="flex-1 input-modern p-3 rounded-xl text-sm font-bold"></select>
-                        <button onclick="encaminharLeadModal()" class="w-12 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl transition shadow-lg">
-                            <i class="fas fa-share"></i>
-                        </button>
+                        <label class="label-padrao">Observação</label>
+                        <textarea id="faltaObs" class="input-padrao mb-4" rows="3" placeholder="Detalhes..."></textarea>
+                        <label class="label-padrao text-blue-600">ANEXAR COMPROVANTE/DOCUMENTO</label>
+                        <input type="file" id="faltaArquivo" class="w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-6">
+                        <button onclick="enviarJustificativa()" class="w-full btn-primary text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition">ENVIAR SOLICITAÇÃO</button>
                     </div>
                 </div>
-
-                <!-- Status -->
-                <div>
-                    <label class="block text-xs font-black text-gray-700 uppercase mb-2">Status do Funil</label>
-                    <select id="modalStatusFunil" class="input-modern w-full p-4 rounded-2xl font-bold text-sm">
-                        <option value="Novo">🆕 Novo</option>
-                        <option value="Em Negociação">💬 Em Negociação</option>
-                        <option value="Agendado">📅 Agendado</option>
-                        <option value="Venda Fechada">✅ Venda Fechada</option>
-                        <option value="Perda">❌ Perda</option>
-                    </select>
-                </div>
-
-                <!-- Agendamento -->
-                <div class="glass-card p-4 rounded-2xl border-2 border-orange-300">
-                    <label class="block text-xs font-black text-orange-700 uppercase mb-3">📅 Agendar Retorno</label>
-                    <div class="flex gap-2">
-                        <input type="date" id="agendarData" class="flex-1 input-modern p-3 rounded-xl text-sm font-bold">
-                        <input type="time" id="agendarHora" class="w-28 input-modern p-3 rounded-xl text-sm font-bold">
-                    </div>
-                </div>
-
-                <!-- Botão Atualizar -->
-                <button onclick="salvarEdicaoModal()" class="w-full btn-primary text-white font-black py-4 rounded-2xl shadow-2xl">
-                    💾 ATUALIZAR LEAD
-                </button>
-
-                <!-- Ações Rápidas -->
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="gerarScriptVendaIA()" class="glass-card p-4 rounded-2xl font-bold text-sm text-purple-700 flex items-center justify-center gap-2 hover:scale-105 transition">
-                        <i class="fas fa-magic"></i> Script IA
-                    </button>
-                    <button id="btnModalWhats" class="btn-success text-white font-bold p-4 rounded-2xl flex items-center justify-center gap-2 shadow-lg">
-                        <i class="fab fa-whatsapp text-xl"></i> WhatsApp
-                    </button>
-                </div>
-
-                <!-- Observações -->
-                <div>
-                    <label class="block text-xs font-black text-gray-700 uppercase mb-2">📝 Observações</label>
-                    <textarea id="modalLeadObs" rows="4" class="input-modern w-full p-4 rounded-2xl text-sm" placeholder="Anote informações importantes..."></textarea>
-                </div>
-
-                <!-- Campos Extras (Ocultos por padrão) -->
-                <div class="hidden">
-                    <input type="text" id="modalLeadBairro">
-                    <input type="text" id="modalLeadCidade">
-                    <input type="text" id="inputObjecaoLead">
-                    <textarea id="respostaObjecaoLead"></textarea>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODAL CONFIGURAÇÕES (ADMIN) ========== -->
-    <div id="configModal" class="hidden fixed inset-0 z-[90] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 scale-in">
-            <h3 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-6">⚙️ Gestão de Equipe</h3>
-            
-            <!-- Adicionar Vendedor -->
-            <div class="mb-6">
-                <label class="block text-xs font-black text-gray-700 uppercase mb-2">➕ Novo Vendedor</label>
-                <input id="cfgNomeVendedor" class="input-modern w-full p-4 rounded-2xl mb-3" placeholder="Nome completo">
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="gerirEquipe('add')" class="btn-success text-white font-bold py-3 rounded-2xl shadow-lg">
-                        Adicionar
-                    </button>
-                    <button onclick="gerirEquipe('remove')" class="btn-danger text-white font-bold py-3 rounded-2xl shadow-lg">
-                        Remover
-                    </button>
-                </div>
-            </div>
-
-            <!-- Transferência em Lote -->
-            <button onclick="abrirTransferenciaEmLote()" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-black py-4 rounded-2xl shadow-2xl mb-4">
-                🔄 TRANSFERÊNCIA EM LOTE
-            </button>
-
-            <button onclick="document.getElementById('configModal').classList.add('hidden')" class="w-full py-3 text-gray-500 font-bold hover:text-gray-700 transition">
-                Fechar
-            </button>
-        </div>
-    </div>
-
-    <!-- ========== MODAL TRANSFERÊNCIA EM LOTE ========== -->
-    <div id="modalTransferencia" class="hidden fixed inset-0 z-[95] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 scale-in">
-            <h3 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600 mb-6">🔄 Transferência em Lote</h3>
-            
-            <div class="space-y-4 mb-6">
-                <div>
-                    <label class="block text-xs font-black text-gray-700 uppercase mb-2">DE (Origem)</label>
-                    <select id="transfOrigem" class="input-modern w-full p-4 rounded-2xl font-bold">
-                        <option value="">Selecione o vendedor de origem...</option>
-                    </select>
-                </div>
-
-                <div class="flex justify-center">
-                    <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                        <i class="fas fa-arrow-down text-white text-xl"></i>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-black text-gray-700 uppercase mb-2">PARA (Destino)</label>
-                    <select id="transfDestino" class="input-modern w-full p-4 rounded-2xl font-bold">
-                        <option value="">Selecione o vendedor de destino...</option>
-                    </select>
-                </div>
-
-                <div class="glass-card p-4 rounded-2xl border-2 border-orange-300 bg-orange-50/50">
-                    <p class="text-xs text-orange-800 font-bold flex items-start gap-2">
-                        <i class="fas fa-exclamation-triangle text-lg"></i>
-                        <span>ATENÇÃO: Todos os leads do vendedor de origem serão transferidos. Esta ação não pode ser desfeita!</span>
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex gap-3">
-                <button onclick="document.getElementById('modalTransferencia').classList.add('hidden')" class="flex-1 py-4 border-2 border-gray-300 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition">
-                    Cancelar
-                </button>
-                <button onclick="executarTransferenciaLote()" class="flex-1 bg-gradient-to-r from-orange-500 to-red-500 text-white font-black py-4 rounded-2xl shadow-2xl">
-                    Transferir
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODAL TAREFAS ========== -->
-    <div id="taskModal" class="hidden fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md rounded-3xl p-6 scale-in">
-            <h3 class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-6">➕ Nova Tarefa</h3>
-            
-            <div class="space-y-4 mb-6">
-                <input id="taskDesc" class="input-modern w-full p-4 rounded-2xl" placeholder="Descrição da tarefa">
-                <input type="date" id="taskDate" class="input-modern w-full p-4 rounded-2xl">
-                <select id="taskLeadSelect" class="input-modern w-full p-4 rounded-2xl font-bold">
-                    <option value="">Vincular a um lead (opcional)</option>
-                </select>
-            </div>
-
-            <div class="flex gap-3">
-                <button onclick="document.getElementById('taskModal').classList.add('hidden')" class="flex-1 py-4 border-2 border-gray-300 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition">
-                    Cancelar
-                </button>
-                <button onclick="salvarTarefa()" class="flex-1 btn-primary text-white font-black py-4 rounded-2xl shadow-2xl">
-                    Salvar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODAL CHAT IA ========== -->
-    <div id="chatModal" class="hidden fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-lg h-[80vh] rounded-3xl flex flex-col overflow-hidden scale-in">
-            <div class="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-robot text-3xl"></i>
-                    <span class="font-black text-xl">Chat IA</span>
-                </div>
-                <button onclick="toggleChat()" class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div id="historicoFaltasContainer" class="hidden mt-6 pb-24"><button onclick="ocultarHistoricoFaltas()" class="text-xs text-blue-500 mb-4 font-bold uppercase hover:underline flex items-center gap-1"><i class="fas fa-arrow-left"></i> Voltar ao Formulário</button><div id="listaHistoricoFaltas" class="space-y-3"></div></div>
             </div>
             
-            <div id="chatHistory" class="flex-1 overflow-y-auto p-6 custom-scroll space-y-3 bg-gray-50"></div>
+            <!-- Outras Telas: Materiais, Tarefas, etc. -->
+            <div id="tarefas" class="page hidden fade-in"><div class="flex justify-between items-center mb-6"><div class="flex items-center gap-4"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Tarefas</h2></div><button onclick="abrirModalTarefa()" class="w-10 h-10 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700"><i class="fas fa-plus"></i></button></div><div id="listaTarefasContainer" class="space-y-3 pb-24"></div></div>
+            <div id="materiais" class="page hidden fade-in"><div class="flex items-center gap-4 mb-4"><button id="btnVoltarMateriais" onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 id="tituloMateriais" class="text-xl font-bold text-[#004c99]">Materiais</h2></div><div class="flex gap-2 overflow-x-auto pb-2 mb-4 no-scrollbar"><button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active">Todos</button><button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn">500MB</button><button onclick="filtrarMateriaisBtn('700mb')" class="filter-btn">700MB</button><button onclick="filtrarMateriaisBtn('Móvel')" class="filter-btn">Móvel</button><button onclick="filtrarMateriaisBtn('Combo')" class="filter-btn">Combos</button><button onclick="filtrarMateriaisBtn('TV')" class="filter-btn">TV</button><button onclick="filtrarMateriaisBtn('Câmera')" class="filter-btn">Câmera</button></div><div class="bg-white p-3 rounded-xl border mb-4 flex items-center gap-3 shadow-sm"><i class="fas fa-search text-slate-400 ml-2"></i><input id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-sm bg-transparent" placeholder="Buscar artes, planos..."></div><div id="materiaisGrid" class="grid grid-cols-2 gap-4 pb-20"></div></div>
+            <div id="objecoes" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Objeções</h2></div><div class="glass-card p-6 rounded-2xl shadow-sm border space-y-4"><p class="text-sm font-bold text-slate-500">O que o cliente disse?</p><textarea id="inputObjecaoGeral" class="input-padrao min-h-[120px]" placeholder="Ex: A fidelidade é muito alta..."></textarea><button onclick="combaterObjecaoGeral()" class="w-full bg-red-500 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-red-600 transition">COMBATER AGORA</button><div id="resultadoObjecaoGeral" class="hidden mt-4 p-5 bg-blue-50 rounded-xl text-sm leading-relaxed shadow-inner border border-blue-100"></div></div></div>
+            <div id="indicadores" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Funil</h2></div><div class="glass-card p-6 rounded-2xl shadow-sm text-center"><h3 id="indMes" class="text-lg font-bold text-[#004c99]">--</h3><p class="text-xs text-slate-400 mb-6 font-bold uppercase tracking-wider">Ciclo Comercial</p><div class="flex flex-col gap-2 my-6"><div class="funnel-step funnel-1 shadow-sm"><span id="funnelLeads">0</span> Leads</div><div class="funnel-step funnel-2 shadow-sm"><span id="funnelNegociacao">0</span> Negoc</div><div class="funnel-step funnel-3 shadow-md"><span id="funnelVendas">0</span> Vendas</div></div><div class="flex justify-between text-xs font-bold text-slate-500 pt-4 border-t border-slate-100"><span>META: <span id="indMeta" class="text-slate-800 text-sm">--</span></span><span>FECHADO: <span id="indRealizado" class="text-green-600 text-sm">--</span></span></div></div></div>
+
+            <!-- TELA CADASTRO -->
+            <div id="cadastroLead" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400 w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Cadastro</h2></div><div class="glass-card p-6 rounded-2xl shadow-sm border border-slate-100 space-y-5"><button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-600 font-bold py-3 rounded-lg text-xs border border-blue-100"><i class="fas fa-map-marker-alt"></i> GPS LOCAL</button><input type="text" id="leadNome" class="input-padrao" placeholder="Nome *"><input type="tel" id="leadTelefone" class="input-padrao" placeholder="WhatsApp *"><input type="text" id="leadEndereco" class="input-padrao" placeholder="Endereço"><div class="grid grid-cols-2 gap-3"><input type="text" id="leadBairro" class="input-padrao" placeholder="Bairro"><input type="text" id="leadCidade" class="input-padrao" placeholder="Cidade"></div><input type="text" id="leadProvedor" class="input-padrao" placeholder="Provedor"><select id="leadInteresse" class="input-padrao bg-white"><option>Alto</option><option selected>Médio</option><option>Baixo</option></select><select id="leadStatus" class="input-padrao bg-white"><option value="Novo">Novo</option><option value="Em Negociação">Em Negociação</option><option value="Agendado">Agendado</option><option value="Venda Fechada">✅ Venda Fechada</option><option value="Perda">❌ Perda</option></select><div id="divEncaminhar" class="hidden bg-yellow-50 p-3 rounded-xl border border-yellow-200"><label class="label-padrao text-yellow-700">Encaminhar (Admin)</label><select id="leadVendedorDestino" class="input-padrao bg-white text-sm"><option value="">Selecione...</option></select></div><textarea id="leadObs" rows="3" class="input-padrao" placeholder="Observações..."></textarea><button onclick="enviarLead()" class="w-full btn-primary text-white font-bold py-4 rounded-xl shadow-lg mt-4 active:scale-95">SALVAR CADASTRO</button></div></div>
             
-            <div class="p-4 border-t border-gray-200 flex gap-2 bg-white">
-                <input id="chatInput" class="flex-1 input-modern p-4 rounded-2xl" placeholder="Pergunte algo...">
-                <button onclick="enviarMensagemChat()" class="w-14 h-14 btn-primary rounded-2xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-paper-plane text-xl"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== LOADER ========== -->
-    <div id="loader" class="hidden fixed inset-0 z-[99] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center">
-        <div class="loader-ring mb-6"></div>
-        <p class="font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-lg">CARREGANDO...</p>
-    </div>
-
-    <!-- ========== JAVASCRIPT (Referência ao arquivo externo) ========== -->
-    <script src="app.js"></script>
-    
-    <script>
-        // Fallback para carregamento de vendedores offline
-        window.addEventListener('load', () => { 
-            const select = document.getElementById('userSelect');
-            if(select && select.options.length <= 1) { 
-                setTimeout(() => { 
-                    if(select.options.length <= 1) { 
-                        const vendedoresOffline = [
-                            "Bruno Garcia Queiroz", 
-                            "Ana Paula Rodrigues", 
-                            "João Paulo da Silva Santos",
-                            "Cláudia Maria Semmler",
-                            "Diulia Vitória Machado Borges"
-                        ];
-                        select.innerHTML = '<option value="">Selecione seu nome...</option>' + 
-                            vendedoresOffline.map(n => `<option value="${n}">${n}</option>`).join('');
-                    }
-                }, 2000); 
-            }
-
-            // Ajusta altura do app para mobile
-            const vh = window.innerHeight * 0.01;
-            document.documentElement.style.setProperty('--vh', `${vh}px`);
-        });
-
-        // Atualiza filtros ativos
-        document.addEventListener('click', (e) => {
-            if(e.target.classList.contains('filter-btn')) {
-                document.querySelectorAll('.filter-btn').forEach(btn => {
-                    btn.classList.remove('active', 'bg-gradient-to-r', 'from-blue-600', 'to-purple-600', 'text-white', 'shadow-lg');
-                    btn.classList.add('glass-card', 'text-gray-700');
-                });
-                e.target.classList.add('active', 'bg-gradient-to-r', 'from-blue-600', 'to-purple-600', 'text-white', 'shadow-lg');
-                e.target.classList.remove('glass-card', 'text-gray-700');
-            }
-        });
-    </script>
-</body>
-</html>
+            <!-- Modais Auxiliares -->
+            <div id="configModal" class="hidden fixed inset-0 z-[90] bg-black/80 flex justify-center items-center p-4"><div class="glass-card w-full max-w-sm rounded-xl p-6"><h3 class="font-bold mb-4 text-lg">Equipe</h3><input id="cfgNomeVendedor" class="input-padrao mb-3" placeholder="Nome"><input id="cfgMeta" class="input-padrao mb-4" placeholder="Meta"><div class="flex gap-2"><button onclick="gerirEquipe('add')" class="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold">ADD</button><button onclick="gerirEquipe('remove')" class="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold">REM</button></div><button onclick="document.getElementById
