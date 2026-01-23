@@ -8,6 +8,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e3a8a">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/wifi.svg">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,7 +39,7 @@
         }
         
         .glass-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.5);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         }
@@ -46,6 +48,7 @@
             background: white;
             border: 1px solid #e5e7eb;
             transition: all 0.2s;
+            width: 100%;
         }
         .input-modern:focus {
             border-color: #3b82f6;
@@ -65,6 +68,11 @@
         #loadingOverlay {
             position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 9999; display: none; justify-content: center; align-items: center;
         }
+
+        /* Banner de Instalação (Estilo V117) */
+        #installPrompt {
+            z-index: 200;
+        }
     </style>
 </head>
 <body class="text-slate-800 select-none overflow-hidden">
@@ -80,17 +88,35 @@
             <div class="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-wifi text-white text-3xl"></i>
             </div>
-            <h1 class="text-2xl font-bold text-white mb-2">MHNET Gestor</h1>
+            <h1 class="text-2xl font-bold text-slate-800 mb-2">MHNET Gestor</h1>
             
-            <select id="userSelect" class="w-full p-4 mb-4 rounded-xl bg-white/10 text-white border border-white/20 text-center font-bold outline-none">
-                <option value="" class="text-slate-800">Carregando...</option>
+            <select id="userSelect" class="w-full p-4 mb-4 rounded-xl bg-slate-50 border border-slate-200 text-center font-bold outline-none">
+                <option value="" class="text-slate-500">Carregando...</option>
             </select>
             
-            <button onclick="setLoggedUser()" class="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-xl shadow-lg transition">
+            <button onclick="setLoggedUser()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition">
                 ENTRAR
             </button>
-            <div onclick="window.location.reload(true)" class="mt-6 text-xs text-blue-300 cursor-pointer">Recarregar</div>
+            <div onclick="window.location.reload(true)" class="mt-6 text-xs text-slate-400 cursor-pointer">Problemas? Recarregar</div>
         </div>
+        <p class="absolute bottom-6 text-white/30 text-xs">V184 - Install Fix</p>
+    </div>
+
+    <!-- BANNER DE INSTALAÇÃO (V117 STYLE) -->
+    <div id="installPrompt" class="hidden fixed bottom-24 left-4 right-4 animate-bounce">
+      <div class="bg-slate-800 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center justify-between border border-slate-700">
+        <div class="flex items-center gap-3">
+            <div class="bg-[#00aeef] w-10 h-10 rounded-xl flex items-center justify-center text-white"><i class="fas fa-download"></i></div>
+            <div>
+                <p class="font-bold text-sm">Instalar App</p>
+                <p class="text-[10px] text-slate-300">Acesso rápido offline</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="instalarPWA()" class="bg-white text-slate-900 px-4 py-2 rounded-xl text-xs font-bold shadow-lg active:scale-90 transition">INSTALAR</button>
+            <button onclick="fecharInstallPrompt()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded-full"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
     </div>
 
     <!-- APP PRINCIPAL -->
@@ -99,7 +125,7 @@
         <!-- HEADER -->
         <header class="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 text-white pt-safe-top pb-3 px-4 shadow-lg rounded-b-[1.5rem] z-20 shrink-0 relative">
             
-            <!-- STATUS CONEXÃO (Badge) -->
+            <!-- STATUS CONEXÃO -->
             <div id="connectionBadge" class="absolute top-2 left-1/2 transform -translate-x-1/2 z-50"></div>
             
             <div class="flex justify-between items-center h-16 mt-2">
@@ -117,7 +143,6 @@
                     <!-- Botão Notificação -->
                     <button onclick="ativarNotificacoes()" id="btnNotif" class="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center active:scale-90 relative hidden">
                         <i class="fas fa-bell text-xs"></i>
-                        <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden" id="notifDot"></span>
                     </button>
                     
                     <button id="btnAdminSettings" onclick="abrirConfiguracoes()" class="hidden w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center active:scale-90"><i class="fas fa-cog text-xs"></i></button>
@@ -144,10 +169,10 @@
             <!-- DASHBOARD -->
             <div id="dashboard" class="page fade-in">
                 
-                <!-- META DO DIA (Visual) -->
+                <!-- META DO DIA -->
                 <div id="dashboardMeta"></div>
                 
-                <!-- BANNER RETORNOS (No Topo) -->
+                <!-- BANNER RETORNOS -->
                 <div id="bannerRetornos" class="hidden mb-4 cursor-pointer" onclick="filtrarRetornos()"></div>
 
                 <!-- Admin -->
@@ -202,12 +227,12 @@
                     <button onclick="carregarLeads(true)" class="text-blue-500 w-8 h-8 flex items-center justify-center"><i class="fas fa-sync"></i></button>
                 </div>
                 <div class="flex gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
-                    <button onclick="filtrarPorStatus('Todos')" class="filter-btn active" id="btnFilterTodos">Todos</button>
-                    <button onclick="filtrarPorStatus('Novo')" class="filter-btn" id="btnFilterNovo">Novos</button>
-                    <button onclick="filtrarPorStatus('Agendado')" class="filter-btn">Agendados</button>
-                    <button onclick="filtrarPorStatus('Venda Fechada')" class="filter-btn">Vendas</button>
+                    <button onclick="filtrarPorStatus('Todos')" class="tag border bg-white" id="btnFilterTodos">Todos</button>
+                    <button onclick="filtrarPorStatus('Novo')" class="tag border bg-white">Novos</button>
+                    <button onclick="filtrarPorStatus('Agendado')" class="tag border bg-white">Agendados</button>
+                    <button onclick="filtrarPorStatus('Venda Fechada')" class="tag border bg-white">Vendas</button>
                 </div>
-                <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full input-modern mb-3" placeholder="Buscar cliente...">
+                <input type="text" id="searchLead" onkeyup="renderLeads()" class="w-full input-modern mb-3 p-3 rounded-xl" placeholder="Buscar cliente...">
                 <div id="listaLeadsGestao" class="space-y-2 pb-20"></div>
             </div>
 
@@ -216,7 +241,6 @@
                 <div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="text-slate-400"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-lg font-bold">Novo Lead</h2></div>
                 <div class="bg-white p-5 rounded-2xl shadow-sm space-y-3">
                     
-                    <!-- Indicador de Qualidade -->
                     <div id="qualidadeLead"></div>
 
                     <button onclick="buscarEnderecoGPS()" class="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-bold text-xs flex justify-center gap-2"><i class="fas fa-map-marker-alt"></i> USAR GPS LOCAL</button>
@@ -229,16 +253,11 @@
                     </div>
                     <input id="leadProvedor" class="input-modern w-full p-3 rounded-xl" placeholder="Provedor Atual">
                     
-                    <!-- FOTO E AUDIO -->
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="tirarFotoImovel()" class="bg-purple-50 text-purple-600 py-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1 border border-purple-100">
-                            <i class="fas fa-camera text-lg"></i> Foto
-                        </button>
-                        <button id="btnGravar" onclick="iniciarGravacao()" class="bg-red-50 text-red-600 py-3 rounded-xl text-xs font-bold flex flex-col items-center gap-1 border border-red-100">
-                            <i class="fas fa-microphone text-lg"></i> Áudio
-                        </button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="tirarFotoImovel()" class="bg-purple-50 text-purple-600 py-3 rounded-xl text-xs font-bold flex flex-col items-center"><i class="fas fa-camera text-lg"></i> Foto</button>
+                        <button id="btnGravar" onclick="iniciarGravacao()" class="bg-red-50 text-red-600 py-3 rounded-xl text-xs font-bold flex flex-col items-center"><i class="fas fa-microphone text-lg"></i> Áudio</button>
                     </div>
-                    <img id="previewFoto" class="hidden w-full h-32 object-cover rounded-xl border-2 border-purple-200">
+                    <img id="previewFoto" class="hidden w-full h-32 object-cover rounded-xl">
 
                     <select id="leadInteresse" class="input-modern w-full p-3 rounded-xl"><option>Alto</option><option selected>Médio</option><option>Baixo</option></select>
                     <select id="leadStatus" class="input-modern w-full p-3 rounded-xl"><option value="Novo">Novo</option><option value="Em Negociação">Negociação</option></select>
@@ -269,12 +288,12 @@
                     </div>
                     <div class="p-5 space-y-4">
                         <div class="bg-white p-3 rounded-xl border flex justify-between items-center"><div><p class="text-[10px] uppercase text-slate-400 font-bold">Provedor</p><p id="modalLeadProvedor" class="font-bold text-slate-800">--</p></div><div id="containerRaioX"></div></div>
-                        <div><label class="label-padrao">Observações</label><textarea id="modalLeadObs" rows="3" class="input-modern text-sm w-full p-3 rounded-xl"></textarea></div>
+                        <div><label class="text-xs font-bold text-slate-500">Observações</label><textarea id="modalLeadObs" rows="3" class="input-modern text-sm w-full p-3 rounded-xl"></textarea></div>
                         <div id="adminEncaminharArea" class="hidden bg-yellow-50 p-3 rounded-xl"><label class="text-[10px] font-bold text-yellow-800 block mb-1">Encaminhar Lead</label><div class="flex gap-2"><select id="modalLeadDestino" class="input-modern h-9 text-xs flex-1"></select><button onclick="encaminharLeadModal()" class="bg-yellow-500 text-white w-10 rounded shadow"><i class="fas fa-share"></i></button></div></div>
                         <div id="sectionTarefasLead" class="hidden bg-blue-50 p-3 rounded-xl"><div id="listaTarefasLead"></div></div>
                         <div class="grid grid-cols-1 gap-3">
-                            <div class="bg-orange-50 p-3 rounded-xl"><label class="label-padrao text-orange-800">Agendar</label><div class="flex gap-2"><input type="date" id="agendarData" class="flex-1 input-modern h-10 text-sm"><input type="time" id="agendarHora" class="w-20 input-modern h-10 text-sm"></div></div>
-                            <div><label class="label-padrao">Status</label><select id="modalStatusFunil" class="input-modern w-full h-10 font-bold"><option value="Novo">Novo</option><option value="Em Negociação">Negociação</option><option value="Agendado">Agendado</option><option value="Venda Fechada">✅ Venda</option><option value="Perda">❌ Perda</option></select></div>
+                            <div class="bg-orange-50 p-3 rounded-xl"><label class="text-xs font-bold text-orange-800">Agendar</label><div class="flex gap-2"><input type="date" id="agendarData" class="flex-1 input-modern h-10 text-sm"><input type="time" id="agendarHora" class="w-20 input-modern h-10 text-sm"></div></div>
+                            <div><label class="text-xs font-bold text-slate-500">Status</label><select id="modalStatusFunil" class="input-modern w-full h-10 font-bold"><option value="Novo">Novo</option><option value="Em Negociação">Negociação</option><option value="Agendado">Agendado</option><option value="Venda Fechada">✅ Venda</option><option value="Perda">❌ Perda</option></select></div>
                             <button onclick="salvarEdicaoModal()" class="w-full btn-primary py-3 rounded-xl font-bold text-white shadow">ATUALIZAR LEAD</button>
                             <div class="grid grid-cols-2 gap-2">
                                 <button onclick="gerarScriptVendaIA()" class="bg-purple-100 text-purple-700 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-1"><i class="fas fa-magic"></i> Script IA</button>
@@ -285,43 +304,40 @@
                 </div>
             </div>
             
-            <!-- Outras Telas: Mantidas da versão estável -->
-            <div id="materiais" class="page hidden fade-in"><div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="text-slate-400"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold">Materiais</h2></div><div class="flex gap-2 overflow-x-auto pb-2 mb-3"><button onclick="filtrarMateriaisBtn('Todos')" class="filter-btn active">Todos</button><button onclick="filtrarMateriaisBtn('500mb')" class="filter-btn">500MB</button></div><input id="searchMateriais" onkeyup="buscarMateriais()" class="input-modern w-full mb-3" placeholder="Buscar..."><div id="materiaisGrid" class="grid grid-cols-2 gap-3 pb-20"></div></div>
-            <div id="faltas" class="page hidden fade-in"><div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="text-slate-400"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold">Faltas</h2></div><div class="bg-white p-5 rounded-xl shadow-sm space-y-3"><button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 font-bold py-2 rounded-lg text-xs">VER HISTÓRICO</button><div id="formFaltaContainer"><label class="label-padrao">Data</label><input type="date" id="faltaData" class="input-modern mb-2"><label class="label-padrao">Motivo</label><select id="faltaMotivo" class="input-modern mb-2"><option>CONSULTA MÉDICA</option><option>FOLGA PROGRAMADA</option><option>OUTROS</option></select><textarea id="faltaObs" class="input-modern mb-2" placeholder="Obs..."></textarea><input type="file" id="faltaArquivo" class="text-xs w-full mb-2"><button onclick="enviarJustificativa()" class="w-full btn-primary py-3 rounded-xl">ENVIAR</button></div></div><div id="historicoFaltasContainer" class="hidden mt-4 pb-20"><button onclick="ocultarHistoricoFaltas()" class="text-xs font-bold mb-2">Voltar</button><div id="listaHistoricoFaltas"></div></div></div>
-            <div id="tarefas" class="page hidden fade-in"><div class="flex justify-between mb-4"><h2 class="font-bold">Tarefas</h2><button onclick="abrirModalTarefa()" class="text-blue-600"><i class="fas fa-plus"></i></button></div><div id="listaTarefasContainer" class="space-y-2 pb-20"></div></div>
+            <!-- Outras Telas: Faltas, Materiais, Objeções -->
+            <div id="faltas" class="page hidden fade-in"><div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="text-slate-400"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold">Faltas</h2></div><div class="bg-white p-5 rounded-xl shadow-sm space-y-3"><button onclick="verHistoricoFaltas()" class="w-full bg-slate-100 font-bold py-2 rounded-lg text-xs mb-2">VER HISTÓRICO</button><div id="formFaltaContainer"><label class="text-xs font-bold">Data</label><input type="date" id="faltaData" class="input-modern mb-2"><label class="text-xs font-bold">Motivo</label><select id="faltaMotivo" class="input-modern mb-2"><option>CONSULTA MÉDICA</option><option>FOLGA PROGRAMADA</option><option>OUTROS</option></select><textarea id="faltaObs" class="input-modern mb-2" placeholder="Obs..."></textarea><input type="file" id="faltaArquivo" class="text-xs w-full mb-2"><button onclick="enviarJustificativa()" class="w-full btn-primary py-3 rounded-xl">ENVIAR</button></div></div><div id="historicoFaltasContainer" class="hidden mt-4 pb-20"><button onclick="ocultarHistoricoFaltas()" class="text-xs font-bold mb-2">Voltar</button><div id="listaHistoricoFaltas" class="space-y-2"></div></div></div>
+            <div id="materiais" class="page hidden fade-in"><div class="flex items-center gap-4 mb-4"><button onclick="navegarPara('dashboard')" class="text-slate-400"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="text-xl font-bold text-[#004c99]">Materiais</h2></div><div class="flex gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar"><button onclick="filtrarMateriaisBtn('Todos')" class="tag bg-blue-600 text-white">Todos</button><button onclick="filtrarMateriaisBtn('500mb')" class="tag bg-white border">500MB</button></div><div class="bg-white p-2 rounded-xl border mb-3 flex items-center gap-2"><i class="fas fa-search text-slate-400 ml-2"></i><input id="searchMateriais" onkeyup="buscarMateriais()" class="w-full outline-none text-sm bg-transparent" placeholder="Buscar..."></div><div id="materiaisGrid" class="grid grid-cols-2 gap-3 pb-20"></div></div>
             <div id="objecoes" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="font-bold">Objeções</h2></div><textarea id="inputObjecaoGeral" class="input-modern min-h-[100px] mb-3" placeholder="O que o cliente disse?"></textarea><button onclick="combaterObjecaoGeral()" class="w-full bg-red-500 text-white font-bold py-3 rounded-xl">COMBATER</button><div id="resultadoObjecaoGeral" class="hidden mt-4 p-3 bg-blue-50 rounded-xl text-sm"></div></div>
             <div id="indicadores" class="page hidden fade-in"><div class="flex items-center gap-4 mb-6"><button onclick="navegarPara('dashboard')" class="text-slate-400"><i class="fas fa-arrow-left text-xl"></i></button><h2 class="font-bold">Funil</h2></div><div class="bg-white p-5 rounded-xl text-center"><h3 id="indRealizado" class="text-4xl font-black text-green-500">0</h3><p class="text-xs">Vendas</p></div></div>
             
-            <div id="chatModal" class="hidden fixed inset-0 z-50 bg-black/60 flex justify-center items-center p-4"><div class="bg-white w-full max-w-md h-[70vh] rounded-xl flex flex-col"><div class="bg-blue-600 p-4 text-white font-bold flex justify-between"><span>Chat IA</span><button onclick="toggleChat()"><i class="fas fa-times"></i></button></div><div id="chatHistory" class="flex-1 p-4 overflow-y-auto"></div><div class="p-4 border-t flex gap-2"><input id="chatInput" class="input-modern"><button onclick="enviarMensagemChat()" class="bg-blue-600 text-white w-10 h-10 rounded-full"><i class="fas fa-paper-plane"></i></button></div></div></div>
+            <!-- Modais Auxiliares -->
             <div id="configModal" class="hidden fixed inset-0 z-[90] bg-black/80 flex justify-center items-center p-4"><div class="bg-white w-full max-w-sm rounded-xl p-6"><h3 class="font-bold mb-4">Equipe</h3><input id="cfgNomeVendedor" class="input-modern mb-2" placeholder="Nome"><div class="flex gap-2"><button onclick="gerirEquipe('add')" class="flex-1 bg-green-500 text-white py-2 rounded">Add</button><button onclick="gerirEquipe('remove')" class="flex-1 bg-red-500 text-white py-2 rounded">Rem</button></div><button onclick="document.getElementById('configModal').classList.add('hidden')" class="w-full mt-4 text-xs">Fechar</button></div></div>
             <div id="taskModal" class="hidden fixed inset-0 z-[80] bg-black/60 flex justify-center items-center p-4"><div class="bg-white w-full max-w-sm rounded-xl p-6"><h3 class="font-bold mb-4">Nova Tarefa</h3><input id="taskDesc" class="input-modern mb-3" placeholder="Descrição"><input type="date" id="taskDate" class="input-modern mb-3"><select id="taskLeadSelect" class="input-modern mb-4"></select><button onclick="salvarTarefa()" class="w-full btn-primary font-bold py-3 rounded-xl">SALVAR</button><button onclick="document.getElementById('taskModal').classList.add('hidden')" class="w-full mt-3 text-gray-400">Cancelar</button></div></div>
-            <div id="modalTransferencia" class="hidden fixed inset-0 z-[80] bg-black/80 flex justify-center items-center p-4"><div class="bg-white w-full max-w-sm rounded-2xl p-6"><h3 class="font-bold mb-4">Transferência</h3><select id="transfOrigem" class="input-modern mb-3"></select><select id="transfDestino" class="input-modern mb-3"></select><button onclick="executarTransferenciaLote()" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl">TRANSFERIR</button><button onclick="document.getElementById('modalTransferencia').classList.add('hidden')" class="w-full mt-3 text-xs">Cancelar</button></div></div>
+            <div id="modalTransferencia" class="hidden fixed inset-0 z-[80] bg-black/80 flex justify-center items-center p-4"><div class="bg-white w-full max-w-sm rounded-2xl p-6"><h3 class="font-bold mb-4 text-lg">Transferência</h3><select id="transfOrigem" class="input-modern mb-3"></select><select id="transfDestino" class="input-modern mb-3"></select><button onclick="executarTransferenciaLote()" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl">TRANSFERIR</button><button onclick="document.getElementById('modalTransferencia').classList.add('hidden')" class="w-full mt-3 text-xs">Cancelar</button></div></div>
+            <div id="chatModal" class="hidden fixed inset-0 z-50 bg-black/60 flex justify-center items-center p-4"><div class="bg-white w-full max-w-md h-[70vh] rounded-xl flex flex-col"><div class="bg-blue-600 p-4 text-white font-bold flex justify-between"><span>Chat IA</span><button onclick="toggleChat()"><i class="fas fa-times"></i></button></div><div id="chatHistory" class="flex-1 p-4 overflow-y-auto"></div><div class="p-4 border-t flex gap-2"><input id="chatInput" class="input-modern"><button onclick="enviarMensagemChat()" class="bg-blue-600 text-white w-10 h-10 rounded-full"><i class="fas fa-paper-plane"></i></button></div></div></div>
 
         </main>
 
         <!-- MENU INFERIOR FIXO -->
-        <nav class="glass-nav fixed bottom-0 left-0 right-0 flex justify-around items-center p-2 h-16 z-50 shadow-lg">
-            <button onclick="navegarPara('dashboard')" class="nav-item w-16 flex flex-col items-center gap-1 text-[#004c99] active:scale-90 transition"><i class="fas fa-home text-xl"></i><span class="text-[10px] font-bold">Início</span></button>
-            <button onclick="navegarPara('cadastroLead')" class="relative -top-5 bg-[#00aeef] w-12 h-12 rounded-full flex items-center justify-center text-white shadow-xl border-4 border-white active:scale-90 transition transform hover:-translate-y-1"><i class="fas fa-plus text-xl"></i></button>
-            <button onclick="verTodosLeads()" class="nav-item w-16 flex flex-col items-center gap-1 text-slate-400 hover:text-[#004c99] active:scale-90 transition"><i class="fas fa-address-book text-xl"></i><span class="text-[10px] font-bold">Carteira</span></button>
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around items-center p-2 h-16 z-50">
+            <button onclick="navegarPara('dashboard')" class="flex flex-col items-center text-gray-400 hover:text-blue-600 w-16"><i class="fas fa-home text-xl"></i><span class="text-[10px] font-bold">Início</span></button>
+            <button onclick="navegarPara('cadastroLead')" class="relative -top-5 bg-blue-600 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg border-4 border-white active:scale-90 transition transform hover:-translate-y-1"><i class="fas fa-plus text-xl"></i></button>
+            <button onclick="verTodosLeads()" class="flex flex-col items-center text-gray-400 hover:text-blue-600 w-16"><i class="fas fa-address-book text-xl"></i><span class="text-[10px] font-bold">Carteira</span></button>
         </nav>
+        
+        <!-- LOADER -->
+        <div id="loader" class="hidden fixed inset-0 z-[99] bg-white/90 flex flex-col items-center justify-center"><div class="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div><p class="font-bold text-slate-400 text-xs">CARREGANDO</p></div>
+
     </div>
 
     <script src="app.js"></script>
     <script>
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(console.log);
-        
-        window.addEventListener('load', () => { 
-            const s = document.getElementById('userSelect');
-            if(s && s.options.length <= 1) { 
-                setTimeout(() => { 
-                    if(s.options.length <= 1) { 
-                        const OFF = ["Bruno Garcia Queiroz", "Ana Paula Rodrigues", "João Paulo da Silva Santos", "Cláudia Maria Semmler", "Diulia Vitória Machado Borges", "Vendedor Teste"];
-                        s.innerHTML = '<option value="">Selecione...</option>' + OFF.map(n => `<option value="${n}">${n}</option>`).join('');
-                    } 
-                }, 3000); 
-            }
-        });
+        // PWA & Fallback
+        if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) { navigator.serviceWorker.register('./sw.js').catch(console.log); }
+        window.addEventListener('load', () => { const s = document.getElementById('userSelect'); if(s && s.options.length <= 1) { setTimeout(() => { if(s.options.length <= 1) { const OFF = ["Bruno Garcia Queiroz", "Ana Paula Rodrigues", "Vendedor Teste"]; s.innerHTML = '<option value="">Modo Offline (Selecione)</option>' + OFF.map(n => `<option value="${n}">${n}</option>`).join(''); } }, 3000); } });
+        let deferredPrompt; window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('installPrompt')?.classList.remove('hidden'); });
+        async function instalarPWA() { if(deferredPrompt) { deferredPrompt.prompt(); const {outcome} = await deferredPrompt.userChoice; if(outcome==='accepted') document.getElementById('installPrompt').classList.add('hidden'); deferredPrompt=null; } }
+        function fecharInstallPrompt() { document.getElementById('installPrompt').classList.add('hidden'); }
     </script>
 </body>
 </html>
