@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#003580">
   <title>MHNET Gestor</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -50,7 +51,32 @@
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
     /* ====================================================
-       DESKTOP WRAPPER — CRM layout
+       PWA INSTALL BANNER
+    ==================================================== */
+    #pwaInstallBanner {
+      background: linear-gradient(135deg, var(--navy-dark), var(--navy-mid));
+      color: #fff;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .78rem;
+      flex-shrink: 0;
+    }
+    #pwaInstallBanner.hidden { display: none; }
+    #pwaInstallBanner .pwa-btn {
+      background: #fff;
+      color: var(--navy);
+      border-radius: 7px;
+      padding: 6px 12px;
+      font-size: .72rem;
+      font-weight: 800;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* ====================================================
+       DESKTOP WRAPPER
     ==================================================== */
     #appWrapper {
       display: flex;
@@ -122,6 +148,8 @@
     #userSelect option { background: var(--navy-dark); color: #fff; }
     .btn-login { width: 100%; background: #fff; color: var(--navy); border-radius: var(--r-sm); padding: 15px; font-size: .95rem; font-weight: 800; transition: all .2s; box-shadow: 0 4px 20px rgba(0,0,0,.25); }
     .btn-login:active { transform: scale(.97); }
+    .login-install { margin-top: 14px; text-align: center; }
+    #btnInstalarPWA { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; border-radius: var(--r-sm); padding: 10px 20px; font-size: .82rem; font-weight: 700; }
 
     /* ====================================================
        HEADER (mobile top bar)
@@ -203,7 +231,7 @@
     #lembreteBanner.show { display: flex; }
     .lb-icon { width: 30px; height: 30px; background: #fef3c7; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--warning); flex-shrink: 0; }
 
-    /* FTTA dashboard card */
+    /* FTTA dashboard cards */
     .ftta-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
     .ftta-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 12px; cursor: pointer; box-shadow: var(--sh-sm); transition: transform .15s; display: flex; align-items: center; gap: 10px; }
     .ftta-card:active { transform: scale(.97); }
@@ -227,7 +255,6 @@
     .search-input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 11px 13px 11px 38px; font-size: .9rem; font-weight: 500; color: var(--text-1); transition: border .2s; }
     .search-input:focus { border-color: var(--navy); }
 
-    /* LEAD CARD — expanded with action buttons */
     .lead-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; margin-bottom: 10px; box-shadow: var(--sh-sm); transition: transform .15s; }
     .lead-card:active { transform: scale(.985); }
     .lc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
@@ -244,7 +271,6 @@
     .lc-btn.detail { background: var(--surface); color: var(--text-2); border-color: var(--border); font-size: .7rem; }
     .lc-sched { font-size: .7rem; color: var(--warning); font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 4px; }
 
-    /* Badge */
     .badge { padding: 3px 8px; border-radius: 5px; font-size: .62rem; font-weight: 800; text-transform: uppercase; flex-shrink: 0; }
     .badge.novo       { background: #dbeafe; color: #1d4ed8; }
     .badge.agendado   { background: #fef3c7; color: #92400e; }
@@ -264,10 +290,8 @@
     .f-input:focus { border-color: var(--navy); background: #fff; box-shadow: 0 0 0 3px rgba(0,53,128,.07); }
     textarea.f-input { resize: vertical; min-height: 72px; }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     .gps-btn { background: none; border: 1.5px dashed var(--border); border-radius: var(--r-sm); padding: 9px; width: 100%; font-size: .78rem; font-weight: 600; color: var(--text-3); display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 7px; }
 
-    /* History */
     .hist-entry { background: var(--surface); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; font-size: .82rem; }
     .hist-entry .he-date { font-size: .65rem; color: var(--text-3); font-weight: 700; float: right; }
 
@@ -352,6 +376,14 @@
     .ai-resp-box { background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: var(--r-sm); padding: 13px; font-size: .82rem; line-height: 1.55; color: #1e40af; margin-top: 12px; }
 
     /* ====================================================
+       FALTAS
+    ==================================================== */
+    .hist-falta { background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 13px; margin-bottom: 8px; }
+    .hf-motivo { font-size: .84rem; font-weight: 700; color: var(--text-1); }
+    .hf-meta { font-size: .7rem; color: var(--text-3); margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .hf-status { font-size: .63rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: #d1fae5; color: #065f46; }
+
+    /* ====================================================
        MODAL — LEAD DETAILS
     ==================================================== */
     .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); z-index: 500; display: none; align-items: flex-end; }
@@ -386,7 +418,7 @@
     ==================================================== */
     .modal2-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); z-index: 600; display: none; align-items: center; justify-content: center; padding: 18px; }
     .modal2-back.open { display: flex; }
-    .modal2-card { background: var(--card); border-radius: var(--r-lg); padding: 22px; width: 100%; max-width: 380px; animation: fadeScale .22s ease; }
+    .modal2-card { background: var(--card); border-radius: var(--r-lg); padding: 22px; width: 100%; max-width: 380px; animation: fadeScale .22s ease; max-height: 90dvh; overflow-y: auto; }
     @keyframes fadeScale { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
     .m2-title { font-size: 1.05rem; font-weight: 800; color: var(--text-1); margin-bottom: 14px; }
 
@@ -417,12 +449,11 @@
     .chat-send { width: 42px; height: 42px; background: var(--navy); color: #fff; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
     /* ====================================================
-       FALTAS
+       CONFIG + TRANSFERENCIA
     ==================================================== */
-    .hist-falta { background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 13px; margin-bottom: 8px; }
-    .hf-motivo { font-size: .84rem; font-weight: 700; color: var(--text-1); }
-    .hf-meta { font-size: .7rem; color: var(--text-3); margin-top: 3px; display: flex; align-items: center; gap: 6px; }
-    .hf-status { font-size: .63rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: #d1fae5; color: #065f46; }
+    #configModal, #modalTransferencia { position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); display: none; align-items: flex-end; }
+    #configModal.open, #modalTransferencia.open { display: flex; }
+    .cfg-sheet { background: var(--card); border-radius: 22px 22px 0 0; width: 100%; padding: 22px 18px; padding-bottom: calc(env(safe-area-inset-bottom) + 22px); max-height: 80dvh; overflow-y: auto; }
 
     /* ====================================================
        UTILS
@@ -433,10 +464,11 @@
     .hidden { display: none !important; }
     .sep { height: 1px; background: var(--border); margin: 14px 0; }
     .flex-row { display: flex; gap: 8px; }
+    .flex-1 { flex: 1; }
     .text-mono { font-family: 'Space Mono', monospace; }
 
     /* ====================================================
-       RESPONSIVE — desktop CRM layout
+       RESPONSIVE
     ==================================================== */
     @media (min-width: 768px) {
       body { background: #1a1f35; }
@@ -447,7 +479,6 @@
       #bottomNav { display: none; }
       .page { padding: 28px 32px; padding-bottom: 40px; }
       #mainScroll { height: 100dvh; }
-      /* Desktop: show more columns in grids */
       .quick4 { grid-template-columns: repeat(6, 1fr); }
       .ftta-cards { grid-template-columns: repeat(3, 1fr); }
       .stats-2 { grid-template-columns: repeat(4, 1fr); }
@@ -456,13 +487,6 @@
       .lead-list-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       .lead-list-wrap .lead-card { margin-bottom: 0; }
     }
-
-    /* ====================================================
-       CONFIG + TRANSFERENCIA modals
-    ==================================================== */
-    #configModal, #modalTransferencia { position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); display: none; align-items: flex-end; }
-    #configModal.open, #modalTransferencia.open { display: flex; }
-    .cfg-sheet { background: var(--card); border-radius: 22px 22px 0 0; width: 100%; padding: 22px 18px; padding-bottom: calc(env(safe-area-inset-bottom) + 22px); max-height: 80dvh; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -516,6 +540,9 @@
         <label class="login-label">Selecione seu nome</label>
         <select id="userSelect"><option value="">Carregando...</option></select>
         <button class="btn-login" onclick="setLoggedUser()">ENTRAR NO SISTEMA</button>
+        <div class="login-install">
+          <button id="btnInstalarPWA" class="hidden" onclick="instalarPWA()"><i class="fas fa-download"></i> Instalar App</button>
+        </div>
       </div>
     </div>
 
@@ -546,7 +573,7 @@
         <div id="adminPanel" class="admin-bar hidden">
           <div class="admin-badge"><i class="fas fa-crown"></i> Gestor Admin</div>
           <div class="admin-btns">
-            <button class="admin-btn-sm" onclick="gerirEquipe('list')">Equipe</button>
+            <button class="admin-btn-sm" onclick="abrirConfiguracoes()">Equipe</button>
             <button class="admin-btn-sm" onclick="abrirTransferenciaEmLote()">Transferir</button>
           </div>
         </div>
@@ -609,7 +636,10 @@
 
         <div id="lembreteBanner" onclick="filtrarRetornos()">
           <div class="lb-icon"><i class="fas fa-bell"></i></div>
-          <div style="flex:1;"><div style="font-size:.8rem;font-weight:700;color:#92400e;">Atenção!</div><div style="font-size:.7rem;color:#b45309;">Você tem retornos hoje.</div></div>
+          <div style="flex:1;">
+            <div style="font-size:.8rem;font-weight:700;color:#92400e;">Atenção!</div>
+            <div class="lb-sub" style="font-size:.7rem;color:#b45309;">Você tem retornos hoje.</div>
+          </div>
           <i class="fas fa-chevron-right" style="color:var(--warning);font-size:.75rem;"></i>
         </div>
       </div>
@@ -743,12 +773,13 @@
       <div id="faltas" class="page">
         <div class="pg-hdr">
           <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Justificativa</h2>
-          <button onclick="verHistoricoFaltas()" style="margin-left:auto;color:var(--navy);font-size:.75rem;font-weight:700;">Histórico</button>
+          <h2 class="pg-title">Justificativa de Faltas</h2>
         </div>
+
+        <!-- Formulário -->
         <div id="formFaltaContainer">
           <div class="form-sec">
-            <div class="form-sec-title"><i class="fas fa-calendar-alt"></i> Ocorrência</div>
+            <div class="form-sec-title"><i class="fas fa-calendar-alt"></i> Nova Solicitação</div>
             <div class="field"><label>Data</label><input class="f-input" type="date" id="faltaData"></div>
             <div class="field"><label>Tipo</label>
               <select class="f-input" id="faltaMotivo">
@@ -769,10 +800,19 @@
             <div class="field"><label>Anexo (opcional)</label><input type="file" id="faltaArquivo" style="font-size:.82rem;color:var(--text-2);"></div>
           </div>
           <button class="btn btn-danger" onclick="enviarJustificativa()"><i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO</button>
+          <div style="font-size:.7rem;color:var(--text-3);text-align:center;margin-top:8px;">Um e-mail será enviado ao gestor automaticamente.</div>
         </div>
-        <div id="historicoFaltasContainer" class="hidden" style="margin-top:18px;">
-          <button onclick="ocultarHistoricoFaltas()" style="color:var(--navy);font-size:.77rem;font-weight:700;margin-bottom:14px;"><i class="fas fa-arrow-left"></i> Voltar</button>
-          <div id="listaHistoricoFaltas"></div>
+
+        <!-- Histórico sempre visível abaixo -->
+        <div style="margin-top:24px;">
+          <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+            <i class="fas fa-history"></i> 
+            Histórico de Solicitações
+            ${'' /* admin label adicionado via JS */}
+          </div>
+          <div id="listaHistoricoFaltas">
+            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Carregando...</p></div>
+          </div>
         </div>
       </div>
 
@@ -824,6 +864,7 @@
         <div class="pg-hdr">
           <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
           <h2 class="pg-title">Almanaque Concorrentes</h2>
+          <button id="btnAdminConcorrente" class="hidden" onclick="abrirModalNovoConcorrente()" style="margin-left:auto;background:var(--navy);color:#fff;border-radius:8px;padding:6px 12px;font-size:.75rem;font-weight:700;"><i class="fas fa-plus"></i> Novo</button>
         </div>
         <p style="font-size:.8rem;color:var(--text-3);margin-bottom:14px;">Selecione um concorrente para ver análise comparativa com MHNET.</p>
         <div class="comp-grid" id="compGrid"></div>
@@ -836,14 +877,8 @@
             </div>
           </div>
           <div class="pros-cons">
-            <div class="pros-box">
-              <div class="pc-title">✅ Pontos Fortes</div>
-              <div id="compPros"></div>
-            </div>
-            <div class="cons-box">
-              <div class="pc-title">❌ Pontos Fracos</div>
-              <div id="compCons"></div>
-            </div>
+            <div class="pros-box"><div class="pc-title">✅ Pontos Fortes</div><div id="compPros"></div></div>
+            <div class="cons-box"><div class="pc-title">❌ Pontos Fracos</div><div id="compCons"></div></div>
           </div>
           <div style="font-size:.72rem;font-weight:700;color:var(--text-2);margin-bottom:8px;">MHNET tem vantagem em:</div>
           <div id="compMhnet" style="font-size:.8rem;color:var(--text-1);line-height:1.55;"></div>
@@ -965,7 +1000,7 @@
 <div id="configModal">
   <div class="cfg-sheet">
     <div class="modal-handle"></div>
-    <div class="m2-title">Configurações</div>
+    <div class="m2-title">Configurações da Equipe</div>
     <div class="field"><label>Nome do Vendedor</label><input class="f-input" id="cfgNomeVendedor" placeholder="Nome completo"></div>
     <div class="field"><label>Meta de Vendas</label><input class="f-input" id="cfgMeta" type="number" placeholder="Ex: 20"></div>
     <div class="flex-row">
@@ -989,6 +1024,26 @@
   </div>
 </div>
 
+<!-- MODAL CONCORRENTE (ADMIN) -->
+<div id="modalConcorrente" class="modal2-back">
+  <div class="modal2-card">
+    <div class="m2-title" id="compModalTitle">Novo Concorrente</div>
+    <div class="field"><label>Nome</label><input class="f-input" id="compFormNome" placeholder="Ex: Vero Internet"></div>
+    <div class="field-row">
+      <div class="field"><label>Sigla (2-3 letras)</label><input class="f-input" id="compFormSigla" placeholder="VR" maxlength="3"></div>
+      <div class="field"><label>Cor</label><input class="f-input" id="compFormCor" type="color" value="#1565c0" style="height:44px;padding:6px;"></div>
+    </div>
+    <div class="field"><label>Tipo de Serviço</label><input class="f-input" id="compFormTipo" placeholder="Ex: Fibra Óptica"></div>
+    <div class="field"><label>Vantagem MHNET vs este concorrente</label><textarea class="f-input" id="compFormMhnet" rows="2" placeholder="Por que MHNET é melhor?"></textarea></div>
+    <div class="field"><label>Pontos Fortes (1 por linha)</label><textarea class="f-input" id="compFormPros" rows="3" placeholder="Marca forte&#10;Cobertura ampla"></textarea></div>
+    <div class="field"><label>Pontos Fracos (1 por linha)</label><textarea class="f-input" id="compFormCons" rows="3" placeholder="Preço alto&#10;Suporte lento"></textarea></div>
+    <div class="flex-row" style="margin-top:4px;">
+      <button class="btn btn-navy" style="flex:1;" onclick="salvarConcorrente()"><i class="fas fa-save"></i> Salvar</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalConcorrente').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- CHAT IA -->
 <div id="chatModal">
   <div class="chat-sheet">
@@ -1004,12 +1059,30 @@
 
 <script src="app.js"></script>
 <script>
+  // Service Worker para PWA instalável
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => {
+          console.log('SW registrado:', reg.scope);
+          // Verifica atualizações
+          reg.onupdatefound = () => {
+            const installing = reg.installing;
+            installing.onstatechange = () => {
+              if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                installing.postMessage({ type: 'SKIP_WAITING' });
+              }
+            };
+          };
+        })
+        .catch(err => console.log('SW erro:', err));
     });
   }
-  window.addEventListener('online',  () => { document.getElementById('offlineBanner').classList.remove('show'); processarFilaSincronizacao(); });
+
+  window.addEventListener('online',  () => {
+    document.getElementById('offlineBanner').classList.remove('show');
+    if (typeof processarFilaSincronizacao === 'function') processarFilaSincronizacao();
+  });
   window.addEventListener('offline', () => document.getElementById('offlineBanner').classList.add('show'));
 </script>
 </body>
