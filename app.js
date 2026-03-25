@@ -9,7 +9,7 @@
  * - FTTA PROSPECÇÃO: colunas corretas + botão "Marcar como Adquado" (move para LAJ ou EST)
  * - Faltas: envia via backend (e-mail HTML + callmebot) 
  * - validateAI: valida Gemini ao iniciar
- * - CORREÇÃO: carregarFtta buscando abas sequencialmente para evitar gargalo do Google.
+ * - CORREÇÃO: carregarFtta buscando abas sequencialmente com logs de debug
  * ============================================================================
  */
 
@@ -100,7 +100,7 @@ let syncQueue = JSON.parse(localStorage.getItem('mhnet_sync_queue') || '[]');
 
 function isAdminUser() {
   if (!loggedUser) return false;
-  return loggedUser.trim().toUpperCase().includes('BRUNO GARCIA');
+  return loggedUser.trim().toUpperCase().includes('BRUNO GARCIA QUEIROZ');
 }
 
 // ============================================================
@@ -620,19 +620,25 @@ async function carregarFtta() {
   div.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Carregando...</p></div>';
 
   try {
+    console.log("📡 Iniciando busca das abas FTTA (Sequencial)...");
+
     // Busca Lajeado primeiro
     const resL = await apiCall('getFttaLeads', { aba: 'FTTA LAJEADO' }, false);
+    console.log("📦 Resposta Lajeado:", resL);
     if (resL?.status === 'success') fttaCache.lajeado = resL.data || [];
 
     // Depois busca Estrela
     const resE = await apiCall('getFttaLeads', { aba: 'FTTA ESTRELA' }, false);
+    console.log("📦 Resposta Estrela:", resE);
     if (resE?.status === 'success') fttaCache.estrela = resE.data || [];
 
     // Por fim, busca a Prospecção
     const resP = await apiCall('getFttaProspeccao', {}, false);
+    console.log("📦 Resposta Prospecção:", resP);
     if (resP?.status === 'success') fttaCache.prospeccao = resP.data || [];
+
   } catch(e) {
-    console.error('Erro FTTA:', e);
+    console.error('❌ Erro de conexão no FTTA:', e);
   }
 
   renderFttaLista();
