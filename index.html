@@ -10,11 +10,11 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     /* ====================================================
-       CSS VARIABLES & RESET
+       CSS VARIABLES & RESET (original)
     ==================================================== */
     :root {
       --navy:       #003580;
@@ -467,25 +467,417 @@
     .flex-1 { flex: 1; }
     .text-mono { font-family: 'Space Mono', monospace; }
  
-    //* Animação para leads sem atualização há 10+ dias */
-@keyframes pulseAlert {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
-  50%       { box-shadow: 0 0 0 4px rgba(245,158,11,0.18); }
-}
+    /* Animação para leads sem atualização há 10+ dias */
+    @keyframes pulseAlert {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+      50%       { box-shadow: 0 0 0 4px rgba(245,158,11,0.18); }
+    }
  
-/* Indicadores: ranking e comparativo */
-#indRankingVendedores { margin-bottom: 14px; }
-#indComparativo       { margin-bottom: 14px; }
-#indLeadsHoje         { background: var(--navy); border-radius: var(--r-md); padding: 14px; text-align: center; margin-bottom: 14px; }
-#indGrafico           { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; margin-bottom: 14px; }
-#indFiltroMes         { margin-bottom: 14px; display: flex; gap: 8px; align-items: center; }
-#indFiltroMes label   { font-size: .68rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
-#selFiltroMes         { flex: 1; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; font-size: .82rem; color: var(--text-1); }
+    /* Indicadores: ranking e comparativo */
+    #indRankingVendedores { margin-bottom: 14px; }
+    #indComparativo       { margin-bottom: 14px; }
+    #indLeadsHoje         { background: var(--navy); border-radius: var(--r-md); padding: 14px; text-align: center; margin-bottom: 14px; }
+    #indGrafico           { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; margin-bottom: 14px; }
+    #indFiltroMes         { margin-bottom: 14px; display: flex; gap: 8px; align-items: center; }
+    #indFiltroMes label   { font-size: .68rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
+    #selFiltroMes         { flex: 1; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; font-size: .82rem; color: var(--text-1); }
  
-/* Linha de meta info no lead card */
-.lead-meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+    /* Linha de meta info no lead card */
+    .lead-meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
 
-    
+    /* ====================================================
+       GESTÃO DE BASE — ESTILOS (adicionado)
+    ==================================================== */
+    #gestaoBase .gb-header-kpis {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    #gestaoBase .gb-kpi {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px 16px;
+      box-shadow: var(--sh-sm);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    #gestaoBase .gb-kpi:active { transform: scale(.97); }
+    #gestaoBase .gb-kpi-val {
+      font-size: 1.75rem;
+      font-weight: 900;
+      color: var(--navy);
+      letter-spacing: -.04em;
+      line-height: 1;
+    }
+    #gestaoBase .gb-kpi-lbl {
+      font-size: .6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-3);
+      margin-top: 3px;
+    }
+    #gestaoBase .gb-kpi.urgente .gb-kpi-val { color: var(--danger); }
+    #gestaoBase .gb-kpi.incremento .gb-kpi-val { color: var(--success); }
+    #gestaoBase .gb-kpi.oportunidade .gb-kpi-val { color: var(--warning); }
+    .gb-score-bar {
+      height: 3px;
+      border-radius: 99px;
+      margin-top: 6px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .gb-score-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .5s ease;
+    }
+    .gb-filters {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow: var(--sh-sm);
+    }
+    .gb-filters-title {
+      font-size: .62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--navy);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .gb-filter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .gb-filter-row:last-child { margin-bottom: 0; }
+    .gb-select {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-1);
+      font-family: 'DM Sans', sans-serif;
+    }
+    .gb-select:focus { border-color: var(--navy); outline: none; }
+    .gb-client-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--sh-sm);
+      transition: transform .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .gb-client-card:active { transform: scale(.985); }
+    .gb-client-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      border-radius: 99px 0 0 99px;
+    }
+    .gb-client-card.score-alto::before  { background: var(--danger); }
+    .gb-client-card.score-medio::before { background: var(--warning); }
+    .gb-client-card.score-baixo::before { background: var(--success); }
+    .gb-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .gb-client-name {
+      font-size: .92rem;
+      font-weight: 800;
+      color: var(--text-1);
+      flex: 1;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    .gb-priority-badge {
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-size: .6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .gb-priority-badge.urgente    { background: #fee2e2; color: #b91c1c; }
+    .gb-priority-badge.oportunidade { background: #fef3c7; color: #92400e; }
+    .gb-priority-badge.neutro     { background: #f0fdf4; color: #15803d; }
+    .gb-card-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .gb-info-tile {
+      background: var(--surface);
+      border-radius: 7px;
+      padding: 7px 9px;
+    }
+    .gb-info-tile .lbl {
+      font-size: .57rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-3);
+      display: block;
+      margin-bottom: 1px;
+    }
+    .gb-info-tile .val {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--text-1);
+    }
+    .gb-info-tile .val.destaque { color: var(--navy); }
+    .gb-info-tile .val.perigo   { color: var(--danger); }
+    .gb-info-tile .val.sucesso  { color: var(--success); }
+    .gb-meses-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #ede9fe;
+      border: 1px solid #ddd6fe;
+      color: #5b21b6;
+      border-radius: 5px;
+      font-size: .62rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      margin-bottom: 8px;
+    }
+    .gb-meses-badge.verde { background: #d1fae5; border-color: #a7f3d0; color: #065f46; }
+    .gb-meses-badge.laranja { background: #fff7ed; border-color: #fed7aa; color: #92400e; }
+    .gb-meses-badge.vermelho { background: #fee2e2; border-color: #fecaca; color: #b91c1c; }
+    .gb-consultor-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      border-radius: 5px;
+      font-size: .62rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      margin-bottom: 8px;
+    }
+    .gb-card-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .gb-action-btn {
+      flex: 1;
+      min-width: 0;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .72rem;
+      font-weight: 700;
+      gap: 4px;
+      transition: all .15s;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .gb-action-btn:active { transform: scale(.93); }
+    .gb-action-btn.whats  { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
+    .gb-action-btn.ia     { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+    .gb-action-btn.reg    { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+    .gb-action-btn.detail { background: var(--surface); color: var(--text-2); border-color: var(--border); }
+    #gbModalRegistro .delta-display {
+      background: linear-gradient(135deg, #0d1b3e, #003580);
+      border-radius: var(--r-sm);
+      padding: 14px 16px;
+      margin: 12px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #fff;
+    }
+    #gbModalRegistro .delta-display .delta-val {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: -.04em;
+    }
+    #gbModalRegistro .delta-display .delta-val.positivo { color: #4ade80; }
+    #gbModalRegistro .delta-display .delta-val.negativo  { color: #f87171; }
+    #gbModalRegistro .delta-display .delta-lbl {
+      font-size: .65rem;
+      opacity: .7;
+      text-transform: uppercase;
+    }
+    #gbModalIA .ia-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      gap: 12px;
+      color: var(--text-3);
+      font-size: .82rem;
+    }
+    #gbModalIA .ia-ring {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    #gbModalIA .ia-text-box {
+      background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+      border: 1px solid #bfdbfe;
+      border-radius: var(--r-sm);
+      padding: 14px;
+      font-size: .85rem;
+      line-height: 1.6;
+      color: var(--text-1);
+      white-space: pre-wrap;
+      margin-bottom: 12px;
+    }
+    #gbModalIA .ia-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    #gbPainelConsultores {
+      margin-top: 4px;
+    }
+    .gb-cons-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: var(--sh-sm);
+    }
+    .gb-cons-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .gb-cons-avatar {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--navy-mid), var(--cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 900;
+      font-size: .9rem;
+      flex-shrink: 0;
+    }
+    .gb-cons-name { font-size: .88rem; font-weight: 800; color: var(--text-1); }
+    .gb-cons-meta { font-size: .65rem; color: var(--text-3); }
+    .gb-cons-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .gb-cons-stat {
+      background: var(--surface);
+      border-radius: 7px;
+      padding: 8px 4px;
+      text-align: center;
+    }
+    .gb-cons-stat .sv { font-size: 1rem; font-weight: 900; color: var(--navy); }
+    .gb-cons-stat .sl { font-size: .55rem; font-weight: 700; text-transform: uppercase; color: var(--text-3); }
+    .gb-cons-stat .sv.verde   { color: var(--success); }
+    .gb-cons-stat .sv.vermelho { color: var(--danger); }
+    .gb-historico-item {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      border-left: 3px solid var(--border);
+    }
+    .gb-historico-item.positivo { border-left-color: var(--success); }
+    .gb-historico-item.negativo { border-left-color: var(--danger); }
+    .gb-historico-item.atuacao  { border-left-color: var(--warning); }
+    .gb-hist-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .gb-hist-consultor { font-size: .72rem; font-weight: 700; color: var(--navy); }
+    .gb-hist-data      { font-size: .62rem; color: var(--text-3); }
+    .gb-hist-resultado { font-size: .75rem; font-weight: 700; color: var(--text-1); }
+    .gb-hist-delta     { font-size: .68rem; color: var(--text-2); margin-top: 2px; }
+    .gb-hist-obs       { font-size: .7rem; color: var(--text-3); margin-top: 3px; font-style: italic; }
+    .gb-empty {
+      text-align: center;
+      padding: 40px 18px;
+      color: var(--text-3);
+    }
+    .gb-empty i { font-size: 2rem; display: block; margin-bottom: 10px; opacity: .25; }
+    .gb-empty p { font-size: .82rem; }
+    @keyframes gbSkeleton {
+      0%, 100% { opacity: .5; }
+      50%       { opacity: 1; }
+    }
+    .gb-skeleton {
+      background: var(--border);
+      border-radius: 6px;
+      animation: gbSkeleton 1.4s ease infinite;
+    }
+    .gb-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      box-shadow: var(--sh-sm);
+    }
+    .gb-tab {
+      flex: 1;
+      padding: 8px 4px;
+      border-radius: 7px;
+      font-size: .72rem;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      color: var(--text-3);
+      transition: all .2s;
+    }
+    .gb-tab.on {
+      background: var(--navy);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,53,128,.2);
+    }
+    .gb-atuacao-flag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      border-radius: 5px;
+      font-size: .6rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      animation: pulseAlert 2.5s ease-in-out infinite;
+    }
+
     /* ====================================================
        RESPONSIVE
     ==================================================== */
@@ -530,6 +922,7 @@
       <div class="dsb-item" onclick="navegarPara('materiais')"><i class="fas fa-folder-open"></i> Materiais</div>
       <div class="dsb-item" onclick="navegarPara('concorrentes')"><i class="fas fa-binoculars"></i> Concorrentes</div>
       <div class="dsb-item" onclick="navegarPara('objecoes')"><i class="fas fa-shield-alt"></i> Objeções</div>
+      <div class="dsb-item" onclick="navegarPara('gestaoBase')"><i class="fas fa-chart-line"></i> Gestão de Base</div>
       <div class="dsb-section">Pessoal</div>
       <div class="dsb-item" onclick="navegarPara('faltas')"><i class="fas fa-calendar-times"></i> Faltas</div>
       <div class="dsb-item" onclick="consultarPlanosIA()"><i class="fas fa-robot"></i> Chat IA</div>
@@ -685,31 +1078,24 @@
       </div>
 
       <!-- ============ FTTA ============ -->
-     <div id="ftta" class="page">
-  <div class="pg-hdr">
-    <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-    <h2 class="pg-title">FTTA</h2>
-    <button onclick="carregarFtta()" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;"><i class="fas fa-sync-alt"></i></button>
-  </div>
- 
-  <!-- Abas: Lajeado / Estrela / Prospecção -->
-  <div class="filter-scroll" style="margin-bottom:10px;">
-    <button class="ftag on" id="fttaTabLaj" onclick="setFttaTab('lajeado')">Lajeado</button>
-    <button class="ftag" id="fttaTabEst" onclick="setFttaTab('estrela')">Estrela</button>
-    <button class="ftag" id="fttaTabPro" onclick="setFttaTab('prospeccao')">Prospeccao</button>
-  </div>
- 
-  <!-- Chips de cidade (preenchidos dinamicamente pelo JS) -->
-  <div class="filter-scroll" id="fttaCidadeChips" style="margin-bottom:10px;"></div>
- 
-  <!-- Busca por nome / bairro / endereço -->
-  <div class="search-wrap">
-    <i class="fas fa-search"></i>
-    <input class="search-input" id="searchFtta" placeholder="Buscar nome, bairro ou endereco..." oninput="filtrarFtta()">
-  </div>
- 
-  <div id="listaFtta" class="lead-list-wrap"></div>
-</div>
+      <div id="ftta" class="page">
+        <div class="pg-hdr">
+          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
+          <h2 class="pg-title">FTTA</h2>
+          <button onclick="carregarFtta()" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="filter-scroll" style="margin-bottom:10px;">
+          <button class="ftag on" id="fttaTabLaj" onclick="setFttaTab('lajeado')">Lajeado</button>
+          <button class="ftag" id="fttaTabEst" onclick="setFttaTab('estrela')">Estrela</button>
+          <button class="ftag" id="fttaTabPro" onclick="setFttaTab('prospeccao')">Prospeccao</button>
+        </div>
+        <div class="filter-scroll" id="fttaCidadeChips" style="margin-bottom:10px;"></div>
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input class="search-input" id="searchFtta" placeholder="Buscar nome, bairro ou endereco..." oninput="filtrarFtta()">
+        </div>
+        <div id="listaFtta" class="lead-list-wrap"></div>
+      </div>
 
       <!-- ============ CADASTRO LEAD ============ -->
       <div id="cadastroLead" class="page">
@@ -835,7 +1221,6 @@
           <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
             <i class="fas fa-history"></i> 
             Histórico de Solicitações
-            ${'' /* admin label adicionado via JS */}
           </div>
           <div id="listaHistoricoFaltas">
             <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Carregando...</p></div>
@@ -845,64 +1230,39 @@
 
       <!-- ============ INDICADORES ============ -->
       <div id="indicadores" class="page">
-  <div class="pg-hdr">
-    <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-    <h2 class="pg-title">Indicadores</h2>
-    <button onclick="carregarIndicadores()" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;"><i class="fas fa-sync-alt"></i></button>
-  </div>
- 
-  <!-- Período -->
-  <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:14px;display:flex;align-items:center;gap:6px;">
-    <i class="far fa-calendar"></i><span id="indMes">--</span>
-  </div>
- 
-  <!-- Filtro de mês (somente admin) -->
-  <div id="indFiltroMes" class="hidden">
-    <label>Filtrar mês:</label>
-    <input type="month" id="selFiltroMes" class="f-input" style="flex:1;padding:8px 10px;font-size:.82rem;" onchange="filtrarIndicadoresMes()">
-    <button onclick="document.getElementById('selFiltroMes').value='';filtrarIndicadoresMes()" class="btn btn-ghost btn-sm">Atual</button>
-  </div>
- 
-  <!-- Leads hoje (vendedor) -->
-  <div id="indLeadsHoje" class="hidden"></div>
- 
-  <!-- Cards principais -->
-  <div class="ind-card">
-    <div class="ind-row">
-      <span class="ind-label" id="indLabelLeads">Total de Leads</span>
-      <span class="ind-val" id="funnelLeads">0</span>
-    </div>
-    <div class="prog-bar"><div class="prog-fill" id="pbLeads" style="width:0%;background:linear-gradient(90deg,var(--navy-mid),var(--cyan))"></div></div>
-  </div>
-  <div class="ind-card">
-    <div class="ind-row">
-      <span class="ind-label" id="indLabelVendas">Vendas Fechadas</span>
-      <span class="ind-val" id="indRealizado">0</span>
-    </div>
-    <div class="prog-bar"><div class="prog-fill" id="pbVendas" style="width:0%;background:linear-gradient(90deg,var(--success),#34d399)"></div></div>
-  </div>
-  <div class="ind-card">
-    <div class="ind-row">
-      <span class="ind-label" id="indLabelNeg">Em Negociação</span>
-      <span class="ind-val" id="indNegociacao">0</span>
-    </div>
-    <div class="prog-bar"><div class="prog-fill" id="pbNeg" style="width:0%;background:linear-gradient(90deg,var(--warning),#fbbf24)"></div></div>
-  </div>
- 
-  <!-- Gráfico de barras diário -->
-  <div id="indGrafico" class="hidden"></div>
- 
-  <!-- Comparativo mês anterior (vendedor) -->
-  <div id="indComparativo" class="hidden"></div>
- 
-  <!-- Ranking da equipe (admin) -->
-  <div id="indRankingVendedores" class="ind-card hidden"></div>
- 
-  <!-- Mensagem IA motivacional -->
-  <div id="iaMsgBox" class="ai-resp-box hidden">
-    <i class="fas fa-robot"></i> <span id="iaMsgTxt"></span>
-  </div>
-</div>
+        <div class="pg-hdr">
+          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
+          <h2 class="pg-title">Indicadores</h2>
+          <button onclick="carregarIndicadores()" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:14px;display:flex;align-items:center;gap:6px;">
+          <i class="far fa-calendar"></i><span id="indMes">--</span>
+        </div>
+        <div id="indFiltroMes" class="hidden">
+          <label>Filtrar mês:</label>
+          <input type="month" id="selFiltroMes" class="f-input" style="flex:1;padding:8px 10px;font-size:.82rem;" onchange="filtrarIndicadoresMes()">
+          <button onclick="document.getElementById('selFiltroMes').value='';filtrarIndicadoresMes()" class="btn btn-ghost btn-sm">Atual</button>
+        </div>
+        <div id="indLeadsHoje" class="hidden"></div>
+        <div class="ind-card">
+          <div class="ind-row"><span class="ind-label" id="indLabelLeads">Total de Leads</span><span class="ind-val" id="funnelLeads">0</span></div>
+          <div class="prog-bar"><div class="prog-fill" id="pbLeads" style="width:0%;background:linear-gradient(90deg,var(--navy-mid),var(--cyan))"></div></div>
+        </div>
+        <div class="ind-card">
+          <div class="ind-row"><span class="ind-label" id="indLabelVendas">Vendas Fechadas</span><span class="ind-val" id="indRealizado">0</span></div>
+          <div class="prog-bar"><div class="prog-fill" id="pbVendas" style="width:0%;background:linear-gradient(90deg,var(--success),#34d399)"></div></div>
+        </div>
+        <div class="ind-card">
+          <div class="ind-row"><span class="ind-label" id="indLabelNeg">Em Negociação</span><span class="ind-val" id="indNegociacao">0</span></div>
+          <div class="prog-bar"><div class="prog-fill" id="pbNeg" style="width:0%;background:linear-gradient(90deg,var(--warning),#fbbf24)"></div></div>
+        </div>
+        <div id="indGrafico" class="hidden"></div>
+        <div id="indComparativo" class="hidden"></div>
+        <div id="indRankingVendedores" class="ind-card hidden"></div>
+        <div id="iaMsgBox" class="ai-resp-box hidden">
+          <i class="fas fa-robot"></i> <span id="iaMsgTxt"></span>
+        </div>
+      </div>
 
       <!-- ============ MATERIAIS ============ -->
       <div id="materiais" class="page">
@@ -970,6 +1330,158 @@
         </div>
       </div>
 
+      <!-- ============ GESTÃO DE BASE (Página adicionada) ============ -->
+      <div id="gestaoBase" class="page">
+        <div class="pg-hdr">
+          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
+          <h2 class="pg-title">Gestão de Base</h2>
+          <button onclick="gbCarregarBase(true)" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;" title="Sincronizar">
+            <i class="fas fa-sync-alt" id="gbSyncIcon"></i>
+          </button>
+        </div>
+
+        <div class="gb-tabs">
+          <div class="gb-tab on" id="gbTabClientes" onclick="gbSetTab('clientes')">
+            <i class="fas fa-users"></i> Clientes
+          </div>
+          <div class="gb-tab" id="gbTabDash" onclick="gbSetTab('dashboard')">
+            <i class="fas fa-chart-bar"></i> Dashboard
+          </div>
+          <div class="gb-tab" id="gbTabHistorico" onclick="gbSetTab('historico')">
+            <i class="fas fa-history"></i> Histórico
+          </div>
+        </div>
+
+        <!-- Tab Clientes -->
+        <div id="gbTabContentClientes">
+          <div class="gb-header-kpis" id="gbKpis">
+            <div class="gb-kpi urgente" onclick="gbFiltrarPrioridade('urgente')">
+              <div class="gb-kpi-val" id="gbKpiUrgente">–</div>
+              <div class="gb-kpi-lbl">🔴 Urgente</div>
+              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarUrgente" style="width:0%;background:var(--danger)"></div></div>
+            </div>
+            <div class="gb-kpi oportunidade" onclick="gbFiltrarPrioridade('oportunidade')">
+              <div class="gb-kpi-val" id="gbKpiOportunidade">–</div>
+              <div class="gb-kpi-lbl">🟡 Oportunidade</div>
+              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarOport" style="width:0%;background:var(--warning)"></div></div>
+            </div>
+            <div class="gb-kpi incremento" onclick="gbFiltrarPrioridade('todos')">
+              <div class="gb-kpi-val" id="gbKpiTotal">–</div>
+              <div class="gb-kpi-lbl">📋 Total Base</div>
+              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarTotal" style="width:100%;background:var(--navy)"></div></div>
+            </div>
+            <div class="gb-kpi" onclick="gbFiltrarPrioridade('atuacao')" style="cursor:pointer;">
+              <div class="gb-kpi-val" style="color:var(--warning);" id="gbKpiAtuacao">–</div>
+              <div class="gb-kpi-lbl">⚠️ Requer Ação</div>
+              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarAtuacao" style="width:0%;background:var(--warning)"></div></div>
+            </div>
+          </div>
+
+          <div class="gb-filters">
+            <div class="gb-filters-title"><i class="fas fa-filter"></i> Filtros de Priorização</div>
+            <div class="gb-filter-row">
+              <select class="gb-select" id="gbFiltroConsultor" onchange="gbAplicarFiltros()">
+                <option value="">Todos Consultores</option>
+                <option value="Ana Paula">Ana Paula</option>
+                <option value="Karolina">Karolina</option>
+                <option value="João Vithor">João Vithor</option>
+                <option value="Mauricio">Mauricio</option>
+              </select>
+              <select class="gb-select" id="gbFiltroFidelidade" onchange="gbAplicarFiltros()">
+                <option value="">Qualquer fidelidade</option>
+                <option value="vencida">Fidelidade vencida</option>
+                <option value="30dias">Vence em 30 dias</option>
+                <option value="emfidelidade">Em fidelidade</option>
+              </select>
+            </div>
+            <div class="gb-filter-row">
+              <select class="gb-select" id="gbFiltroVelocidade" onchange="gbAplicarFiltros()">
+                <option value="">Qualquer plano</option>
+                <option value="baixo">Plano baixo (≤300Mb)</option>
+                <option value="medio">Médio (301–600Mb)</option>
+                <option value="alto">Alto (>600Mb)</option>
+              </select>
+              <select class="gb-select" id="gbFiltroAntiguidade" onchange="gbAplicarFiltros()">
+                <option value="">Qualquer tempo</option>
+                <option value="12mais">+12 meses</option>
+                <option value="6a12">6 a 12 meses</option>
+                <option value="menos6">Menos de 6 meses</option>
+              </select>
+            </div>
+            <div class="flex-row" style="gap:6px;">
+              <select class="gb-select" id="gbFiltroOrdem" onchange="gbAplicarFiltros()" style="flex:1;">
+                <option value="score">Ordenar por Prioridade</option>
+                <option value="valor_desc">Maior valor</option>
+                <option value="valor_asc">Menor valor</option>
+                <option value="meses_desc">Mais antigo</option>
+                <option value="nome">Nome A-Z</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="gbLimparFiltros()" style="flex-shrink:0;padding:8px 14px;">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="search-wrap">
+            <i class="fas fa-search"></i>
+            <input class="search-input" id="gbSearchInput" placeholder="Buscar cliente, plano, cidade..." oninput="gbAplicarFiltros()">
+          </div>
+
+          <div style="font-size:.68rem;color:var(--text-3);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+            <span id="gbContador">Carregando...</span>
+            <button onclick="gbGerarAbordagemLote()" style="font-size:.65rem;font-weight:700;color:var(--navy);background:none;border:none;cursor:pointer;" id="gbBtnLote" class="hidden">
+              <i class="fas fa-magic"></i> IA em Lote
+            </button>
+          </div>
+
+          <div id="gbListaClientes">
+            <div class="gb-empty"><i class="fas fa-spinner fa-spin"></i><p>Carregando base...</p></div>
+          </div>
+
+          <div id="gbPaginacao" style="display:flex;justify-content:center;gap:8px;margin-top:14px;padding-bottom:8px;">
+            <button class="btn btn-ghost btn-sm" id="gbBtnAnterior" onclick="gbPaginaAnterior()" style="display:none;">
+              <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <span id="gbPaginaInfo" style="font-size:.75rem;color:var(--text-3);align-self:center;"></span>
+            <button class="btn btn-ghost btn-sm" id="gbBtnProximo" onclick="gbProximaPagina()">
+              Próxima <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Dashboard -->
+        <div id="gbTabContentDash" class="hidden">
+          <div id="gbPainelConsultores">
+            <div class="gb-empty"><i class="fas fa-spinner fa-spin"></i><p>Calculando...</p></div>
+          </div>
+        </div>
+
+        <!-- Tab Histórico -->
+        <div id="gbTabContentHistorico" class="hidden">
+          <div class="gb-filter-row" style="margin-bottom:14px;">
+            <select class="gb-select" id="gbHistFiltroConsultor" onchange="gbCarregarHistorico()">
+              <option value="">Todos</option>
+              <option value="Ana Paula">Ana Paula</option>
+              <option value="Karolina">Karolina</option>
+              <option value="João Vithor">João Vithor</option>
+              <option value="Mauricio">Mauricio</option>
+            </select>
+            <select class="gb-select" id="gbHistFiltroResultado" onchange="gbCarregarHistorico()">
+              <option value="">Qualquer resultado</option>
+              <option value="UPGRADE">Upgrade</option>
+              <option value="DOWNGRADE">Downgrade</option>
+              <option value="FIDELIZOU">Fidelizou</option>
+              <option value="RECUSOU">Recusou</option>
+              <option value="ATUACAO">Requer Ação</option>
+              <option value="NAO_ATENDEU">Não atendeu</option>
+            </select>
+          </div>
+          <div id="gbListaHistorico">
+            <div class="gb-empty"><i class="fas fa-history"></i><p>Nenhuma ação registrada.</p></div>
+          </div>
+        </div>
+      </div>
+
     </main>
 
     <!-- BOTTOM NAV -->
@@ -979,12 +1491,13 @@
       <div class="nav-fab" onclick="navegarPara('cadastroLead')"><i class="fas fa-plus"></i></div>
       <div class="nav-i" id="navTasks" onclick="navegarPara('tarefas')"><i class="fas fa-check-square"></i>Tarefas</div>
       <div class="nav-i" id="navFtta" onclick="navegarPara('ftta')"><i class="fas fa-network-wired"></i>FTTA</div>
+      <div class="nav-i" id="navGestaoBase" onclick="navegarPara('gestaoBase')"><i class="fas fa-chart-line"></i>Base</div>
     </nav>
 
   </div><!-- end #app -->
 </div><!-- end #appWrapper -->
 
-<!-- ============ LEAD MODAL ============ -->
+<!-- ============ LEAD MODAL (original) ============ -->
 <div id="leadModal" class="modal-back">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -997,19 +1510,19 @@
       <div class="modal-info-tile"><div class="mit-lbl">Plano</div><div class="mit-val" id="modalLeadPlano">-</div></div>
       <div class="modal-info-tile"><div class="mit-lbl">Valor</div><div class="mit-val" id="modalLeadValor">-</div></div>
       <div id="leadModalMetaBlock" style="background:var(--surface);border-radius:9px;padding:10px 12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:7px;">
-  <div>
-    <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Cadastrado em</div>
-    <div id="modalLeadDataCadastro" style="font-size:.8rem;font-weight:700;color:var(--text-1);">-</div>
-  </div>
-  <div>
-    <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Última atualização</div>
-    <div id="modalLeadUltAtual" style="font-size:.8rem;font-weight:700;color:var(--text-1);">-</div>
-  </div>
-  <div style="grid-column:span 2;" id="modalLeadVendedorRow">
-    <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Vendedor responsável</div>
-    <div id="modalLeadVendedor" style="font-size:.8rem;font-weight:700;color:var(--navy);">-</div>
-  </div>
-</div>
+        <div>
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Cadastrado em</div>
+          <div id="modalLeadDataCadastro" style="font-size:.8rem;font-weight:700;color:var(--text-1);">-</div>
+        </div>
+        <div>
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Última atualização</div>
+          <div id="modalLeadUltAtual" style="font-size:.8rem;font-weight:700;color:var(--text-1);">-</div>
+        </div>
+        <div style="grid-column:span 2;" id="modalLeadVendedorRow">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Vendedor responsável</div>
+          <div id="modalLeadVendedor" style="font-size:.8rem;font-weight:700;color:var(--navy);">-</div>
+        </div>
+      </div>
     </div>
     <div id="modalFidelidadeBox" class="hidden" style="background:#fff7ed;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-bottom:16px;font-size:.8rem;color:#92400e;font-weight:600;"></div>
     <div class="modal-acts">
@@ -1062,7 +1575,7 @@
   </div>
 </div>
 
-<!-- TASK MODAL -->
+<!-- TASK MODAL (original) -->
 <div id="taskModal" class="modal2-back">
   <div class="modal2-card">
     <div class="m2-title">Nova Tarefa</div>
@@ -1076,7 +1589,7 @@
   </div>
 </div>
 
-<!-- CONFIG MODAL -->
+<!-- CONFIG MODAL (original) -->
 <div id="configModal">
   <div class="cfg-sheet">
     <div class="modal-handle"></div>
@@ -1091,7 +1604,7 @@
   </div>
 </div>
 
-<!-- TRANSFERENCIA MODAL -->
+<!-- TRANSFERENCIA MODAL (original) -->
 <div id="modalTransferencia" class="modal2-back">
   <div class="modal2-card">
     <div class="m2-title">Transferência em Lote</div>
@@ -1104,7 +1617,7 @@
   </div>
 </div>
 
-<!-- MODAL CONCORRENTE (ADMIN) -->
+<!-- MODAL CONCORRENTE (ADMIN) (original) -->
 <div id="modalConcorrente" class="modal2-back">
   <div class="modal2-card">
     <div class="m2-title" id="compModalTitle">Novo Concorrente</div>
@@ -1124,7 +1637,7 @@
   </div>
 </div>
 
-<!-- CHAT IA -->
+<!-- CHAT IA (original) -->
 <div id="chatModal">
   <div class="chat-sheet">
     <div class="chat-title"><i class="fas fa-robot" style="color:var(--navy);"></i> Chat com IA · MHNET</div>
@@ -1137,7 +1650,187 @@
   </div>
 </div>
 
+<!-- MODAL FTTA BLOCO (original) -->
+<div id="modalFttaBloco" class="modal2-back">
+  <div class="modal2-card">
+    <div class="m2-title">Editar Bloco FTTA</div>
+    <div class="field"><label>Nome do Bloco / Condominio</label><input class="f-input" id="fttaBlocoNome" placeholder="Ex: Residencial das Flores"></div>
+    <div class="field"><label>Sindico / Responsavel</label><input class="f-input" id="fttaBlocoSindico" placeholder="Nome do sindico"></div>
+    <div class="field"><label>Contato (WhatsApp / Telefone)</label><input class="f-input" id="fttaBlocoContato" type="tel" placeholder="Ex: 51 99999-9999"></div>
+    <div class="field"><label>Endereco (usado no mapa)</label><input class="f-input" id="fttaBlocoEndereco" placeholder="Rua e numero"></div>
+    <div class="field-row">
+      <div class="field"><label>Bairro</label><input class="f-input" id="fttaBlocoBairro" placeholder="Bairro"></div>
+      <div class="field"><label>Cidade</label><input class="f-input" id="fttaBlocoCidade" placeholder="Cidade"></div>
+    </div>
+    <div class="flex-row" style="margin-top:12px;">
+      <button class="btn btn-navy" style="flex:1;" onclick="salvarEdicaoFttaBloco()"><i class="fas fa-save"></i> Salvar</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalFttaBloco').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PROSPECÇÃO FTTA (original) -->
+<div id="modalProspeccao" class="modal2-back">
+  <div class="modal2-card">
+    <div class="m2-title" id="prosTitulo">Nova Prospecção</div>
+    <div class="field"><label>Nome do Condomínio / Bloco</label><input class="f-input" id="prosNome" placeholder="Ex: Residencial das Flores"></div>
+    <div class="field-row">
+      <div class="field"><label>Construtora</label><input class="f-input" id="prosConstrutora" placeholder="Ex: Construtora ABC"></div>
+      <div class="field"><label>Data de Entrega</label><input class="f-input" id="prosDataEntrega" type="date"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Síndico / Administradora</label><input class="f-input" id="prosSindico" placeholder="Nome"></div>
+      <div class="field"><label>Contato</label><input class="f-input" id="prosContato" type="tel" placeholder="51 99999-9999"></div>
+    </div>
+    <div class="field"><label>Endereço</label><input class="f-input" id="prosEndereco" placeholder="Rua e número"></div>
+    <div class="field-row">
+      <div class="field"><label>Bairro</label><input class="f-input" id="prosBairro" placeholder="Bairro"></div>
+      <div class="field"><label>Cidade</label><input class="f-input" id="prosCidade" placeholder="Lajeado"></div>
+    </div>
+    <div class="field"><label>Consultor Responsável</label><input class="f-input" id="prosConsultor" placeholder="Nome do consultor"></div>
+    <p style="font-size:.7rem;color:var(--text-3);margin-bottom:12px;background:#eff6ff;border-radius:7px;padding:8px 10px;">
+      <i class="fas fa-info-circle" style="color:var(--navy);"></i>
+      A <strong>próxima ação</strong> será calculada automaticamente para <strong>2 meses</strong> após o registro.
+    </p>
+    <div class="flex-row">
+      <button class="btn btn-navy" style="flex:1;" onclick="salvarProspeccao()"><i class="fas fa-save"></i> Salvar</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalProspeccao').classList.remove('open')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAIS DO MÓDULO GESTÃO DE BASE ============ -->
+<div id="gbModalCliente" class="modal-back">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+      <div>
+        <div style="font-size:1.15rem;font-weight:800;color:var(--text-1);" id="gbModalNome">—</div>
+        <div style="font-size:.75rem;color:var(--text-3);margin-top:2px;" id="gbModalContrato">Contrato —</div>
+      </div>
+      <button onclick="gbFecharModal('gbModalCliente')" style="width:30px;height:30px;background:var(--surface);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.78rem;flex-shrink:0;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="gb-card-info" id="gbModalInfoGrid" style="grid-template-columns:1fr 1fr 1fr;"></div>
+    <div style="margin:10px 0 14px;" id="gbModalBadges"></div>
+    <div class="sep"></div>
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px;">Ações</div>
+    <div class="gb-card-actions" style="flex-wrap:wrap;gap:7px;margin-bottom:16px;">
+      <button class="gb-action-btn whats" id="gbModalBtnWhats" style="flex:1;"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+      <button class="gb-action-btn ia" onclick="gbGerarAbordagem()" style="flex:1;"><i class="fas fa-magic"></i> Gerar IA</button>
+      <button class="gb-action-btn reg" onclick="gbAbrirRegistro()" style="flex:1;min-width:100%;height:36px;font-size:.8rem;"><i class="fas fa-clipboard-check"></i> Registrar Ação</button>
+    </div>
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px;">Histórico de Contatos</div>
+    <div id="gbModalHistCliente">
+      <div class="gb-empty" style="padding:20px 0;"><i class="fas fa-history"></i><p>Sem contatos registrados.</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="gbModalRegistro" class="modal2-back">
+  <div class="modal2-card">
+    <div class="m2-title"><i class="fas fa-clipboard-check" style="color:var(--navy);"></i> Registrar Ação</div>
+    <div id="gbRegClienteInfo" style="background:var(--surface);border-radius:9px;padding:10px 12px;margin-bottom:14px;font-size:.82rem;color:var(--text-2);"></div>
+    <div class="field">
+      <label>Consultor</label>
+      <select class="f-input" id="gbRegConsultor">
+        <option value="">Selecione...</option>
+        <option>Ana Paula</option>
+        <option>Karolina</option>
+        <option>João Vithor</option>
+        <option>Mauricio</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status do Contato</label>
+      <select class="f-input" id="gbRegStatus" onchange="gbRegAtualizar()">
+        <option value="">Selecione...</option>
+        <option value="ATENDEU">Cliente atendeu</option>
+        <option value="NAO_ATENDEU">Não atendeu</option>
+        <option value="AGENDOU">Agendou retorno</option>
+      </select>
+    </div>
+    <div id="gbRegResultadoArea" class="hidden">
+      <div class="field">
+        <label>Resultado</label>
+        <select class="f-input" id="gbRegResultado" onchange="gbRegAtualizar()">
+          <option value="">Selecione...</option>
+          <option value="UPGRADE">✅ Upgrade de plano</option>
+          <option value="DOWNGRADE">🔽 Downgrade de plano</option>
+          <option value="FIDELIZOU">🔒 Fidelizou (manteve plano)</option>
+          <option value="RECUSOU">❌ Recusou upgrade</option>
+          <option value="ATUACAO">⚠️ Requer atuação (reclamação)</option>
+        </select>
+      </div>
+      <div id="gbRegPlanoArea" class="hidden">
+        <div class="field">
+          <label>Plano Anterior</label>
+          <input class="f-input" id="gbRegPlanoAnterior" placeholder="Ex: 300 Mbps" readonly style="background:#f0f0f0;">
+        </div>
+        <div class="field">
+          <label>Plano Novo</label>
+          <input class="f-input" id="gbRegPlanoNovo" placeholder="Ex: 600 Mbps" oninput="gbRegCalcularDelta()">
+        </div>
+        <div class="field">
+          <label>Valor Anterior (R$)</label>
+          <input class="f-input" id="gbRegValorAnterior" type="number" placeholder="0.00" readonly style="background:#f0f0f0;">
+        </div>
+        <div class="field">
+          <label>Valor Novo (R$)</label>
+          <input class="f-input" id="gbRegValorNovo" type="number" placeholder="0.00" oninput="gbRegCalcularDelta()">
+        </div>
+        <div class="delta-display" id="gbRegDeltaDisplay">
+          <div>
+            <div class="delta-lbl">Δ Impacto Financeiro</div>
+            <div class="delta-val" id="gbRegDeltaVal">R$ 0,00</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="delta-lbl">Por mês</div>
+            <div id="gbRegDeltaIcon" style="font-size:1.6rem;">➡️</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Observação <span style="font-weight:400;text-transform:none;color:var(--text-3);">(opcional)</span></label>
+      <textarea class="f-input" id="gbRegObs" rows="2" placeholder="Detalhes da conversa, reclamação, negociação..."></textarea>
+    </div>
+    <div class="flex-row">
+      <button class="btn btn-navy" style="flex:1;" onclick="gbSalvarRegistro()"><i class="fas fa-save"></i> Salvar</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="gbFecharModal('gbModalRegistro')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="gbModalIA" class="modal2-back">
+  <div class="modal2-card">
+    <div class="m2-title"><i class="fas fa-robot" style="color:var(--navy);"></i> Abordagem IA</div>
+    <div id="gbIAClienteInfo" style="background:var(--surface);border-radius:9px;padding:10px 12px;margin-bottom:14px;font-size:.82rem;color:var(--text-2);"></div>
+    <div id="gbIALoading" class="ia-loading">
+      <div class="ia-ring"></div>
+      <span>Gerando abordagem personalizada...</span>
+    </div>
+    <div id="gbIAResultado" class="hidden">
+      <div class="ia-text-box" id="gbIATexto"></div>
+      <div class="ia-actions">
+        <button class="btn btn-navy btn-sm" style="width:100%;" onclick="gbCopiarAbordagem()">
+          <i class="fas fa-copy"></i> Copiar texto
+        </button>
+        <button class="btn btn-success btn-sm" style="width:100%;background:var(--success);" onclick="gbAbrirWhatsAppComIA()">
+          <i class="fab fa-whatsapp"></i> WhatsApp
+        </button>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;" onclick="gbGerarAbordagem()">
+        <i class="fas fa-sync-alt"></i> Gerar nova versão
+      </button>
+    </div>
+    <button class="btn btn-ghost" style="margin-top:12px;" onclick="gbFecharModal('gbModalIA')">Fechar</button>
+  </div>
+</div>
+
 <script src="app.js"></script>
+
 <script>
   // Service Worker para PWA instalável
   if ('serviceWorker' in navigator) {
@@ -1145,7 +1838,6 @@
       navigator.serviceWorker.register('./sw.js')
         .then(reg => {
           console.log('SW registrado:', reg.scope);
-          // Verifica atualizações
           reg.onupdatefound = () => {
             const installing = reg.installing;
             installing.onstatechange = () => {
@@ -1165,103 +1857,687 @@
   });
  
   window.addEventListener('offline', () => document.getElementById('offlineBanner').classList.add('show'));
- 
 </script>
-<div id="modalFttaBloco" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title">Editar Bloco FTTA</div>
-    <div class="field">
-      <label>Nome do Bloco / Condominio</label>
-      <input class="f-input" id="fttaBlocoNome" placeholder="Ex: Residencial das Flores">
-    </div>
-    <div class="field">
-      <label>Sindico / Responsavel</label>
-      <input class="f-input" id="fttaBlocoSindico" placeholder="Nome do sindico">
-    </div>
-    <div class="field">
-      <label>Contato (WhatsApp / Telefone)</label>
-      <input class="f-input" id="fttaBlocoContato" type="tel" placeholder="Ex: 51 99999-9999">
-    </div>
-    <div class="field">
-      <label>Endereco (usado no mapa)</label>
-      <input class="f-input" id="fttaBlocoEndereco" placeholder="Rua e numero">
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Bairro</label>
-        <input class="f-input" id="fttaBlocoBairro" placeholder="Bairro">
+
+<!-- ============================================================
+     SCRIPT DO MÓDULO GESTÃO DE BASE (adicionado após app.js)
+============================================================ -->
+<script>
+// ============================================================
+// GESTÃO DE BASE — STATE
+// ============================================================
+const GB = {
+  clientes:    [],
+  filtrados:   [],
+  acoes:       [],
+  consultores: ['Ana Paula', 'Karolina', 'João Vithor', 'Mauricio'],
+  pagina:      0,
+  porPagina:   15,
+  clienteAtual: null,
+  tabAtual:    'clientes',
+  DEPLOY_ID: 'AKfycbzNNkCf08grP8ceWC1eYATGVzEUO0JgX8ITChWoS1oml9gN1boWnz-B_BRs3DNn1Ug',
+  get API_URL() { return `https://script.google.com/macros/s/${this.DEPLOY_ID}/exec`; },
+  GEMINI_KEY: 'AIzaSyC854djGrgcGEPbhTYm46Q2ayyJBp-tNv4',
+};
+
+// ============================================================
+// API CALL (usa a função global do app)
+// ============================================================
+async function gbApiCall(route, payload = {}, show = false) {
+  if (typeof apiCall === 'function') {
+    return apiCall(route, payload, show);
+  }
+  try {
+    const res = await fetch(GB.API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ route, payload })
+    });
+    return await res.json();
+  } catch(e) {
+    return { status: 'error', message: e.message };
+  }
+}
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+function gbInit() {
+  const cached = localStorage.getItem('gb_clientes_cache');
+  if (cached) {
+    try {
+      GB.clientes = JSON.parse(cached);
+      gbProcessarBase();
+    } catch(e) {}
+  }
+  gbCarregarBase(false);
+  gbCarregarAcoes(false);
+}
+
+function gbSetTab(tab) {
+  GB.tabAtual = tab;
+  ['clientes','dashboard','historico'].forEach(t => {
+    document.getElementById(`gbTabContent${t.charAt(0).toUpperCase()+t.slice(1)}`)?.classList.toggle('hidden', t !== tab);
+    document.getElementById(`gbTab${t.charAt(0).toUpperCase()+t.slice(1)}`)?.classList.toggle('on', t === tab);
+  });
+  if (tab === 'dashboard') gbRenderDashboard();
+  if (tab === 'historico')  gbCarregarHistorico();
+}
+
+async function gbCarregarBase(showLoader = true) {
+  const icon = document.getElementById('gbSyncIcon');
+  if (icon) { icon.style.animation = 'spin .8s linear infinite'; }
+  try {
+    const res = await gbApiCall('getBaseClientes', {}, false);
+    if (res?.status === 'success' && res.data) {
+      GB.clientes = res.data;
+      localStorage.setItem('gb_clientes_cache', JSON.stringify(GB.clientes));
+      gbProcessarBase();
+    } else {
+      // Fallback para dados mockados (apenas desenvolvimento)
+      console.warn('GB: Usando dados mockados');
+      GB.clientes = [
+        { idContrato:'1001', nome:'Carlos Alberto Machado', plano:'Fibra 100Mb', velocidadeMb:100, valor:79.90, dataAtivacao:'2021-10-15', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51999990001' },
+        { idContrato:'1002', nome:'Maria Silva Santos', plano:'Fibra 300Mb', velocidadeMb:300, valor:109.99, dataAtivacao:'2022-05-20', cidade:'Lajeado', status:'Ativo', canal:'Loja', consultorOrigem:'Karolina', telefoneExterno:'51999990002' },
+        { idContrato:'1003', nome:'João Pedro Alves', plano:'Fibra 200Mb', velocidadeMb:200, valor:89.90, dataAtivacao:'2020-03-10', cidade:'Estrela', status:'Ativo', canal:'Online', consultorOrigem:'João Vithor' },
+        { idContrato:'1004', nome:'Fernanda Oliveira Costa', plano:'Fibra 600Mb', velocidadeMb:600, valor:149.00, dataAtivacao:'2023-09-01', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Mauricio' },
+        { idContrato:'1005', nome:'Roberto Lima Pereira', plano:'Fibra 100Mb', velocidadeMb:100, valor:65.50, dataAtivacao:'2019-07-22', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51988887777' },
+      ];
+      GB.acoes = [
+        { id:'a1', idContrato:'1001', consultor:'Ana Paula', statusContato:'ATENDEU', resultado:'UPGRADE', planoAnterior:'100Mb', planoNovo:'300Mb', valorAnterior:79.90, valorNovo:109.99, deltaValor:30.09, observacao:'Cliente feliz', requerAtuacao:false, dataContato:'2025-05-10T14:30:00' },
+        { id:'a2', idContrato:'1003', consultor:'João Vithor', statusContato:'ATENDEU', resultado:'ATUACAO', planoAnterior:'200Mb', planoNovo:'', valorAnterior:89.90, valorNovo:0, deltaValor:0, observacao:'Reclamação de instabilidade', requerAtuacao:true, dataContato:'2025-05-28T10:15:00' },
+      ];
+      gbProcessarBase();
+    }
+  } catch(e) {
+    console.warn('GB: Erro ao carregar base:', e);
+  }
+  if (icon) { icon.style.animation = ''; }
+}
+
+async function gbCarregarAcoes(show = false) {
+  try {
+    const res = await gbApiCall('getBaseAcoes', {}, false);
+    if (res?.status === 'success' && res.data) {
+      GB.acoes = res.data;
+      localStorage.setItem('gb_acoes_cache', JSON.stringify(GB.acoes));
+    }
+  } catch(e) {
+    const cached = localStorage.getItem('gb_acoes_cache');
+    if (cached) try { GB.acoes = JSON.parse(cached); } catch(e2) {}
+  }
+}
+
+function gbProcessarBase() {
+  const hoje = new Date();
+  GB.clientes = GB.clientes.map(c => {
+    let meses = 0;
+    if (c.dataAtivacao) {
+      const dtAt = new Date(c.dataAtivacao);
+      if (!isNaN(dtAt)) {
+        meses = Math.floor((hoje - dtAt) / (1000 * 60 * 60 * 24 * 30.44));
+      }
+    }
+    let score = 0;
+    if (meses >= 24) score += 40;
+    else if (meses >= 12) score += 25;
+    else if (meses >= 6)  score += 10;
+    const mb = c.velocidadeMb || 0;
+    if (mb > 0 && mb <= 100)      score += 35;
+    else if (mb > 0 && mb <= 300) score += 25;
+    else if (mb > 0 && mb <= 600) score += 10;
+    const valorFrac = (c.valor || 0) % 1;
+    if (valorFrac > 0.01 && valorFrac < 0.99) score += 15;
+    let prioridade = 'neutro';
+    if (score >= 55) prioridade = 'urgente';
+    else if (score >= 25) prioridade = 'oportunidade';
+    return { ...c, meses, score, prioridade };
+  });
+  gbAtualizarKpis();
+  gbAplicarFiltros();
+}
+
+function gbAtualizarKpis() {
+  const urgentes    = GB.clientes.filter(c => c.prioridade === 'urgente').length;
+  const oportunidades = GB.clientes.filter(c => c.prioridade === 'oportunidade').length;
+  const total       = GB.clientes.length;
+  const idsAtuacao  = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
+  const atuacao     = idsAtuacao.size;
+  gbSet('gbKpiUrgente',    urgentes);
+  gbSet('gbKpiOportunidade', oportunidades);
+  gbSet('gbKpiTotal',      total);
+  gbSet('gbKpiAtuacao',    atuacao);
+  const pct = v => Math.min(100, Math.round(v / Math.max(total, 1) * 100)) + '%';
+  const el = id => document.getElementById(id);
+  if (el('gbBarUrgente')) el('gbBarUrgente').style.width = pct(urgentes);
+  if (el('gbBarOport'))   el('gbBarOport').style.width   = pct(oportunidades);
+  if (el('gbBarAtuacao')) el('gbBarAtuacao').style.width = pct(atuacao);
+}
+
+let gbFiltroAtivo = null;
+
+function gbFiltrarPrioridade(prioridade) {
+  gbFiltroAtivo = prioridade;
+  gbAplicarFiltros();
+}
+
+function gbAplicarFiltros() {
+  const consultor    = document.getElementById('gbFiltroConsultor')?.value || '';
+  const velocidade   = document.getElementById('gbFiltroVelocidade')?.value || '';
+  const antiguidade  = document.getElementById('gbFiltroAntiguidade')?.value || '';
+  const ordem        = document.getElementById('gbFiltroOrdem')?.value || 'score';
+  const busca        = (document.getElementById('gbSearchInput')?.value || '').toLowerCase();
+  const idsAtuacao = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
+
+  let lista = GB.clientes.filter(c => {
+    if (gbFiltroAtivo === 'urgente'     && c.prioridade !== 'urgente')     return false;
+    if (gbFiltroAtivo === 'oportunidade'&& c.prioridade !== 'oportunidade') return false;
+    if (gbFiltroAtivo === 'atuacao'     && !idsAtuacao.has(c.idContrato))  return false;
+    if (consultor && c.consultorOrigem !== consultor) return false;
+    const mb = c.velocidadeMb || 0;
+    if (velocidade === 'baixo'  && !(mb > 0 && mb <= 300))  return false;
+    if (velocidade === 'medio'  && !(mb > 300 && mb <= 600)) return false;
+    if (velocidade === 'alto'   && !(mb > 600))              return false;
+    const m = c.meses || 0;
+    if (antiguidade === '12mais'  && m < 12)  return false;
+    if (antiguidade === '6a12'    && !(m >= 6 && m < 12)) return false;
+    if (antiguidade === 'menos6'  && m >= 6)  return false;
+    if (busca) {
+      const txt = `${c.nome} ${c.plano} ${c.cidade} ${c.idContrato}`.toLowerCase();
+      if (!txt.includes(busca)) return false;
+    }
+    return true;
+  });
+
+  lista.sort((a, b) => {
+    if (ordem === 'score')      return b.score - a.score;
+    if (ordem === 'valor_desc') return (b.valor||0) - (a.valor||0);
+    if (ordem === 'valor_asc')  return (a.valor||0) - (b.valor||0);
+    if (ordem === 'meses_desc') return (b.meses||0) - (a.meses||0);
+    if (ordem === 'nome')       return (a.nome||'').localeCompare(b.nome||'');
+    return 0;
+  });
+
+  GB.filtrados = lista;
+  GB.pagina    = 0;
+  const contador = document.getElementById('gbContador');
+  if (contador) contador.textContent = `${lista.length} cliente${lista.length !== 1 ? 's' : ''} encontrado${lista.length !== 1 ? 's' : ''}`;
+  gbRenderLista();
+}
+
+function gbLimparFiltros() {
+  gbFiltroAtivo = null;
+  ['gbFiltroConsultor','gbFiltroFidelidade','gbFiltroVelocidade','gbFiltroAntiguidade'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('gbSearchInput').value = '';
+  document.getElementById('gbFiltroOrdem').value = 'score';
+  gbAplicarFiltros();
+}
+
+function gbRenderLista() {
+  const div = document.getElementById('gbListaClientes');
+  if (!div) return;
+  const inicio = GB.pagina * GB.porPagina;
+  const fim    = inicio + GB.porPagina;
+  const pagina = GB.filtrados.slice(inicio, fim);
+  const total  = GB.filtrados.length;
+  const totalPag = Math.ceil(total / GB.porPagina);
+  const btnAnt  = document.getElementById('gbBtnAnterior');
+  const btnProx = document.getElementById('gbBtnProximo');
+  const info    = document.getElementById('gbPaginaInfo');
+  if (btnAnt)  btnAnt.style.display  = GB.pagina > 0 ? 'flex' : 'none';
+  if (btnProx) btnProx.style.display = GB.pagina < totalPag - 1 ? 'flex' : 'none';
+  if (info)    info.textContent = total > GB.porPagina ? `Pág. ${GB.pagina+1}/${totalPag}` : '';
+
+  if (!pagina.length) {
+    div.innerHTML = '<div class="gb-empty"><i class="fas fa-search"></i><p>Nenhum cliente encontrado com esses filtros.</p></div>';
+    return;
+  }
+
+  const acaoMap = {};
+  GB.acoes.forEach(a => {
+    if (!acaoMap[a.idContrato] || new Date(a.dataContato) > new Date(acaoMap[a.idContrato].dataContato)) {
+      acaoMap[a.idContrato] = a;
+    }
+  });
+
+  div.innerHTML = pagina.map(c => {
+    const ultimaAcao = acaoMap[c.idContrato];
+    const mb = c.velocidadeMb || 0;
+    const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.', ',')}` : '—';
+    const planoLabel = mb ? `${mb}Mb` : (c.plano || '—');
+    let mesesClass = 'verde', mesesIcon = '✅';
+    if (c.meses >= 24)      { mesesClass = 'vermelho'; mesesIcon = '🔴'; }
+    else if (c.meses >= 12) { mesesClass = 'laranja';  mesesIcon = '🟡'; }
+    const requerAtuacao = ultimaAcao?.resultado === 'ATUACAO' || ultimaAcao?.requerAtuacao;
+    return `
+    <div class="gb-client-card score-${c.prioridade === 'urgente' ? 'alto' : c.prioridade === 'oportunidade' ? 'medio' : 'baixo'}">
+      <div class="gb-card-top">
+        <div class="gb-client-name" onclick="gbAbrirCliente('${c.idContrato}')">${c.nome || '—'}</div>
+        <span class="gb-priority-badge ${c.prioridade}">
+          ${c.prioridade === 'urgente' ? '🔴 Urgente' : c.prioridade === 'oportunidade' ? '🟡 Oport.' : '✅ OK'}
+        </span>
       </div>
-      <div class="field">
-        <label>Cidade</label>
-        <input class="f-input" id="fttaBlocoCidade" placeholder="Cidade">
+      ${requerAtuacao ? `<div class="gb-atuacao-flag" style="margin-bottom:7px;"><i class="fas fa-exclamation-triangle"></i> Requer Atuação</div>` : ''}
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
+        <span class="gb-meses-badge ${mesesClass}">${mesesIcon} ${c.meses} meses</span>
+        ${ultimaAcao?.consultor ? `<span class="gb-consultor-chip"><i class="fas fa-user"></i> ${ultimaAcao.consultor}</span>` : ''}
       </div>
+      <div class="gb-card-info">
+        <div class="gb-info-tile"><span class="lbl">Plano</span><span class="val destaque">${planoLabel}</span></div>
+        <div class="gb-info-tile"><span class="lbl">Valor/mês</span><span class="val ${c.valor > 0 && (c.valor % 1) > 0.01 ? 'perigo' : ''}">${valorFmt}</span></div>
+        <div class="gb-info-tile"><span class="lbl">Cidade</span><span class="val">${c.cidade || '—'}</span></div>
+        <div class="gb-info-tile"><span class="lbl">Score IA</span><span class="val ${c.score >= 55 ? 'perigo' : c.score >= 25 ? '' : 'sucesso'}">${c.score}/100</span></div>
+      </div>
+      ${ultimaAcao ? `<div style="font-size:.65rem;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-clock" style="margin-right:3px;"></i>Último contato: ${gbFmtData(ultimaAcao.dataContato)} — <b style="color:var(--text-2);">${ultimaAcao.resultado || '—'}</b></div>` : ''}
+      <div class="gb-card-actions">
+        ${c.telefoneExterno ? `<button class="gb-action-btn whats" onclick="gbAbrirWhatsApp('${c.telefoneExterno}')"><i class="fab fa-whatsapp"></i></button>` : ''}
+        <button class="gb-action-btn ia" onclick="gbSelecionarClienteIA('${c.idContrato}')"><i class="fas fa-magic"></i> IA</button>
+        <button class="gb-action-btn reg" onclick="gbSelecionarClienteRegistro('${c.idContrato}')"><i class="fas fa-clipboard-check"></i> Registrar</button>
+        <button class="gb-action-btn detail" onclick="gbAbrirCliente('${c.idContrato}')"><i class="fas fa-expand-alt"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function gbProximaPagina() {
+  const total = Math.ceil(GB.filtrados.length / GB.porPagina);
+  if (GB.pagina < total - 1) { GB.pagina++; gbRenderLista(); window.scrollTo(0,0); }
+}
+
+function gbPaginaAnterior() {
+  if (GB.pagina > 0) { GB.pagina--; gbRenderLista(); window.scrollTo(0,0); }
+}
+
+function gbAbrirCliente(idContrato) {
+  const c = GB.clientes.find(x => x.idContrato === idContrato);
+  if (!c) return;
+  GB.clienteAtual = c;
+  gbSet('gbModalNome',    c.nome || '—');
+  gbSet('gbModalContrato', `Contrato ${c.idContrato} · ${c.cidade || '—'}`);
+  const mb = c.velocidadeMb || 0;
+  const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.',',')}` : '—';
+  document.getElementById('gbModalInfoGrid').innerHTML = `
+    <div class="gb-info-tile"><span class="lbl">Plano</span><span class="val destaque">${mb ? mb+'Mb' : c.plano||'—'}</span></div>
+    <div class="gb-info-tile"><span class="lbl">Valor</span><span class="val">${valorFmt}</span></div>
+    <div class="gb-info-tile"><span class="lbl">Meses</span><span class="val">${c.meses}</span></div>
+    <div class="gb-info-tile"><span class="lbl">Score</span><span class="val ${c.score>=55?'perigo':''}">${c.score}/100</span></div>
+    <div class="gb-info-tile"><span class="lbl">Status</span><span class="val">${c.status||'—'}</span></div>
+    <div class="gb-info-tile"><span class="lbl">Canal</span><span class="val">${c.canal||'—'}</span></div>
+  `;
+  let badges = `<span class="gb-meses-badge ${c.meses>=24?'vermelho':c.meses>=12?'laranja':'verde'}">
+    ${c.meses>=24?'🔴':c.meses>=12?'🟡':'✅'} ${c.meses} meses de contrato
+  </span>`;
+  const valorFrac = (c.valor||0) % 1;
+  if (valorFrac > 0.01 && valorFrac < 0.99) {
+    badges += ` <span class="gb-meses-badge laranja" style="margin-left:4px;" title="Valor com centavos indica possível retenção anterior">💡 Possível retenção anterior</span>`;
+  }
+  document.getElementById('gbModalBadges').innerHTML = badges;
+  const btnWA = document.getElementById('gbModalBtnWhats');
+  if (btnWA) {
+    if (c.telefoneExterno) {
+      btnWA.onclick = () => gbAbrirWhatsApp(c.telefoneExterno);
+      btnWA.classList.remove('hidden');
+    } else {
+      btnWA.classList.add('hidden');
+    }
+  }
+  gbRenderHistoricoCliente(idContrato);
+  document.getElementById('gbModalCliente').classList.add('open');
+}
+
+function gbRenderHistoricoCliente(idContrato) {
+  const div = document.getElementById('gbModalHistCliente');
+  if (!div) return;
+  const acoes = GB.acoes.filter(a => a.idContrato === idContrato)
+    .sort((a,b) => new Date(b.dataContato) - new Date(a.dataContato));
+  if (!acoes.length) {
+    div.innerHTML = '<div class="gb-empty" style="padding:16px 0;"><i class="fas fa-history"></i><p>Sem contatos registrados.</p></div>';
+    return;
+  }
+  div.innerHTML = acoes.map(a => {
+    const cls = a.resultado === 'UPGRADE' ? 'positivo' : a.resultado === 'DOWNGRADE' || a.resultado === 'RECUSOU' ? 'negativo' : a.resultado === 'ATUACAO' ? 'atuacao' : '';
+    const deltaStr = a.deltaValor && a.deltaValor !== 0
+      ? `<div class="gb-hist-delta">${a.deltaValor > 0 ? '📈 +R$ ' : '📉 -R$ '}${Math.abs(a.deltaValor).toFixed(2).replace('.',',')} /mês · ${a.planoAnterior || '?'} → ${a.planoNovo || '?'}</div>`
+      : '';
+    return `
+    <div class="gb-historico-item ${cls}">
+      <div class="gb-hist-top">
+        <span class="gb-hist-consultor"><i class="fas fa-user" style="margin-right:3px;"></i>${a.consultor}</span>
+        <span class="gb-hist-data">${gbFmtData(a.dataContato)}</span>
+      </div>
+      <div class="gb-hist-resultado">${gbResultadoLabel(a.resultado, a.statusContato)}</div>
+      ${deltaStr}
+      ${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function gbSelecionarClienteRegistro(idContrato) {
+  const c = GB.clientes.find(x => x.idContrato === idContrato);
+  if (!c) return;
+  GB.clienteAtual = c;
+  gbAbrirRegistro();
+}
+
+function gbAbrirRegistro() {
+  if (!GB.clienteAtual) return;
+  const c = GB.clienteAtual;
+  const mb = c.velocidadeMb || 0;
+  const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.',',')}` : '—';
+  document.getElementById('gbRegClienteInfo').innerHTML = `<b>${c.nome}</b> · ${mb ? mb+'Mb' : c.plano||'—'} · ${valorFmt}/mês · ${c.meses} meses`;
+  const pa = document.getElementById('gbRegPlanoAnterior');
+  const va = document.getElementById('gbRegValorAnterior');
+  if (pa) pa.value = mb ? `${mb}Mb` : (c.plano || '');
+  if (va) va.value = c.valor || '';
+  ['gbRegConsultor','gbRegStatus','gbRegResultado','gbRegObs'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['gbRegPlanoNovo','gbRegValorNovo'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  if (typeof loggedUser !== 'undefined' && loggedUser) {
+    const sel = document.getElementById('gbRegConsultor');
+    if (sel) {
+      for (const opt of sel.options) {
+        if (loggedUser.includes(opt.value)) { sel.value = opt.value; break; }
+      }
+    }
+  }
+  document.getElementById('gbRegResultadoArea').classList.add('hidden');
+  document.getElementById('gbRegPlanoArea').classList.add('hidden');
+  gbRegCalcularDelta();
+  document.getElementById('gbModalCliente').classList.remove('open');
+  document.getElementById('gbModalRegistro').classList.add('open');
+}
+
+function gbRegAtualizar() {
+  const status    = document.getElementById('gbRegStatus').value;
+  const resultado = document.getElementById('gbRegResultado').value;
+  document.getElementById('gbRegResultadoArea').classList.toggle('hidden', status !== 'ATENDEU');
+  document.getElementById('gbRegPlanoArea').classList.toggle('hidden', !['UPGRADE','DOWNGRADE'].includes(resultado));
+}
+
+function gbRegCalcularDelta() {
+  const vAnt = parseFloat(document.getElementById('gbRegValorAnterior')?.value) || 0;
+  const vNov = parseFloat(document.getElementById('gbRegValorNovo')?.value) || 0;
+  const delta = vNov - vAnt;
+  const valEl  = document.getElementById('gbRegDeltaVal');
+  const iconEl = document.getElementById('gbRegDeltaIcon');
+  if (!valEl) return;
+  valEl.textContent = `R$ ${Math.abs(delta).toFixed(2).replace('.',',')}`;
+  valEl.className   = 'delta-val ' + (delta > 0 ? 'positivo' : delta < 0 ? 'negativo' : '');
+  if (iconEl) iconEl.textContent = delta > 0 ? '📈' : delta < 0 ? '📉' : '➡️';
+}
+
+async function gbSalvarRegistro() {
+  const c = GB.clienteAtual;
+  if (!c) return;
+  const consultor  = document.getElementById('gbRegConsultor').value;
+  const status     = document.getElementById('gbRegStatus').value;
+  const resultado  = document.getElementById('gbRegResultado').value;
+  const planoNovo  = document.getElementById('gbRegPlanoNovo').value;
+  const vAnt       = parseFloat(document.getElementById('gbRegValorAnterior')?.value) || 0;
+  const vNov       = parseFloat(document.getElementById('gbRegValorNovo')?.value) || 0;
+  const obs        = document.getElementById('gbRegObs').value;
+  if (!consultor) { alert('Selecione o consultor!'); return; }
+  if (!status)    { alert('Selecione o status!'); return; }
+  const payload = {
+    idContrato:     c.idContrato,
+    consultor,
+    statusContato:  status,
+    resultado:      resultado || status,
+    planoAnterior:  document.getElementById('gbRegPlanoAnterior')?.value || '',
+    planoNovo:      planoNovo,
+    valorAnterior:  vAnt,
+    valorNovo:      vNov,
+    deltaValor:     vNov - vAnt,
+    observacao:     obs,
+    requerAtuacao:  resultado === 'ATUACAO',
+    abordagemIa:    ''
+  };
+  const acaoLocal = { ...payload, id: 'local_'+Date.now(), dataContato: new Date().toISOString() };
+  GB.acoes.unshift(acaoLocal);
+  localStorage.setItem('gb_acoes_cache', JSON.stringify(GB.acoes));
+  gbFecharModal('gbModalRegistro');
+  gbAtualizarKpis();
+  gbRenderLista();
+  try {
+    await gbApiCall('registrarAcaoBase', payload, false);
+    await gbCarregarAcoes(false);
+    gbRenderLista();
+  } catch(e) { console.warn('GB: Ação salva localmente, falha no sync:', e); }
+  alert('✅ Ação registrada!');
+}
+
+function gbSelecionarClienteIA(idContrato) {
+  const c = GB.clientes.find(x => x.idContrato === idContrato);
+  if (!c) return;
+  GB.clienteAtual = c;
+  gbGerarAbordagem();
+}
+
+async function gbGerarAbordagem() {
+  const c = GB.clienteAtual;
+  if (!c) return;
+  const mb = c.velocidadeMb || 0;
+  const valor = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.',',')}` : 'não informado';
+  const plano = mb ? `${mb}Mbps` : (c.plano || 'não informado');
+  const meses = c.meses || 0;
+  document.getElementById('gbIAClienteInfo').innerHTML = `<b>${c.nome}</b> · ${plano} · ${valor}/mês · ${meses} meses como cliente`;
+  document.getElementById('gbIALoading').classList.remove('hidden');
+  document.getElementById('gbIAResultado').classList.add('hidden');
+  document.getElementById('gbModalCliente').classList.remove('open');
+  document.getElementById('gbModalIA').classList.add('open');
+  const prompt = `Você é consultor de retenção e upgrade da MHNET, empresa de internet fibra óptica em Lajeado e Estrela/RS.
+
+DADOS DO CLIENTE:
+- Nome: ${c.nome}
+- Plano atual: ${plano}
+- Valor mensal: ${valor}
+- Tempo de contrato: ${meses} meses
+- Cidade: ${c.cidade || 'Lajeado'}
+${c.valor && ((c.valor%1)>0.01) ? '- Obs: valor com centavos sugere desconto de retenção anterior' : ''}
+
+Crie uma abordagem de contato WhatsApp PERSONALIZADA (máximo 5 linhas) seguindo:
+1. Cumprimento pelo nome
+2. Referência ao tempo de cliente (valorizar fidelidade)
+3. Proposta específica de upgrade (benefício claro)
+4. Urgência ou exclusividade
+5. CTA claro
+
+Tom: próximo, regional gaúcho, sem formalidade excessiva. Não use asteriscos de markdown.`;
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GB.GEMINI_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 400, temperature: 0.8 } })
+    });
+    const data = await res.json();
+    const txt  = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (txt) { gbExibirAbordagem(txt); return; }
+  } catch(e) {}
+  try {
+    const r = await gbApiCall('gerarAbordagemBase', { idContrato: c.idContrato, nome: c.nome, plano, valor, meses }, false);
+    if (r?.abordagem) { gbExibirAbordagem(r.abordagem); return; }
+  } catch(e) {}
+  gbExibirAbordagem(`Olá ${c.nome}, tudo bem?\n\nComo cliente MHNET há ${meses} meses, você tem um upgrade especial disponível! 🎉\n\nSeu plano atual é de ${plano}. Posso te apresentar uma opção melhor pelo mesmo valor ou pouco mais — instalação gratuita!\n\nPosso te enviar os detalhes? 😊`);
+}
+
+function gbExibirAbordagem(texto) {
+  document.getElementById('gbIALoading').classList.add('hidden');
+  document.getElementById('gbIATexto').textContent = texto;
+  document.getElementById('gbIAResultado').classList.remove('hidden');
+}
+
+function gbCopiarAbordagem() {
+  const txt = document.getElementById('gbIATexto')?.textContent || '';
+  navigator.clipboard?.writeText(txt).then(() => alert('✅ Copiado!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    alert('✅ Copiado!');
+  });
+}
+
+function gbAbrirWhatsAppComIA() {
+  const c   = GB.clienteAtual;
+  const txt = document.getElementById('gbIATexto')?.textContent || '';
+  if (c?.telefoneExterno) {
+    const fone = String(c.telefoneExterno).replace(/\D/g,'');
+    window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(txt)}`, '_blank');
+  } else {
+    gbCopiarAbordagem();
+    alert('Número não disponível — texto copiado! Cole manualmente no WhatsApp.');
+  }
+  gbFecharModal('gbModalIA');
+}
+
+function gbRenderDashboard() {
+  const div = document.getElementById('gbPainelConsultores');
+  if (!div) return;
+  const hoje = new Date();
+  const ini30 = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const stats = {};
+  GB.consultores.forEach(nome => {
+    stats[nome] = { total: 0, upgrades: 0, downgrades: 0, recusou: 0, incremento: 0 };
+  });
+  GB.acoes.forEach(a => {
+    if (!a.consultor || !stats[a.consultor]) return;
+    const dt = new Date(a.dataContato);
+    if (dt < ini30) return;
+    const s = stats[a.consultor];
+    s.total++;
+    if (a.resultado === 'UPGRADE')    { s.upgrades++; s.incremento += a.deltaValor || 0; }
+    if (a.resultado === 'DOWNGRADE')  { s.downgrades++; s.incremento += a.deltaValor || 0; }
+    if (a.resultado === 'RECUSOU')    s.recusou++;
+  });
+  div.innerHTML = `
+    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;">
+      <i class="fas fa-chart-bar" style="margin-right:5px;"></i>Últimos 30 dias
     </div>
-    <div class="flex-row" style="margin-top:12px;">
-      <button class="btn btn-navy" style="flex:1;" onclick="salvarEdicaoFttaBloco()">
-        <i class="fas fa-save"></i> Salvar
-      </button>
-      <button class="btn btn-ghost" style="flex:1;"
-        onclick="document.getElementById('modalFttaBloco').classList.remove('open')">
-        Cancelar
-      </button>
-    </div>
-  </div>
-</div>
+    ${GB.consultores.map(nome => {
+      const s = stats[nome];
+      const iniciais = nome.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
+      const taxa = s.total > 0 ? Math.round((s.upgrades / s.total) * 100) : 0;
+      const incFmt = s.incremento !== 0 ? `${s.incremento > 0 ? '+' : ''}R$ ${s.incremento.toFixed(2).replace('.',',')}` : 'R$ 0,00';
+      return `
+      <div class="gb-cons-card">
+        <div class="gb-cons-header">
+          <div class="gb-cons-avatar">${iniciais}</div>
+          <div>
+            <div class="gb-cons-name">${nome}</div>
+            <div class="gb-cons-meta">${taxa}% taxa de upgrade · ${s.total} contatos</div>
+          </div>
+        </div>
+        <div class="gb-cons-stats">
+          <div class="gb-cons-stat"><div class="sv">${s.total}</div><div class="sl">Contatos</div></div>
+          <div class="gb-cons-stat"><div class="sv verde">${s.upgrades}</div><div class="sl">Upgrades</div></div>
+          <div class="gb-cons-stat"><div class="sv vermelho">${s.downgrades}</div><div class="sl">Downgrades</div></div>
+          <div class="gb-cons-stat"><div class="sv ${s.incremento >= 0 ? 'verde' : 'vermelho'}" style="font-size:.75rem;">${incFmt}</div><div class="sl">Δ Receita</div></div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function gbCarregarHistorico() {
+  const div = document.getElementById('gbListaHistorico');
+  if (!div) return;
+  const fConsultor  = document.getElementById('gbHistFiltroConsultor')?.value || '';
+  const fResultado  = document.getElementById('gbHistFiltroResultado')?.value || '';
+  let lista = [...GB.acoes];
+  if (fConsultor) lista = lista.filter(a => a.consultor === fConsultor);
+  if (fResultado) lista = lista.filter(a => a.resultado === fResultado);
+  lista.sort((a,b) => new Date(b.dataContato) - new Date(a.dataContato));
+  lista = lista.slice(0, 50);
+  if (!lista.length) {
+    div.innerHTML = '<div class="gb-empty"><i class="fas fa-history"></i><p>Nenhuma ação encontrada.</p></div>';
+    return;
+  }
+  div.innerHTML = lista.map(a => {
+    const clienteNome = GB.clientes.find(c => c.idContrato === a.idContrato)?.nome || a.idContrato;
+    const cls = a.resultado === 'UPGRADE' ? 'positivo' : a.resultado === 'DOWNGRADE' || a.resultado === 'RECUSOU' ? 'negativo' : a.resultado === 'ATUACAO' ? 'atuacao' : '';
+    const deltaStr = a.deltaValor && a.deltaValor !== 0 ? ` · ${a.deltaValor > 0 ? '📈 +' : '📉 '}R$ ${Math.abs(a.deltaValor).toFixed(2).replace('.',',')}` : '';
+    return `
+    <div class="gb-historico-item ${cls}">
+      <div class="gb-hist-top">
+        <span class="gb-hist-consultor"><i class="fas fa-user" style="margin-right:3px;"></i>${a.consultor}</span>
+        <span class="gb-hist-data">${gbFmtData(a.dataContato)}</span>
+      </div>
+      <div class="gb-hist-resultado">${clienteNome} — ${gbResultadoLabel(a.resultado, a.statusContato)}</div>
+      ${a.deltaValor && a.deltaValor !== 0 ? `<div class="gb-hist-delta">${a.planoAnterior||'?'} → ${a.planoNovo||'?'}${deltaStr}</div>` : ''}
+      ${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function gbAbrirWhatsApp(fone) {
+  const n = String(fone).replace(/\D/g,'');
+  window.open(`https://wa.me/55${n}`, '_blank');
+}
+
+function gbFecharModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+}
+
+function gbSet(id, val) {
+  const el = document.getElementById(id); if (el) el.textContent = val;
+}
+
+function gbFmtData(v) {
+  if (!v) return '—';
+  try {
+    const d = new Date(v);
+    if (isNaN(d)) return String(v).split('T')[0];
+    return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
+           ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  } catch(e) { return String(v).split('T')[0]; }
+}
+
+function gbResultadoLabel(resultado, status) {
+  const map = {
+    UPGRADE:      '✅ Upgrade realizado',
+    DOWNGRADE:    '🔽 Downgrade realizado',
+    FIDELIZOU:    '🔒 Fidelizou (manteve)',
+    RECUSOU:      '❌ Recusou proposta',
+    ATUACAO:      '⚠️ Requer atuação',
+    NAO_ATENDEU:  '📵 Não atendeu',
+    AGENDOU:      '📅 Agendou retorno',
+    ATENDEU:      '📞 Atendeu (sem resultado)',
+  };
+  return map[resultado] || map[status] || resultado || status || '—';
+}
+
+function gbGerarAbordagemLote() {
+  alert('Funcionalidade IA em lote será desenvolvida em breve.');
+}
+
+// Integração com a navegação principal
+if (typeof navegarPara === 'function') {
+  const originalNavegarPara = navegarPara;
+  window.navegarPara = function(pageId) {
+    originalNavegarPara(pageId);
+    if (pageId === 'gestaoBase' && typeof gbInit === 'function') {
+      gbInit();
+    }
+  };
+} else {
+  window.navegarPara = function(pageId) {
+    if (pageId === 'gestaoBase' && typeof gbInit === 'function') {
+      gbInit();
+    }
+  };
+}
+
+// Expõe funções globalmente
+Object.assign(window, {
+  gbSetTab, gbCarregarBase, gbFiltrarPrioridade, gbAplicarFiltros, gbLimparFiltros,
+  gbProximaPagina, gbPaginaAnterior, gbAbrirCliente, gbSelecionarClienteRegistro,
+  gbAbrirRegistro, gbRegAtualizar, gbRegCalcularDelta, gbSalvarRegistro,
+  gbSelecionarClienteIA, gbGerarAbordagem, gbCopiarAbordagem, gbAbrirWhatsAppComIA,
+  gbFecharModal, gbAbrirWhatsApp, gbRenderDashboard, gbCarregarHistorico, gbGerarAbordagemLote
+});
 </script>
-<div id="modalProspeccao" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title" id="prosTitulo">Nova Prospecção</div>
-    <div class="field">
-      <label>Nome do Condomínio / Bloco</label>
-      <input class="f-input" id="prosNome" placeholder="Ex: Residencial das Flores">
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Construtora</label>
-        <input class="f-input" id="prosConstrutora" placeholder="Ex: Construtora ABC">
-      </div>
-      <div class="field">
-        <label>Data de Entrega</label>
-        <input class="f-input" id="prosDataEntrega" type="date">
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Síndico / Administradora</label>
-        <input class="f-input" id="prosSindico" placeholder="Nome">
-      </div>
-      <div class="field">
-        <label>Contato</label>
-        <input class="f-input" id="prosContato" type="tel" placeholder="51 99999-9999">
-      </div>
-    </div>
-    <div class="field">
-      <label>Endereço</label>
-      <input class="f-input" id="prosEndereco" placeholder="Rua e número">
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Bairro</label>
-        <input class="f-input" id="prosBairro" placeholder="Bairro">
-      </div>
-      <div class="field">
-        <label>Cidade</label>
-        <input class="f-input" id="prosCidade" placeholder="Lajeado">
-      </div>
-    </div>
-    <div class="field">
-      <label>Consultor Responsável</label>
-      <input class="f-input" id="prosConsultor" placeholder="Nome do consultor">
-    </div>
-    <p style="font-size:.7rem;color:var(--text-3);margin-bottom:12px;background:#eff6ff;border-radius:7px;padding:8px 10px;">
-      <i class="fas fa-info-circle" style="color:var(--navy);"></i>
-      A <strong>próxima ação</strong> será calculada automaticamente para <strong>2 meses</strong> após o registro.
-    </p>
-    <div class="flex-row">
-      <button class="btn btn-navy" style="flex:1;" onclick="salvarProspeccao()"><i class="fas fa-save"></i> Salvar</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalProspeccao').classList.remove('open')">Cancelar</button>
-    </div>
-  </div>
-</div>
+
 </body>
 </html>
