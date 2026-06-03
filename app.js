@@ -17,7 +17,7 @@
 // ============================================================
 const DEPLOY_ID  = 'AKfycbyzgVhdtgI6AgM60_cxhtMJAby_3z8n3faljGOd3fSdi-f0VxZ1auViyMLryBvVcyc7';
 const API_URL    = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
-const GEMINI_KEY = 'AIzaSyC854djGrgcGEPbhTYm46Q2ayyJBp-tNv4';
+const GEMINI_KEY = 'AIzaSyAbNlXty0_XC1e2cRqzt-4HklyxbKOhXlw';
 const CALENDAR_URL = 'https://calendar.google.com/calendar/u/0?cid=ZTZlNjQ2OWVkNzQ1YzMzYmIwMjg2YmFmYmM4NzA2ZmU4YzM3MWVhMDU1MWRiNDY2NDJkNTc2NTI5MmFhMDZmN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
 const ADMIN_NAME_CHECK = 'BRUNO GARCIA QUEIROZ';
 const EMAIL_ADMIN = 'bruno.queiroz@mhnet.com.br';
