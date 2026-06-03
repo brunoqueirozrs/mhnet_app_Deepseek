@@ -1860,12 +1860,12 @@
 </script>
 
 <!-- ============================================================
-     SCRIPT DO MÓDULO GESTÃO DE BASE (adicionado após app.js)
+     SCRIPT DO MÓDULO GESTÃO DE BASE (CORRIGIDO)
+     USANDO A APIcall GLOBAL DO APP
 ============================================================ -->
 <script>
-<script>
 // ============================================================
-// GESTÃO DE BASE — STATE (CORRIGIDO)
+// GESTÃO DE BASE — STATE
 // ============================================================
 const GB = {
   clientes:    [],
@@ -1876,31 +1876,21 @@ const GB = {
   porPagina:   15,
   clienteAtual: null,
   tabAtual:    'clientes',
-  // DEPLOY_ID corrigido (sem aspas extras)
-  DEPLOY_ID: 'AKfycbyzgVhdtgI6AgM60_cxhtMJAby_3z8n3faljGOd3fSdi-f0VxZ1auViyMLryBvVcyc7',
-  get API_URL() { return `https://script.google.com/macros/s/${this.DEPLOY_ID}/exec`; },
-  GEMINI_KEY: 'AIzaSyAbNlXty0_XC1e2cRqzt-4HklyxbKOhXlw',
+  GEMINI_KEY: 'AIzaSyAbNlXty0_XC1e2cRqzt-4HklyxbKOhXlw'
 };
 
 // ============================================================
-// API CALL (usa fetch direto, sem depender da apiCall global)
+// API CALL (usa a apiCall global do app)
 // ============================================================
 async function gbApiCall(route, payload = {}, show = false) {
-  const url = GB.API_URL;
-  try {
-    console.log(`📡 GB: chamando ${route}...`);
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ route, payload })
-    });
-    const data = await res.json();
-    console.log(`✅ GB: resposta de ${route}:`, data);
-    return data;
-  } catch (e) {
-    console.error(`❌ GB: erro na chamada ${route}:`, e);
-    return { status: 'error', message: e.message };
+  if (typeof apiCall !== 'function') {
+    console.error('❌ GB: apiCall global não encontrada!');
+    return { status: 'error', message: 'apiCall não definida' };
   }
+  console.log(`📡 GB: chamando ${route}...`);
+  const res = await apiCall(route, payload, show);
+  console.log(`✅ GB: resposta de ${route}:`, res);
+  return res;
 }
 
 // ============================================================
@@ -1921,16 +1911,18 @@ function gbInit() {
 function gbSetTab(tab) {
   GB.tabAtual = tab;
   ['clientes','dashboard','historico'].forEach(t => {
-    document.getElementById(`gbTabContent${t.charAt(0).toUpperCase()+t.slice(1)}`)?.classList.toggle('hidden', t !== tab);
-    document.getElementById(`gbTab${t.charAt(0).toUpperCase()+t.slice(1)}`)?.classList.toggle('on', t === tab);
+    const elCont = document.getElementById(`gbTabContent${t.charAt(0).toUpperCase()+t.slice(1)}`);
+    const elTab = document.getElementById(`gbTab${t.charAt(0).toUpperCase()+t.slice(1)}`);
+    if (elCont) elCont.classList.toggle('hidden', t !== tab);
+    if (elTab) elTab.classList.toggle('on', t === tab);
   });
   if (tab === 'dashboard') gbRenderDashboard();
-  if (tab === 'historico')  gbCarregarHistorico();
+  if (tab === 'historico') gbCarregarHistorico();
 }
 
 async function gbCarregarBase(showLoader = true) {
   const icon = document.getElementById('gbSyncIcon');
-  if (icon) { icon.style.animation = 'spin .8s linear infinite'; }
+  if (icon) icon.style.animation = 'spin .8s linear infinite';
   try {
     const res = await gbApiCall('getBaseClientes', {}, false);
     if (res?.status === 'success' && res.data && res.data.length > 0) {
@@ -1945,22 +1937,16 @@ async function gbCarregarBase(showLoader = true) {
     console.error('GB: erro ao carregar base:', e);
     carregarDadosMockados();
   }
-  if (icon) { icon.style.animation = ''; }
+  if (icon) icon.style.animation = '';
 }
 
 function carregarDadosMockados() {
   console.warn('GB: usando dados mockados (fallback)');
   GB.clientes = [
-    { idContrato:'1001', nome:'Carlos Alberto Machado', plano:'Fibra 100Mb', velocidadeMb:100, valor:79.90, dataAtivacao:'2021-10-15', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51999990001' },
-    { idContrato:'1002', nome:'Maria Silva Santos', plano:'Fibra 300Mb', velocidadeMb:300, valor:109.99, dataAtivacao:'2022-05-20', cidade:'Lajeado', status:'Ativo', canal:'Loja', consultorOrigem:'Karolina', telefoneExterno:'51999990002' },
-    { idContrato:'1003', nome:'João Pedro Alves', plano:'Fibra 200Mb', velocidadeMb:200, valor:89.90, dataAtivacao:'2020-03-10', cidade:'Estrela', status:'Ativo', canal:'Online', consultorOrigem:'João Vithor' },
-    { idContrato:'1004', nome:'Fernanda Oliveira Costa', plano:'Fibra 600Mb', velocidadeMb:600, valor:149.00, dataAtivacao:'2023-09-01', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Mauricio' },
-    { idContrato:'1005', nome:'Roberto Lima Pereira', plano:'Fibra 100Mb', velocidadeMb:100, valor:65.50, dataAtivacao:'2019-07-22', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51988887777' },
+    { idContrato:'1001', nome:'Carlos Alberto', plano:'Fibra 100Mb', velocidadeMb:100, valor:79.90, dataAtivacao:'2021-10-15', cidade:'Lajeado', status:'Ativo', consultorOrigem:'Ana Paula', telefoneExterno:'51999990001' },
+    { idContrato:'1002', nome:'Maria Silva', plano:'Fibra 300Mb', velocidadeMb:300, valor:109.99, dataAtivacao:'2022-05-20', cidade:'Lajeado', status:'Ativo', consultorOrigem:'Karolina' }
   ];
-  GB.acoes = [
-    { id:'a1', idContrato:'1001', consultor:'Ana Paula', statusContato:'ATENDEU', resultado:'UPGRADE', planoAnterior:'100Mb', planoNovo:'300Mb', valorAnterior:79.90, valorNovo:109.99, deltaValor:30.09, observacao:'Cliente feliz', requerAtuacao:false, dataContato:'2025-05-10T14:30:00' },
-    { id:'a2', idContrato:'1003', consultor:'João Vithor', statusContato:'ATENDEU', resultado:'ATUACAO', planoAnterior:'200Mb', planoNovo:'', valorAnterior:89.90, valorNovo:0, deltaValor:0, observacao:'Reclamação de instabilidade', requerAtuacao:true, dataContato:'2025-05-28T10:15:00' },
-  ];
+  GB.acoes = [];
   gbProcessarBase();
 }
 
@@ -2007,68 +1993,61 @@ function gbProcessarBase() {
 }
 
 function gbAtualizarKpis() {
-  const urgentes    = GB.clientes.filter(c => c.prioridade === 'urgente').length;
+  const urgentes = GB.clientes.filter(c => c.prioridade === 'urgente').length;
   const oportunidades = GB.clientes.filter(c => c.prioridade === 'oportunidade').length;
-  const total       = GB.clientes.length;
-  const idsAtuacao  = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
-  const atuacao     = idsAtuacao.size;
-  gbSet('gbKpiUrgente',    urgentes);
+  const total = GB.clientes.length;
+  const idsAtuacao = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
+  const atuacao = idsAtuacao.size;
+  gbSet('gbKpiUrgente', urgentes);
   gbSet('gbKpiOportunidade', oportunidades);
-  gbSet('gbKpiTotal',      total);
-  gbSet('gbKpiAtuacao',    atuacao);
+  gbSet('gbKpiTotal', total);
+  gbSet('gbKpiAtuacao', atuacao);
   const pct = v => Math.min(100, Math.round(v / Math.max(total, 1) * 100)) + '%';
   const el = id => document.getElementById(id);
   if (el('gbBarUrgente')) el('gbBarUrgente').style.width = pct(urgentes);
-  if (el('gbBarOport'))   el('gbBarOport').style.width   = pct(oportunidades);
+  if (el('gbBarOport')) el('gbBarOport').style.width = pct(oportunidades);
   if (el('gbBarAtuacao')) el('gbBarAtuacao').style.width = pct(atuacao);
 }
 
 let gbFiltroAtivo = null;
-
-function gbFiltrarPrioridade(prioridade) {
-  gbFiltroAtivo = prioridade;
-  gbAplicarFiltros();
-}
+function gbFiltrarPrioridade(prioridade) { gbFiltroAtivo = prioridade; gbAplicarFiltros(); }
 
 function gbAplicarFiltros() {
-  const consultor    = document.getElementById('gbFiltroConsultor')?.value || '';
-  const velocidade   = document.getElementById('gbFiltroVelocidade')?.value || '';
-  const antiguidade  = document.getElementById('gbFiltroAntiguidade')?.value || '';
-  const ordem        = document.getElementById('gbFiltroOrdem')?.value || 'score';
-  const busca        = (document.getElementById('gbSearchInput')?.value || '').toLowerCase();
+  const consultor = document.getElementById('gbFiltroConsultor')?.value || '';
+  const velocidade = document.getElementById('gbFiltroVelocidade')?.value || '';
+  const antiguidade = document.getElementById('gbFiltroAntiguidade')?.value || '';
+  const ordem = document.getElementById('gbFiltroOrdem')?.value || 'score';
+  const busca = (document.getElementById('gbSearchInput')?.value || '').toLowerCase();
   const idsAtuacao = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
-
   let lista = GB.clientes.filter(c => {
-    if (gbFiltroAtivo === 'urgente'     && c.prioridade !== 'urgente')     return false;
-    if (gbFiltroAtivo === 'oportunidade'&& c.prioridade !== 'oportunidade') return false;
-    if (gbFiltroAtivo === 'atuacao'     && !idsAtuacao.has(c.idContrato))  return false;
+    if (gbFiltroAtivo === 'urgente' && c.prioridade !== 'urgente') return false;
+    if (gbFiltroAtivo === 'oportunidade' && c.prioridade !== 'oportunidade') return false;
+    if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
     const mb = c.velocidadeMb || 0;
-    if (velocidade === 'baixo'  && !(mb > 0 && mb <= 300))  return false;
-    if (velocidade === 'medio'  && !(mb > 300 && mb <= 600)) return false;
-    if (velocidade === 'alto'   && !(mb > 600))              return false;
+    if (velocidade === 'baixo' && !(mb > 0 && mb <= 300)) return false;
+    if (velocidade === 'medio' && !(mb > 300 && mb <= 600)) return false;
+    if (velocidade === 'alto' && !(mb > 600)) return false;
     const m = c.meses || 0;
-    if (antiguidade === '12mais'  && m < 12)  return false;
-    if (antiguidade === '6a12'    && !(m >= 6 && m < 12)) return false;
-    if (antiguidade === 'menos6'  && m >= 6)  return false;
+    if (antiguidade === '12mais' && m < 12) return false;
+    if (antiguidade === '6a12' && !(m >= 6 && m < 12)) return false;
+    if (antiguidade === 'menos6' && m >= 6) return false;
     if (busca) {
       const txt = `${c.nome} ${c.plano} ${c.cidade} ${c.idContrato}`.toLowerCase();
       if (!txt.includes(busca)) return false;
     }
     return true;
   });
-
-  lista.sort((a, b) => {
-    if (ordem === 'score')      return b.score - a.score;
+  lista.sort((a,b) => {
+    if (ordem === 'score') return b.score - a.score;
     if (ordem === 'valor_desc') return (b.valor||0) - (a.valor||0);
-    if (ordem === 'valor_asc')  return (a.valor||0) - (b.valor||0);
+    if (ordem === 'valor_asc') return (a.valor||0) - (b.valor||0);
     if (ordem === 'meses_desc') return (b.meses||0) - (a.meses||0);
-    if (ordem === 'nome')       return (a.nome||'').localeCompare(b.nome||'');
+    if (ordem === 'nome') return (a.nome||'').localeCompare(b.nome||'');
     return 0;
   });
-
   GB.filtrados = lista;
-  GB.pagina    = 0;
+  GB.pagina = 0;
   const contador = document.getElementById('gbContador');
   if (contador) contador.textContent = `${lista.length} cliente${lista.length !== 1 ? 's' : ''} encontrado${lista.length !== 1 ? 's' : ''}`;
   gbRenderLista();
@@ -2088,45 +2067,40 @@ function gbRenderLista() {
   const div = document.getElementById('gbListaClientes');
   if (!div) return;
   const inicio = GB.pagina * GB.porPagina;
-  const fim    = inicio + GB.porPagina;
+  const fim = inicio + GB.porPagina;
   const pagina = GB.filtrados.slice(inicio, fim);
-  const total  = GB.filtrados.length;
+  const total = GB.filtrados.length;
   const totalPag = Math.ceil(total / GB.porPagina);
-  const btnAnt  = document.getElementById('gbBtnAnterior');
+  const btnAnt = document.getElementById('gbBtnAnterior');
   const btnProx = document.getElementById('gbBtnProximo');
-  const info    = document.getElementById('gbPaginaInfo');
-  if (btnAnt)  btnAnt.style.display  = GB.pagina > 0 ? 'flex' : 'none';
+  const info = document.getElementById('gbPaginaInfo');
+  if (btnAnt) btnAnt.style.display = GB.pagina > 0 ? 'flex' : 'none';
   if (btnProx) btnProx.style.display = GB.pagina < totalPag - 1 ? 'flex' : 'none';
-  if (info)    info.textContent = total > GB.porPagina ? `Pág. ${GB.pagina+1}/${totalPag}` : '';
-
+  if (info) info.textContent = total > GB.porPagina ? `Pág. ${GB.pagina+1}/${totalPag}` : '';
   if (!pagina.length) {
     div.innerHTML = '<div class="gb-empty"><i class="fas fa-search"></i><p>Nenhum cliente encontrado com esses filtros.</p></div>';
     return;
   }
-
   const acaoMap = {};
   GB.acoes.forEach(a => {
     if (!acaoMap[a.idContrato] || new Date(a.dataContato) > new Date(acaoMap[a.idContrato].dataContato)) {
       acaoMap[a.idContrato] = a;
     }
   });
-
   div.innerHTML = pagina.map(c => {
     const ultimaAcao = acaoMap[c.idContrato];
     const mb = c.velocidadeMb || 0;
     const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.', ',')}` : '—';
     const planoLabel = mb ? `${mb}Mb` : (c.plano || '—');
     let mesesClass = 'verde', mesesIcon = '✅';
-    if (c.meses >= 24)      { mesesClass = 'vermelho'; mesesIcon = '🔴'; }
-    else if (c.meses >= 12) { mesesClass = 'laranja';  mesesIcon = '🟡'; }
+    if (c.meses >= 24) { mesesClass = 'vermelho'; mesesIcon = '🔴'; }
+    else if (c.meses >= 12) { mesesClass = 'laranja'; mesesIcon = '🟡'; }
     const requerAtuacao = ultimaAcao?.resultado === 'ATUACAO' || ultimaAcao?.requerAtuacao;
     return `
     <div class="gb-client-card score-${c.prioridade === 'urgente' ? 'alto' : c.prioridade === 'oportunidade' ? 'medio' : 'baixo'}">
       <div class="gb-card-top">
         <div class="gb-client-name" onclick="gbAbrirCliente('${c.idContrato}')">${c.nome || '—'}</div>
-        <span class="gb-priority-badge ${c.prioridade}">
-          ${c.prioridade === 'urgente' ? '🔴 Urgente' : c.prioridade === 'oportunidade' ? '🟡 Oport.' : '✅ OK'}
-        </span>
+        <span class="gb-priority-badge ${c.prioridade}">${c.prioridade === 'urgente' ? '🔴 Urgente' : c.prioridade === 'oportunidade' ? '🟡 Oport.' : '✅ OK'}</span>
       </div>
       ${requerAtuacao ? `<div class="gb-atuacao-flag" style="margin-bottom:7px;"><i class="fas fa-exclamation-triangle"></i> Requer Atuação</div>` : ''}
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
@@ -2154,7 +2128,6 @@ function gbProximaPagina() {
   const total = Math.ceil(GB.filtrados.length / GB.porPagina);
   if (GB.pagina < total - 1) { GB.pagina++; gbRenderLista(); window.scrollTo(0,0); }
 }
-
 function gbPaginaAnterior() {
   if (GB.pagina > 0) { GB.pagina--; gbRenderLista(); window.scrollTo(0,0); }
 }
@@ -2163,7 +2136,7 @@ function gbAbrirCliente(idContrato) {
   const c = GB.clientes.find(x => x.idContrato === idContrato);
   if (!c) return;
   GB.clienteAtual = c;
-  gbSet('gbModalNome',    c.nome || '—');
+  gbSet('gbModalNome', c.nome || '—');
   gbSet('gbModalContrato', `Contrato ${c.idContrato} · ${c.cidade || '—'}`);
   const mb = c.velocidadeMb || 0;
   const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.',',')}` : '—';
@@ -2199,8 +2172,7 @@ function gbAbrirCliente(idContrato) {
 function gbRenderHistoricoCliente(idContrato) {
   const div = document.getElementById('gbModalHistCliente');
   if (!div) return;
-  const acoes = GB.acoes.filter(a => a.idContrato === idContrato)
-    .sort((a,b) => new Date(b.dataContato) - new Date(a.dataContato));
+  const acoes = GB.acoes.filter(a => a.idContrato === idContrato).sort((a,b) => new Date(b.dataContato) - new Date(a.dataContato));
   if (!acoes.length) {
     div.innerHTML = '<div class="gb-empty" style="padding:16px 0;"><i class="fas fa-history"></i><p>Sem contatos registrados.</p></div>';
     return;
@@ -2212,13 +2184,8 @@ function gbRenderHistoricoCliente(idContrato) {
       : '';
     return `
     <div class="gb-historico-item ${cls}">
-      <div class="gb-hist-top">
-        <span class="gb-hist-consultor"><i class="fas fa-user" style="margin-right:3px;"></i>${a.consultor}</span>
-        <span class="gb-hist-data">${gbFmtData(a.dataContato)}</span>
-      </div>
-      <div class="gb-hist-resultado">${gbResultadoLabel(a.resultado, a.statusContato)}</div>
-      ${deltaStr}
-      ${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}
+      <div class="gb-hist-top"><span class="gb-hist-consultor"><i class="fas fa-user" style="margin-right:3px;"></i>${a.consultor}</span><span class="gb-hist-data">${gbFmtData(a.dataContato)}</span></div>
+      <div class="gb-hist-resultado">${gbResultadoLabel(a.resultado, a.statusContato)}</div>${deltaStr}${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -2229,7 +2196,6 @@ function gbSelecionarClienteRegistro(idContrato) {
   GB.clienteAtual = c;
   gbAbrirRegistro();
 }
-
 function gbAbrirRegistro() {
   if (!GB.clienteAtual) return;
   const c = GB.clienteAtual;
@@ -2240,12 +2206,8 @@ function gbAbrirRegistro() {
   const va = document.getElementById('gbRegValorAnterior');
   if (pa) pa.value = mb ? `${mb}Mb` : (c.plano || '');
   if (va) va.value = c.valor || '';
-  ['gbRegConsultor','gbRegStatus','gbRegResultado','gbRegObs'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  ['gbRegPlanoNovo','gbRegValorNovo'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
+  ['gbRegConsultor','gbRegStatus','gbRegResultado','gbRegObs'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['gbRegPlanoNovo','gbRegValorNovo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   if (typeof loggedUser !== 'undefined' && loggedUser) {
     const sel = document.getElementById('gbRegConsultor');
     if (sel) {
@@ -2260,51 +2222,40 @@ function gbAbrirRegistro() {
   document.getElementById('gbModalCliente').classList.remove('open');
   document.getElementById('gbModalRegistro').classList.add('open');
 }
-
 function gbRegAtualizar() {
-  const status    = document.getElementById('gbRegStatus').value;
+  const status = document.getElementById('gbRegStatus').value;
   const resultado = document.getElementById('gbRegResultado').value;
   document.getElementById('gbRegResultadoArea').classList.toggle('hidden', status !== 'ATENDEU');
   document.getElementById('gbRegPlanoArea').classList.toggle('hidden', !['UPGRADE','DOWNGRADE'].includes(resultado));
 }
-
 function gbRegCalcularDelta() {
   const vAnt = parseFloat(document.getElementById('gbRegValorAnterior')?.value) || 0;
   const vNov = parseFloat(document.getElementById('gbRegValorNovo')?.value) || 0;
   const delta = vNov - vAnt;
-  const valEl  = document.getElementById('gbRegDeltaVal');
+  const valEl = document.getElementById('gbRegDeltaVal');
   const iconEl = document.getElementById('gbRegDeltaIcon');
   if (!valEl) return;
   valEl.textContent = `R$ ${Math.abs(delta).toFixed(2).replace('.',',')}`;
-  valEl.className   = 'delta-val ' + (delta > 0 ? 'positivo' : delta < 0 ? 'negativo' : '');
+  valEl.className = 'delta-val ' + (delta > 0 ? 'positivo' : delta < 0 ? 'negativo' : '');
   if (iconEl) iconEl.textContent = delta > 0 ? '📈' : delta < 0 ? '📉' : '➡️';
 }
-
 async function gbSalvarRegistro() {
   const c = GB.clienteAtual;
   if (!c) return;
-  const consultor  = document.getElementById('gbRegConsultor').value;
-  const status     = document.getElementById('gbRegStatus').value;
-  const resultado  = document.getElementById('gbRegResultado').value;
-  const planoNovo  = document.getElementById('gbRegPlanoNovo').value;
-  const vAnt       = parseFloat(document.getElementById('gbRegValorAnterior')?.value) || 0;
-  const vNov       = parseFloat(document.getElementById('gbRegValorNovo')?.value) || 0;
-  const obs        = document.getElementById('gbRegObs').value;
+  const consultor = document.getElementById('gbRegConsultor').value;
+  const status = document.getElementById('gbRegStatus').value;
+  const resultado = document.getElementById('gbRegResultado').value;
+  const planoNovo = document.getElementById('gbRegPlanoNovo').value;
+  const vAnt = parseFloat(document.getElementById('gbRegValorAnterior')?.value) || 0;
+  const vNov = parseFloat(document.getElementById('gbRegValorNovo')?.value) || 0;
+  const obs = document.getElementById('gbRegObs').value;
   if (!consultor) { alert('Selecione o consultor!'); return; }
-  if (!status)    { alert('Selecione o status!'); return; }
+  if (!status) { alert('Selecione o status!'); return; }
   const payload = {
-    idContrato:     c.idContrato,
-    consultor,
-    statusContato:  status,
-    resultado:      resultado || status,
-    planoAnterior:  document.getElementById('gbRegPlanoAnterior')?.value || '',
-    planoNovo:      planoNovo,
-    valorAnterior:  vAnt,
-    valorNovo:      vNov,
-    deltaValor:     vNov - vAnt,
-    observacao:     obs,
-    requerAtuacao:  resultado === 'ATUACAO',
-    abordagemIa:    ''
+    idContrato: c.idContrato, consultor, statusContato: status, resultado: resultado || status,
+    planoAnterior: document.getElementById('gbRegPlanoAnterior')?.value || '', planoNovo: planoNovo,
+    valorAnterior: vAnt, valorNovo: vNov, deltaValor: vNov - vAnt, observacao: obs,
+    requerAtuacao: resultado === 'ATUACAO', abordagemIa: ''
   };
   const acaoLocal = { ...payload, id: 'local_'+Date.now(), dataContato: new Date().toISOString() };
   GB.acoes.unshift(acaoLocal);
@@ -2319,14 +2270,12 @@ async function gbSalvarRegistro() {
   } catch(e) { console.warn('GB: Ação salva localmente, falha no sync:', e); }
   alert('✅ Ação registrada!');
 }
-
 function gbSelecionarClienteIA(idContrato) {
   const c = GB.clientes.find(x => x.idContrato === idContrato);
   if (!c) return;
   GB.clienteAtual = c;
   gbGerarAbordagem();
 }
-
 async function gbGerarAbordagem() {
   const c = GB.clienteAtual;
   if (!c) return;
@@ -2359,27 +2308,24 @@ Crie uma abordagem de contato WhatsApp PERSONALIZADA (máximo 5 linhas) seguindo
 Tom: próximo, regional gaúcho, sem formalidade excessiva. Não use asteriscos de markdown.`;
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GB.GEMINI_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 400, temperature: 0.8 } })
     });
     const data = await res.json();
-    const txt  = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (txt) { gbExibirAbordagem(txt); return; }
   } catch(e) {}
   try {
     const r = await gbApiCall('gerarAbordagemBase', { idContrato: c.idContrato, nome: c.nome, plano, valor, meses }, false);
     if (r?.abordagem) { gbExibirAbordagem(r.abordagem); return; }
   } catch(e) {}
-  gbExibirAbordagem(`Olá ${c.nome}, tudo bem?\n\nComo cliente MHNET há ${meses} meses, você tem um upgrade especial disponível! 🎉\n\nSeu plano atual é de ${plano}. Posso te apresentar uma opção melhor pelo mesmo valor ou pouco mais — instalação gratuita!\n\nPosso te enviar os detalhes? 😊`);
+  gbExibirAbordagem(`Olá ${c.nome}, tudo bem? ...`);
 }
-
 function gbExibirAbordagem(texto) {
   document.getElementById('gbIALoading').classList.add('hidden');
   document.getElementById('gbIATexto').textContent = texto;
   document.getElementById('gbIAResultado').classList.remove('hidden');
 }
-
 function gbCopiarAbordagem() {
   const txt = document.getElementById('gbIATexto')?.textContent || '';
   navigator.clipboard?.writeText(txt).then(() => alert('✅ Copiado!')).catch(() => {
@@ -2389,153 +2335,85 @@ function gbCopiarAbordagem() {
     alert('✅ Copiado!');
   });
 }
-
 function gbAbrirWhatsAppComIA() {
-  const c   = GB.clienteAtual;
+  const c = GB.clienteAtual;
   const txt = document.getElementById('gbIATexto')?.textContent || '';
   if (c?.telefoneExterno) {
     const fone = String(c.telefoneExterno).replace(/\D/g,'');
     window.open(`https://wa.me/55${fone}?text=${encodeURIComponent(txt)}`, '_blank');
   } else {
     gbCopiarAbordagem();
-    alert('Número não disponível — texto copiado! Cole manualmente no WhatsApp.');
+    alert('Número não disponível — texto copiado!');
   }
   gbFecharModal('gbModalIA');
 }
-
 function gbRenderDashboard() {
   const div = document.getElementById('gbPainelConsultores');
   if (!div) return;
   const hoje = new Date();
   const ini30 = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
   const stats = {};
-  GB.consultores.forEach(nome => {
-    stats[nome] = { total: 0, upgrades: 0, downgrades: 0, recusou: 0, incremento: 0 };
-  });
+  GB.consultores.forEach(nome => { stats[nome] = { total:0, upgrades:0, downgrades:0, recusou:0, incremento:0 }; });
   GB.acoes.forEach(a => {
     if (!a.consultor || !stats[a.consultor]) return;
     const dt = new Date(a.dataContato);
     if (dt < ini30) return;
     const s = stats[a.consultor];
     s.total++;
-    if (a.resultado === 'UPGRADE')    { s.upgrades++; s.incremento += a.deltaValor || 0; }
-    if (a.resultado === 'DOWNGRADE')  { s.downgrades++; s.incremento += a.deltaValor || 0; }
-    if (a.resultado === 'RECUSOU')    s.recusou++;
+    if (a.resultado === 'UPGRADE') { s.upgrades++; s.incremento += a.deltaValor || 0; }
+    if (a.resultado === 'DOWNGRADE') { s.downgrades++; s.incremento += a.deltaValor || 0; }
+    if (a.resultado === 'RECUSOU') s.recusou++;
   });
-  div.innerHTML = `
-    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;">
-      <i class="fas fa-chart-bar" style="margin-right:5px;"></i>Últimos 30 dias
-    </div>
-    ${GB.consultores.map(nome => {
+  div.innerHTML = `<div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;"><i class="fas fa-chart-bar" style="margin-right:5px;"></i>Últimos 30 dias</div>` +
+    GB.consultores.map(nome => {
       const s = stats[nome];
       const iniciais = nome.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
       const taxa = s.total > 0 ? Math.round((s.upgrades / s.total) * 100) : 0;
       const incFmt = s.incremento !== 0 ? `${s.incremento > 0 ? '+' : ''}R$ ${s.incremento.toFixed(2).replace('.',',')}` : 'R$ 0,00';
-      return `
-      <div class="gb-cons-card">
-        <div class="gb-cons-header">
-          <div class="gb-cons-avatar">${iniciais}</div>
-          <div>
-            <div class="gb-cons-name">${nome}</div>
-            <div class="gb-cons-meta">${taxa}% taxa de upgrade · ${s.total} contatos</div>
-          </div>
-        </div>
-        <div class="gb-cons-stats">
-          <div class="gb-cons-stat"><div class="sv">${s.total}</div><div class="sl">Contatos</div></div>
-          <div class="gb-cons-stat"><div class="sv verde">${s.upgrades}</div><div class="sl">Upgrades</div></div>
-          <div class="gb-cons-stat"><div class="sv vermelho">${s.downgrades}</div><div class="sl">Downgrades</div></div>
-          <div class="gb-cons-stat"><div class="sv ${s.incremento >= 0 ? 'verde' : 'vermelho'}" style="font-size:.75rem;">${incFmt}</div><div class="sl">Δ Receita</div></div>
-        </div>
-      </div>`;
-    }).join('')}`;
+      return `<div class="gb-cons-card"><div class="gb-cons-header"><div class="gb-cons-avatar">${iniciais}</div><div><div class="gb-cons-name">${nome}</div><div class="gb-cons-meta">${taxa}% taxa de upgrade · ${s.total} contatos</div></div></div><div class="gb-cons-stats"><div class="gb-cons-stat"><div class="sv">${s.total}</div><div class="sl">Contatos</div></div><div class="gb-cons-stat"><div class="sv verde">${s.upgrades}</div><div class="sl">Upgrades</div></div><div class="gb-cons-stat"><div class="sv vermelho">${s.downgrades}</div><div class="sl">Downgrades</div></div><div class="gb-cons-stat"><div class="sv ${s.incremento >= 0 ? 'verde' : 'vermelho'}" style="font-size:.75rem;">${incFmt}</div><div class="sl">Δ Receita</div></div></div></div>`;
+    }).join('');
 }
-
 function gbCarregarHistorico() {
   const div = document.getElementById('gbListaHistorico');
   if (!div) return;
-  const fConsultor  = document.getElementById('gbHistFiltroConsultor')?.value || '';
-  const fResultado  = document.getElementById('gbHistFiltroResultado')?.value || '';
+  const fConsultor = document.getElementById('gbHistFiltroConsultor')?.value || '';
+  const fResultado = document.getElementById('gbHistFiltroResultado')?.value || '';
   let lista = [...GB.acoes];
   if (fConsultor) lista = lista.filter(a => a.consultor === fConsultor);
   if (fResultado) lista = lista.filter(a => a.resultado === fResultado);
   lista.sort((a,b) => new Date(b.dataContato) - new Date(a.dataContato));
-  lista = lista.slice(0, 50);
-  if (!lista.length) {
-    div.innerHTML = '<div class="gb-empty"><i class="fas fa-history"></i><p>Nenhuma ação encontrada.</p></div>';
-    return;
-  }
+  lista = lista.slice(0,50);
+  if (!lista.length) { div.innerHTML = '<div class="gb-empty"><i class="fas fa-history"></i><p>Nenhuma ação encontrada.</p></div>'; return; }
   div.innerHTML = lista.map(a => {
     const clienteNome = GB.clientes.find(c => c.idContrato === a.idContrato)?.nome || a.idContrato;
     const cls = a.resultado === 'UPGRADE' ? 'positivo' : a.resultado === 'DOWNGRADE' || a.resultado === 'RECUSOU' ? 'negativo' : a.resultado === 'ATUACAO' ? 'atuacao' : '';
     const deltaStr = a.deltaValor && a.deltaValor !== 0 ? ` · ${a.deltaValor > 0 ? '📈 +' : '📉 '}R$ ${Math.abs(a.deltaValor).toFixed(2).replace('.',',')}` : '';
-    return `
-    <div class="gb-historico-item ${cls}">
-      <div class="gb-hist-top">
-        <span class="gb-hist-consultor"><i class="fas fa-user" style="margin-right:3px;"></i>${a.consultor}</span>
-        <span class="gb-hist-data">${gbFmtData(a.dataContato)}</span>
-      </div>
-      <div class="gb-hist-resultado">${clienteNome} — ${gbResultadoLabel(a.resultado, a.statusContato)}</div>
-      ${a.deltaValor && a.deltaValor !== 0 ? `<div class="gb-hist-delta">${a.planoAnterior||'?'} → ${a.planoNovo||'?'}${deltaStr}</div>` : ''}
-      ${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}
-    </div>`;
+    return `<div class="gb-historico-item ${cls}"><div class="gb-hist-top"><span class="gb-hist-consultor"><i class="fas fa-user"></i> ${a.consultor}</span><span class="gb-hist-data">${gbFmtData(a.dataContato)}</span></div><div class="gb-hist-resultado">${clienteNome} — ${gbResultadoLabel(a.resultado, a.statusContato)}</div>${a.deltaValor && a.deltaValor !== 0 ? `<div class="gb-hist-delta">${a.planoAnterior||'?'} → ${a.planoNovo||'?'}${deltaStr}</div>` : ''}${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}</div>`;
   }).join('');
 }
-
-function gbAbrirWhatsApp(fone) {
-  const n = String(fone).replace(/\D/g,'');
-  window.open(`https://wa.me/55${n}`, '_blank');
-}
-
-function gbFecharModal(id) {
-  document.getElementById(id)?.classList.remove('open');
-}
-
-function gbSet(id, val) {
-  const el = document.getElementById(id); if (el) el.textContent = val;
-}
-
+function gbAbrirWhatsApp(fone) { const n = String(fone).replace(/\D/g,''); window.open(`https://wa.me/55${n}`, '_blank'); }
+function gbFecharModal(id) { document.getElementById(id)?.classList.remove('open'); }
+function gbSet(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
 function gbFmtData(v) {
   if (!v) return '—';
-  try {
-    const d = new Date(v);
-    if (isNaN(d)) return String(v).split('T')[0];
-    return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit' }) +
-           ' ' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-  } catch(e) { return String(v).split('T')[0]; }
+  try { const d = new Date(v); if (isNaN(d)) return String(v).split('T')[0]; return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}); } catch(e) { return String(v).split('T')[0]; }
 }
-
 function gbResultadoLabel(resultado, status) {
-  const map = {
-    UPGRADE:      '✅ Upgrade realizado',
-    DOWNGRADE:    '🔽 Downgrade realizado',
-    FIDELIZOU:    '🔒 Fidelizou (manteve)',
-    RECUSOU:      '❌ Recusou proposta',
-    ATUACAO:      '⚠️ Requer atuação',
-    NAO_ATENDEU:  '📵 Não atendeu',
-    AGENDOU:      '📅 Agendou retorno',
-    ATENDEU:      '📞 Atendeu (sem resultado)',
-  };
+  const map = { UPGRADE:'✅ Upgrade', DOWNGRADE:'🔽 Downgrade', FIDELIZOU:'🔒 Fidelizou', RECUSOU:'❌ Recusou', ATUACAO:'⚠️ Atuação', NAO_ATENDEU:'📵 Não atendeu', AGENDOU:'📅 Agendou', ATENDEU:'📞 Atendeu' };
   return map[resultado] || map[status] || resultado || status || '—';
 }
-
-function gbGerarAbordagemLote() {
-  alert('Funcionalidade IA em lote será desenvolvida em breve.');
-}
+function gbGerarAbordagemLote() { alert('IA em lote em breve'); }
 
 // Integração com a navegação principal
 if (typeof navegarPara === 'function') {
   const originalNavegarPara = navegarPara;
   window.navegarPara = function(pageId) {
     originalNavegarPara(pageId);
-    if (pageId === 'gestaoBase' && typeof gbInit === 'function') {
-      gbInit();
-    }
+    if (pageId === 'gestaoBase' && typeof gbInit === 'function') gbInit();
   };
 } else {
   window.navegarPara = function(pageId) {
-    if (pageId === 'gestaoBase' && typeof gbInit === 'function') {
-      gbInit();
-    }
+    if (pageId === 'gestaoBase' && typeof gbInit === 'function') gbInit();
   };
 }
 
@@ -2548,4 +2426,3 @@ Object.assign(window, {
   gbFecharModal, gbAbrirWhatsApp, gbRenderDashboard, gbCarregarHistorico, gbGerarAbordagemLote
 });
 </script>
- 
