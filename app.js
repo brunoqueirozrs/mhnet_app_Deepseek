@@ -15,7 +15,7 @@
 // ============================================================
 // CONFIG
 // ============================================================
-const DEPLOY_ID  = 'AKfycbzNNkCf08grP8ceWC1eYATGVzEUO0JgX8ITChWoS1oml9gN1boWnz-B_BRs3DNn1Ug';
+const DEPLOY_ID  = 'AKfycbyzgVhdtgI6AgM60_cxhtMJAby_3z8n3faljGOd3fSdi-f0VxZ1auViyMLryBvVcyc7';
 const API_URL    = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const GEMINI_KEY = 'AIzaSyC854djGrgcGEPbhTYm46Q2ayyJBp-tNv4';
 const CALENDAR_URL = 'https://calendar.google.com/calendar/u/0?cid=ZTZlNjQ2OWVkNzQ1YzMzYmIwMjg2YmFmYmM4NzA2ZmU4YzM3MWVhMDU1MWRiNDY2NDJkNTc2NTI5MmFhMDZmN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
