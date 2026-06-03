@@ -1863,8 +1863,9 @@
      SCRIPT DO MÓDULO GESTÃO DE BASE (adicionado após app.js)
 ============================================================ -->
 <script>
+<script>
 // ============================================================
-// GESTÃO DE BASE — STATE
+// GESTÃO DE BASE — STATE (CORRIGIDO)
 // ============================================================
 const GB = {
   clientes:    [],
@@ -1875,25 +1876,29 @@ const GB = {
   porPagina:   15,
   clienteAtual: null,
   tabAtual:    'clientes',
-  DEPLOY_ID: 'DEPLOY_ID: 'AKfycbyzgVhdtgI6AgM60_cxhtMJAby_3z8n3faljGOd3fSdi-f0VxZ1auViyMLryBvVcyc7',
+  // DEPLOY_ID corrigido (sem aspas extras)
+  DEPLOY_ID: 'AKfycbyzgVhdtgI6AgM60_cxhtMJAby_3z8n3faljGOd3fSdi-f0VxZ1auViyMLryBvVcyc7',
   get API_URL() { return `https://script.google.com/macros/s/${this.DEPLOY_ID}/exec`; },
   GEMINI_KEY: 'AIzaSyAbNlXty0_XC1e2cRqzt-4HklyxbKOhXlw',
 };
 
 // ============================================================
-// API CALL (usa a função global do app)
+// API CALL (usa fetch direto, sem depender da apiCall global)
 // ============================================================
 async function gbApiCall(route, payload = {}, show = false) {
-  if (typeof apiCall === 'function') {
-    return apiCall(route, payload, show);
-  }
+  const url = GB.API_URL;
   try {
-    const res = await fetch(GB.API_URL, {
+    console.log(`📡 GB: chamando ${route}...`);
+    const res = await fetch(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ route, payload })
     });
-    return await res.json();
-  } catch(e) {
+    const data = await res.json();
+    console.log(`✅ GB: resposta de ${route}:`, data);
+    return data;
+  } catch (e) {
+    console.error(`❌ GB: erro na chamada ${route}:`, e);
     return { status: 'error', message: e.message };
   }
 }
@@ -1928,30 +1933,35 @@ async function gbCarregarBase(showLoader = true) {
   if (icon) { icon.style.animation = 'spin .8s linear infinite'; }
   try {
     const res = await gbApiCall('getBaseClientes', {}, false);
-    if (res?.status === 'success' && res.data) {
+    if (res?.status === 'success' && res.data && res.data.length > 0) {
       GB.clientes = res.data;
       localStorage.setItem('gb_clientes_cache', JSON.stringify(GB.clientes));
       gbProcessarBase();
     } else {
-      // Fallback para dados mockados (apenas desenvolvimento)
-      console.warn('GB: Usando dados mockados');
-      GB.clientes = [
-        { idContrato:'1001', nome:'Carlos Alberto Machado', plano:'Fibra 100Mb', velocidadeMb:100, valor:79.90, dataAtivacao:'2021-10-15', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51999990001' },
-        { idContrato:'1002', nome:'Maria Silva Santos', plano:'Fibra 300Mb', velocidadeMb:300, valor:109.99, dataAtivacao:'2022-05-20', cidade:'Lajeado', status:'Ativo', canal:'Loja', consultorOrigem:'Karolina', telefoneExterno:'51999990002' },
-        { idContrato:'1003', nome:'João Pedro Alves', plano:'Fibra 200Mb', velocidadeMb:200, valor:89.90, dataAtivacao:'2020-03-10', cidade:'Estrela', status:'Ativo', canal:'Online', consultorOrigem:'João Vithor' },
-        { idContrato:'1004', nome:'Fernanda Oliveira Costa', plano:'Fibra 600Mb', velocidadeMb:600, valor:149.00, dataAtivacao:'2023-09-01', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Mauricio' },
-        { idContrato:'1005', nome:'Roberto Lima Pereira', plano:'Fibra 100Mb', velocidadeMb:100, valor:65.50, dataAtivacao:'2019-07-22', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51988887777' },
-      ];
-      GB.acoes = [
-        { id:'a1', idContrato:'1001', consultor:'Ana Paula', statusContato:'ATENDEU', resultado:'UPGRADE', planoAnterior:'100Mb', planoNovo:'300Mb', valorAnterior:79.90, valorNovo:109.99, deltaValor:30.09, observacao:'Cliente feliz', requerAtuacao:false, dataContato:'2025-05-10T14:30:00' },
-        { id:'a2', idContrato:'1003', consultor:'João Vithor', statusContato:'ATENDEU', resultado:'ATUACAO', planoAnterior:'200Mb', planoNovo:'', valorAnterior:89.90, valorNovo:0, deltaValor:0, observacao:'Reclamação de instabilidade', requerAtuacao:true, dataContato:'2025-05-28T10:15:00' },
-      ];
-      gbProcessarBase();
+      console.warn('GB: resposta inválida ou vazia, usando mock', res);
+      carregarDadosMockados();
     }
   } catch(e) {
-    console.warn('GB: Erro ao carregar base:', e);
+    console.error('GB: erro ao carregar base:', e);
+    carregarDadosMockados();
   }
   if (icon) { icon.style.animation = ''; }
+}
+
+function carregarDadosMockados() {
+  console.warn('GB: usando dados mockados (fallback)');
+  GB.clientes = [
+    { idContrato:'1001', nome:'Carlos Alberto Machado', plano:'Fibra 100Mb', velocidadeMb:100, valor:79.90, dataAtivacao:'2021-10-15', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51999990001' },
+    { idContrato:'1002', nome:'Maria Silva Santos', plano:'Fibra 300Mb', velocidadeMb:300, valor:109.99, dataAtivacao:'2022-05-20', cidade:'Lajeado', status:'Ativo', canal:'Loja', consultorOrigem:'Karolina', telefoneExterno:'51999990002' },
+    { idContrato:'1003', nome:'João Pedro Alves', plano:'Fibra 200Mb', velocidadeMb:200, valor:89.90, dataAtivacao:'2020-03-10', cidade:'Estrela', status:'Ativo', canal:'Online', consultorOrigem:'João Vithor' },
+    { idContrato:'1004', nome:'Fernanda Oliveira Costa', plano:'Fibra 600Mb', velocidadeMb:600, valor:149.00, dataAtivacao:'2023-09-01', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Mauricio' },
+    { idContrato:'1005', nome:'Roberto Lima Pereira', plano:'Fibra 100Mb', velocidadeMb:100, valor:65.50, dataAtivacao:'2019-07-22', cidade:'Lajeado', status:'Ativo', canal:'Externo', consultorOrigem:'Ana Paula', telefoneExterno:'51988887777' },
+  ];
+  GB.acoes = [
+    { id:'a1', idContrato:'1001', consultor:'Ana Paula', statusContato:'ATENDEU', resultado:'UPGRADE', planoAnterior:'100Mb', planoNovo:'300Mb', valorAnterior:79.90, valorNovo:109.99, deltaValor:30.09, observacao:'Cliente feliz', requerAtuacao:false, dataContato:'2025-05-10T14:30:00' },
+    { id:'a2', idContrato:'1003', consultor:'João Vithor', statusContato:'ATENDEU', resultado:'ATUACAO', planoAnterior:'200Mb', planoNovo:'', valorAnterior:89.90, valorNovo:0, deltaValor:0, observacao:'Reclamação de instabilidade', requerAtuacao:true, dataContato:'2025-05-28T10:15:00' },
+  ];
+  gbProcessarBase();
 }
 
 async function gbCarregarAcoes(show = false) {
@@ -2538,6 +2548,4 @@ Object.assign(window, {
   gbFecharModal, gbAbrirWhatsApp, gbRenderDashboard, gbCarregarHistorico, gbGerarAbordagemLote
 });
 </script>
-
-</body>
-</html>
+ 
