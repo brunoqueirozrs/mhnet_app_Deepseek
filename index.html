@@ -1,4 +1,36 @@
-<!DOCTYPE html>
+<!DOCTYPE html>app.js:104  POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyAbNlXty0_XC1e2cRqzt-4HklyxbKOhXlw 429 (Too Many Requests)
+validarIA @ app.js:104
+(anonymous) @ app.js:76Understand this error
+mhnet_app_Deepseek/:1898 📡 GB: chamando getBaseClientes...
+mhnet_app_Deepseek/:1898 📡 GB: chamando getBaseAcoes...
+mhnet_app_Deepseek/:1900 ✅ GB: resposta de getBaseAcoes: {status: 'success', data: Array(1)}
+mhnet_app_Deepseek/:1900 ✅ GB: resposta de getBaseClientes: {status: 'error', message: 'Conexão falhou'}
+mhnet_app_Deepseek/:1941 GB: resposta inválida ou vazia, usando mock {status: 'error', message: 'Conexão falhou'}
+gbCarregarBase @ mhnet_app_Deepseek/:1941
+await in gbCarregarBase
+gbInit @ mhnet_app_Deepseek/:1915
+window.navegarPara @ mhnet_app_Deepseek/:2431
+onclick @ mhnet_app_Deepseek/:1502Understand this warning
+mhnet_app_Deepseek/:1952 GB: usando dados mockados (fallback)
+carregarDadosMockados @ mhnet_app_Deepseek/:1952
+gbCarregarBase @ mhnet_app_Deepseek/:1942
+await in gbCarregarBase
+gbInit @ mhnet_app_Deepseek/:1915
+window.navegarPara @ mhnet_app_Deepseek/:2431
+onclick @ mhnet_app_Deepseek/:1502Understand this warning
+sw.js:32 Uncaught (in promise) TypeError: Failed to execute 'clone' on 'Response': Response body is already used
+    at sw.js:32:61
+(anonymous) @ sw.js:32
+Promise.then
+(anonymous) @ sw.js:32
+Promise.then
+(anonymous) @ sw.js:30
+Promise.then
+(anonymous) @ sw.js:29Understand this error
+mhnet_app_Deepseek/:1898 📡 GB: chamando getBaseClientes...
+mhnet_app_Deepseek/:1900 ✅ GB: resposta de getBaseClientes: {status: 'success', data: Array(9255), total: 9255}
+mhnet_app_Deepseek/:1898 📡 GB: chamando getBaseClientes...
+mhnet_app_Deepseek/:1900 ✅ GB: resposta de getBaseClientes: {status: 'success', data: Array(9255), total: 9255}
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -2034,7 +2066,7 @@ function gbAplicarFiltros() {
     if (gbFiltroAtivo === 'oportunidade' && c.prioridade !== 'oportunidade') return false;
     if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
-    if (apenasAtivos && c.status !== 'Ativo') return false; // NOVO FILTRO
+    if (apenasAtivos && (c.status || '').toLowerCase() !== 'ativo') return false; // NOVO FILTRO
     const mb = c.velocidadeMb || 0;
     if (velocidade === 'baixo' && !(mb > 0 && mb <= 300)) return false;
     if (velocidade === 'medio' && !(mb > 300 && mb <= 600)) return false;
