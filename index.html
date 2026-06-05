@@ -2026,8 +2026,16 @@ function gbProcessarBase() {
     else if (score >= 25) prioridade = 'oportunidade';
     return { ...c, meses, score, prioridade };
   });
+  
   gbAtualizarKpis();
-  gbAplicarFiltros();
+  
+  // Garante que o checkbox de ativos esteja marcado
+  const chk = document.getElementById('gbFiltroApenasAtivos');
+  if (chk) {
+    chk.checked = true;
+  }
+  
+  gbAplicarFiltros(); // aplica o filtro (incluindo o de ativos)
 }
 
 function gbAtualizarKpis() {
@@ -2050,7 +2058,7 @@ function gbAtualizarKpis() {
 let gbFiltroAtivo = null;
 function gbFiltrarPrioridade(prioridade) { gbFiltroAtivo = prioridade; gbAplicarFiltros(); }
 
-ffunction gbAplicarFiltros() {
+function gbAplicarFiltros() {
   const consultor = document.getElementById('gbFiltroConsultor')?.value || '';
   const velocidade = document.getElementById('gbFiltroVelocidade')?.value || '';
   const antiguidade = document.getElementById('gbFiltroAntiguidade')?.value || '';
@@ -2065,9 +2073,9 @@ ffunction gbAplicarFiltros() {
     if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
     
-    // 🔥 FILTRO DE STATUS (case insensitive, sem acentos)
+    // 🔥 FILTRO DE STATUS (funciona mesmo se o status vier "Ativo" ou "ativo")
     if (apenasAtivos) {
-      const statusCliente = (c.status || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const statusCliente = (c.status || '').toString().toLowerCase();
       if (statusCliente !== 'ativo') return false;
     }
     
