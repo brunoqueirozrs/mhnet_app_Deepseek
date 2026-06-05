@@ -1868,8 +1868,7 @@
 </script>
 
 <!-- ============================================================
-     SCRIPT DO MÓDULO GESTÃO DE BASE (CORRIGIDO)
-     USANDO A APIcall GLOBAL DO APP
+     SCRIPT DO MÓDULO GESTÃO DE BASE (COMPLETO E CORRIGIDO)
 ============================================================ -->
 <script>
 // ============================================================
@@ -1914,15 +1913,6 @@ function gbInit() {
   }
   gbCarregarBase(false);
   gbCarregarAcoes(false);
-  
-  // Marca o checkbox "Apenas contratos Ativos" por padrão e aplica o filtro
-  setTimeout(() => {
-    const chk = document.getElementById('gbFiltroApenasAtivos');
-    if (chk) {
-      chk.checked = true;
-      gbAplicarFiltros();
-    }
-  }, 500);
 }
 
 function gbSetTab(tab) {
@@ -1941,7 +1931,6 @@ async function gbCarregarBase(showLoader = true) {
   const icon = document.getElementById('gbSyncIcon');
   if (icon) icon.style.animation = 'spin .8s linear infinite';
   
-  // Tenta carregar do cache primeiro (para exibir rápido)
   const cached = localStorage.getItem('gb_clientes_cache');
   if (cached) {
     try {
@@ -1954,14 +1943,13 @@ async function gbCarregarBase(showLoader = true) {
     } catch(e) {}
   }
   
-  // Tenta atualizar da API (em segundo plano)
   try {
     const res = await gbApiCall('getBaseClientes', {}, false);
     if (res?.status === 'success' && res.data && res.data.length > 0) {
       console.log(`✅ GB: API retornou ${res.data.length} clientes, atualizando cache`);
       GB.clientes = res.data;
       localStorage.setItem('gb_clientes_cache', JSON.stringify(GB.clientes));
-      gbProcessarBase(); // re-renderiza com dados atualizados
+      gbProcessarBase();
     } else {
       console.warn('⚠️ GB: API falhou, mantendo cache existente', res);
     }
@@ -1969,7 +1957,6 @@ async function gbCarregarBase(showLoader = true) {
     console.error('❌ GB: erro na API, mantendo cache', e);
   }
   
-  // Se não há cache nem API, usa mock
   if (!GB.clientes.length) {
     console.warn('⚠️ GB: sem cache e API falhou, usando mock');
     carregarDadosMockados();
@@ -2029,13 +2016,12 @@ function gbProcessarBase() {
   
   gbAtualizarKpis();
   
-  // Garante que o checkbox de ativos esteja marcado
+  // Marca o checkbox de ativos como true e aplica o filtro
   const chk = document.getElementById('gbFiltroApenasAtivos');
-  if (chk) {
+  if (chk && !chk.checked) {
     chk.checked = true;
   }
-  
-  gbAplicarFiltros(); // aplica o filtro (incluindo o de ativos)
+  gbAplicarFiltros();
 }
 
 function gbAtualizarKpis() {
@@ -2056,6 +2042,7 @@ function gbAtualizarKpis() {
 }
 
 let gbFiltroAtivo = null;
+
 function gbFiltrarPrioridade(prioridade) { gbFiltroAtivo = prioridade; gbAplicarFiltros(); }
 
 function gbAplicarFiltros() {
@@ -2073,7 +2060,6 @@ function gbAplicarFiltros() {
     if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
     
-    // 🔥 FILTRO DE STATUS (funciona mesmo se o status vier "Ativo" ou "ativo")
     if (apenasAtivos) {
       const statusCliente = (c.status || '').toString().toLowerCase();
       if (statusCliente !== 'ativo') return false;
@@ -2483,6 +2469,3 @@ Object.assign(window, {
   gbFecharModal, gbAbrirWhatsApp, gbRenderDashboard, gbCarregarHistorico, gbGerarAbordagemLote
 });
 </script>
-
-</body>
-</html>
