@@ -1420,6 +1420,14 @@
                 <i class="fas fa-times"></i>
               </button>
             </div>
+            <!-- NOVO CHECKBOX ADICIONADO AQUI -->
+            <div class="gb-filter-row" style="margin-top: 6px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 600; color: var(--text-2); cursor: pointer;">
+                <input type="checkbox" id="gbFiltroApenasAtivos" onchange="gbAplicarFiltros()"> 
+                Apenas contratos Ativos
+              </label>
+              <div></div>
+            </div>
           </div>
 
           <div class="search-wrap">
@@ -2012,18 +2020,25 @@ function gbAtualizarKpis() {
 let gbFiltroAtivo = null;
 function gbFiltrarPrioridade(prioridade) { gbFiltroAtivo = prioridade; gbAplicarFiltros(); }
 
+// ============================================================
+// FUNÇÃO gbAplicarFiltros ATUALIZADA (com filtro de Ativos)
+// ============================================================
 function gbAplicarFiltros() {
   const consultor = document.getElementById('gbFiltroConsultor')?.value || '';
   const velocidade = document.getElementById('gbFiltroVelocidade')?.value || '';
   const antiguidade = document.getElementById('gbFiltroAntiguidade')?.value || '';
   const ordem = document.getElementById('gbFiltroOrdem')?.value || 'score';
   const busca = (document.getElementById('gbSearchInput')?.value || '').toLowerCase();
+  const apenasAtivos = document.getElementById('gbFiltroApenasAtivos')?.checked || false;
   const idsAtuacao = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
+
   let lista = GB.clientes.filter(c => {
     if (gbFiltroAtivo === 'urgente' && c.prioridade !== 'urgente') return false;
     if (gbFiltroAtivo === 'oportunidade' && c.prioridade !== 'oportunidade') return false;
     if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
+    // NOVO FILTRO: apenas ativos
+    if (apenasAtivos && c.status !== 'Ativo') return false;
     const mb = c.velocidadeMb || 0;
     if (velocidade === 'baixo' && !(mb > 0 && mb <= 300)) return false;
     if (velocidade === 'medio' && !(mb > 300 && mb <= 600)) return false;
@@ -2038,6 +2053,7 @@ function gbAplicarFiltros() {
     }
     return true;
   });
+
   lista.sort((a,b) => {
     if (ordem === 'score') return b.score - a.score;
     if (ordem === 'valor_desc') return (b.valor||0) - (a.valor||0);
@@ -2046,6 +2062,7 @@ function gbAplicarFiltros() {
     if (ordem === 'nome') return (a.nome||'').localeCompare(b.nome||'');
     return 0;
   });
+
   GB.filtrados = lista;
   GB.pagina = 0;
   const contador = document.getElementById('gbContador');
@@ -2055,8 +2072,10 @@ function gbAplicarFiltros() {
 
 function gbLimparFiltros() {
   gbFiltroAtivo = null;
-  ['gbFiltroConsultor','gbFiltroFidelidade','gbFiltroVelocidade','gbFiltroAntiguidade'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
+  ['gbFiltroConsultor','gbFiltroFidelidade','gbFiltroVelocidade','gbFiltroAntiguidade','gbFiltroApenasAtivos'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.type === 'checkbox') el.checked = false;
+    else if (el) el.value = '';
   });
   document.getElementById('gbSearchInput').value = '';
   document.getElementById('gbFiltroOrdem').value = 'score';
@@ -2426,3 +2445,6 @@ Object.assign(window, {
   gbFecharModal, gbAbrirWhatsApp, gbRenderDashboard, gbCarregarHistorico, gbGerarAbordagemLote
 });
 </script>
+
+</body>
+</html>
