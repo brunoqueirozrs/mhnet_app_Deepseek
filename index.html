@@ -1914,6 +1914,15 @@ function gbInit() {
   }
   gbCarregarBase(false);
   gbCarregarAcoes(false);
+  
+  // Marca o checkbox "Apenas contratos Ativos" por padrão e aplica o filtro
+  setTimeout(() => {
+    const chk = document.getElementById('gbFiltroApenasAtivos');
+    if (chk) {
+      chk.checked = true;
+      gbAplicarFiltros();
+    }
+  }, 500);
 }
 
 function gbSetTab(tab) {
@@ -2041,7 +2050,7 @@ function gbAtualizarKpis() {
 let gbFiltroAtivo = null;
 function gbFiltrarPrioridade(prioridade) { gbFiltroAtivo = prioridade; gbAplicarFiltros(); }
 
-function gbAplicarFiltros() {
+ffunction gbAplicarFiltros() {
   const consultor = document.getElementById('gbFiltroConsultor')?.value || '';
   const velocidade = document.getElementById('gbFiltroVelocidade')?.value || '';
   const antiguidade = document.getElementById('gbFiltroAntiguidade')?.value || '';
@@ -2056,7 +2065,7 @@ function gbAplicarFiltros() {
     if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
     
-    // 🔥 FILTRO DE STATUS CORRIGIDO (case insensitive, sem acentos)
+    // 🔥 FILTRO DE STATUS (case insensitive, sem acentos)
     if (apenasAtivos) {
       const statusCliente = (c.status || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       if (statusCliente !== 'ativo') return false;
