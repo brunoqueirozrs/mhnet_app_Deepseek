@@ -2055,7 +2055,13 @@ function gbAplicarFiltros() {
     if (gbFiltroAtivo === 'oportunidade' && c.prioridade !== 'oportunidade') return false;
     if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
-    if (apenasAtivos && (c.status || '').toLowerCase() !== 'Ativo') return false; // NOVO FILTRO
+    
+    // 🔥 FILTRO DE STATUS CORRIGIDO (case insensitive, sem acentos)
+    if (apenasAtivos) {
+      const statusCliente = (c.status || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (statusCliente !== 'ativo') return false;
+    }
+    
     const mb = c.velocidadeMb || 0;
     if (velocidade === 'baixo' && !(mb > 0 && mb <= 300)) return false;
     if (velocidade === 'medio' && !(mb > 300 && mb <= 600)) return false;
