@@ -1,24 +1,28 @@
-const CACHE = 'mhnet-v200';
+const CACHE = 'mhnet-v202';
 const BYPASS = ['script.google.com','generativelanguage.googleapis.com','nominatim.openstreetmap.org','callmebot.com'];
 const PRECACHE = ['./', './index.html', './app.js', './manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE).catch(() => {}))
-    .then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(c => Promise.allSettled(PRECACHE.map(url => c.add(url).catch(() => {}))))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-    .then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  if (url.startsWith('chrome-extension') || BYPASS.some(b => url.includes(b)) || e.request.method !== 'GET') return;
+  if (url.startsWith('chrome-extension') || BYPASS.some(b => url.includes(b)) || e.request.method !== 'GET') {
+    return;
+  }
   
   e.respondWith(
     caches.match(e.request).then(cached => {
