@@ -1970,16 +1970,31 @@ async function gbCarregarBase(showLoader = true) {
       localStorage.setItem('gb_clientes_cache', JSON.stringify(GB.clientes));
       gbProcessarBase();
     } else {
-      console.warn('GB: resposta inválida ou vazia, usando mock', res);
-      carregarDadosMockados();
+      // Se a resposta for inválida, mas já temos dados no cache, mantém o cache
+      const cached = localStorage.getItem('gb_clientes_cache');
+      if (cached && JSON.parse(cached).length > 0) {
+        console.warn('GB: API falhou, usando cache existente');
+        GB.clientes = JSON.parse(cached);
+        gbProcessarBase();
+      } else {
+        console.warn('GB: API falhou e sem cache, usando mock', res);
+        carregarDadosMockados();
+      }
     }
   } catch(e) {
     console.error('GB: erro ao carregar base:', e);
-    carregarDadosMockados();
+    const cached = localStorage.getItem('gb_clientes_cache');
+    if (cached && JSON.parse(cached).length > 0) {
+      console.warn('GB: exceção, usando cache');
+      GB.clientes = JSON.parse(cached);
+      gbProcessarBase();
+    } else {
+      carregarDadosMockados();
+    }
   }
   if (icon) icon.style.animation = '';
 }
-
+    
 function carregarDadosMockados() {
   console.warn('GB: usando dados mockados (fallback)');
   GB.clientes = [
