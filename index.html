@@ -1420,10 +1420,10 @@
                 <i class="fas fa-times"></i>
               </button>
             </div>
-            <!-- NOVO CHECKBOX ADICIONADO AQUI -->
+            <!-- NOVO CHECKBOX: Apenas contratos Ativos -->
             <div class="gb-filter-row" style="margin-top: 6px;">
               <label style="display: flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 600; color: var(--text-2); cursor: pointer;">
-                <input type="checkbox" id="gbFiltroApenasAtivos" onchange="gbAplicarFiltros()"> 
+                <input type="checkbox" id="gbFiltroApenasAtivos" onchange="gbAplicarFiltros()" checked> 
                 Apenas contratos Ativos
               </label>
               <div></div>
@@ -2020,9 +2020,6 @@ function gbAtualizarKpis() {
 let gbFiltroAtivo = null;
 function gbFiltrarPrioridade(prioridade) { gbFiltroAtivo = prioridade; gbAplicarFiltros(); }
 
-// ============================================================
-// FUNÇÃO gbAplicarFiltros ATUALIZADA (com filtro de Ativos)
-// ============================================================
 function gbAplicarFiltros() {
   const consultor = document.getElementById('gbFiltroConsultor')?.value || '';
   const velocidade = document.getElementById('gbFiltroVelocidade')?.value || '';
@@ -2037,8 +2034,7 @@ function gbAplicarFiltros() {
     if (gbFiltroAtivo === 'oportunidade' && c.prioridade !== 'oportunidade') return false;
     if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
     if (consultor && c.consultorOrigem !== consultor) return false;
-    // NOVO FILTRO: apenas ativos
-    if (apenasAtivos && c.status !== 'Ativo') return false;
+    if (apenasAtivos && c.status !== 'Ativo') return false; // NOVO FILTRO
     const mb = c.velocidadeMb || 0;
     if (velocidade === 'baixo' && !(mb > 0 && mb <= 300)) return false;
     if (velocidade === 'medio' && !(mb > 300 && mb <= 600)) return false;
@@ -2072,10 +2068,8 @@ function gbAplicarFiltros() {
 
 function gbLimparFiltros() {
   gbFiltroAtivo = null;
-  ['gbFiltroConsultor','gbFiltroFidelidade','gbFiltroVelocidade','gbFiltroAntiguidade','gbFiltroApenasAtivos'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && el.type === 'checkbox') el.checked = false;
-    else if (el) el.value = '';
+  ['gbFiltroConsultor','gbFiltroFidelidade','gbFiltroVelocidade','gbFiltroAntiguidade'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('gbSearchInput').value = '';
   document.getElementById('gbFiltroOrdem').value = 'score';
