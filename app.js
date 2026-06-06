@@ -1621,3 +1621,139 @@ function showLoading(state) {
   const el = document.getElementById('loader');
   if (el) el.classList.toggle('active', state);
 }
+
+// ============================================
+// FUNÇÕES PARA SALVAR/CARREGAR DADOS DO CLIENTE
+// ============================================
+
+// Salvar WhatsApp e CPF do cliente
+async function salvarDadosCliente(idContrato, whatsapp, cpf) {
+  const payload = {
+    idContrato: idContrato,
+    whatsapp: whatsapp,
+    cpf: cpf,
+    dataAtualizacao: new Date().toISOString()
+  };
+  
+  // Salvar localmente
+  let clientes = JSON.parse(localStorage.getItem('gb_clientes_cache') || '[]');
+  const index = clientes.findIndex(c => c.idContrato === idContrato);
+  
+  if (index !== -1) {
+    clientes[index].whatsapp = whatsapp;
+    clientes[index].cpf = cpf;
+    clientes[index].dataAtualizacaoContato = new Date().toISOString();
+  } else {
+    // Se não existir, adiciona
+    clientes.push({
+      idContrato: idContrato,
+      whatsapp: whatsapp,
+      cpf: cpf,
+      dataAtualizacaoContato: new Date().toISOString()
+    });
+  }
+  
+  localStorage.setItem('gb_clientes_cache', JSON.stringify(clientes));
+  localStorage.setItem(`cliente_${idContrato}_dados`, JSON.stringify({ whatsapp, cpf }));
+  
+  // Tentar salvar no servidor/planilha via API
+  try {
+    if (typeof gbApiCall === 'function') {
+      await gbApiCall('salvarDadosCliente', payload, false);
+      console.log('✅ Dados salvos no servidor');
+    } else {
+      console.log('📦 Dados salvos apenas localmente (API não disponível)');
+    }
+  } catch(e) {
+    console.warn('⚠️ Erro ao salvar no servidor, mantendo local:', e);
+  }
+  
+  // Atualizar a interface
+  alert(`✅ Dados de ${whatsapp ? 'WhatsApp' : ''}${whatsapp && cpf ? ' e ' : ''}${cpf ? 'CPF' : ''} salvos com sucesso!`);
+  
+  // Se tiver o card principal aberto, atualizar
+  atualizarCardPrincipal(idContrato);
+}
+
+// Carregar dados salvos do cliente
+function carregarDadosCliente(idContrato) {
+  // Tentar carregar do localStorage específico
+  const dadosLocal = localStorage.getItem(`cliente_${idContrato}_dados`);
+  if (dadosLocal) {
+    return JSON.parse(dadosLocal);
+  }
+  
+  // Tentar carregar do cache geral
+  const clientes = JSON.parse(localStorage.getItem('gb_clientes_cache') || '[]');
+  const cliente = clientes.find(c => c.idContrato === idContrato);
+  if (cliente && (cliente.whatsapp || cliente.cpf)) {
+    return { whatsapp: cliente.whatsapp, cpf: cliente.cpf };
+  }
+  
+  return { whatsapp: '', cpf: '' };
+}
+
+// Atualizar o card principal do cliente com os dados salvos
+function atualizarCardPrincipal(idContrato) {
+  // Buscar o cliente no cache
+  const clientes = JSON.parse(localStorage.getItem('gb_clientes_cache') || '[]');
+  const cliente = clientes.find(c => c.idContrato === idContrato);
+  
+  if (cliente && document.getElementById(`card_${idContrato}`)) {
+    // Atualizar visualmente o card na lista
+    const card = document.getElementById(`card_${idContrato}`);
+    const infoDiv = card.querySelector('.cliente-contato-info');
+    if (infoDiv) {
+      let html = '<div style="display:flex;gap:8px;margin-top:8px;">';
+      if (cliente.whatsapp) {
+        html += `<span class="badge-info" style="background:#d1fae5;"><i class="fab fa-whatsapp"></i> ${cliente.whatsapp}</span>`;
+      }
+      if (cliente.cpf) {
+        const cpfMask = cliente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        html += `<span class="badge-info" style="background:#e0e7ff;"><i class="fas fa-id-card"></i> ${cpfMask}</span>`;
+      }
+      html += '</div>';
+      infoDiv.innerHTML = html;
+    }
+  }
+}
+
+// Função para abrir o card principal com dados carregados
+function abrirCardClienteComDados(idContrato, nome, plano, valor, tempo) {
+  const dados = carregarDadosCliente(idContrato);
+  
+  // HTML do card principal (exemplo)
+  const cardHtml = `
+    <div class="card-cliente-principal" id="card_cliente_${idContrato}">
+      <div class="cliente-info">
+        <div>
+          <div class="cliente-nome">${nome}</div>
+          <div class="cliente-plano">${plano} · ${valor}/mês</div>
+          <div class="tempo-cliente"><i class="fas fa-clock"></i> ${tempo}</div>
+        </div>
+      </div>
+      
+      <!-- DADOS DO CLIENTE (SALVOS) -->
+      <div class="dados-cliente">
+        <div class="campo">
+          <i class="fab fa-whatsapp"></i>
+          <input type="tel" id="clienteWhatsApp_${idContrato}" placeholder="WhatsApp (ex: 51999999999)" value="${dados.whatsapp || ''}">
+        </div>
+        <div class="campo">
+          <i class="fas fa-id-card"></i>
+          <input type="text" id="clienteCPF_${idContrato}" placeholder="CPF (opcional)" value="${dados.cpf || ''}">
+        </div>
+        <div class="campo">
+          <button class="btn btn-primary btn-sm" onclick="salvarDadosCliente('${idContrato}', document.getElementById('clienteWhatsApp_${idContrato}').value, document.getElementById('clienteCPF_${idContrato}').value)">
+            <i class="fas fa-save"></i> Salvar dados
+          </button>
+        </div>
+      </div>
+      
+      <!-- Restante do card... -->
+    </div>
+  `;
+  
+  // Exibir o card...
+  document.getElementById('containerCardPrincipal').innerHTML = cardHtml;
+}
