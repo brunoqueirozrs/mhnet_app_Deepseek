@@ -15,7 +15,7 @@
 // ============================================================
 // CONFIG
 // ============================================================
-const DEPLOY_ID  = 'AKfycbwa0hpb9pjO5I_5URzew76tgJ1zygPwtVEZv_ViKrI2BJbCmsTiRYCAlk8t1bhpo7SK';
+const DEPLOY_ID  = 'AKfycbyzgVhdtgI6AgM60_cxhtMJAby_3z8n3faljGOd3fSdi-f0VxZ1auViyMLryBvVcyc7';
 const API_URL    = `https://script.google.com/macros/s/${DEPLOY_ID}/exec`;
 const GEMINI_KEY = 'AIzaSyAbNlXty0_XC1e2cRqzt-4HklyxbKOhXlw';
 const CALENDAR_URL = 'https://calendar.google.com/calendar/u/0?cid=ZTZlNjQ2OWVkNzQ1YzMzYmIwMjg2YmFmYmM4NzA2ZmU4YzM3MWVhMDU1MWRiNDY2NDJkNTc2NTI5MmFhMDZmN0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t';
@@ -60,89 +60,6 @@ function isAdminUser() {
   if (!loggedUser) return false;
   return loggedUser.trim().toUpperCase().includes('BRUNO GARCIA');
 }
-
-
-
-// ============================================================
-// RATE LIMITER PARA GEMINI API (evita erro 429)
-// ============================================================
-const geminiRateLimiter = {
-  queue: [],
-  processing: false,
-  lastCallTime: 0,
-  minInterval: 2000, // 2 segundos entre chamadas
-  
-  async call(prompt, maxRetries = 3) {
-    return new Promise((resolve, reject) => {
-      this.queue.push({ prompt, resolve, reject, retries: 0, maxRetries });
-      if (!this.processing) this.processQueue();
-    });
-  },
-  
-  async processQueue() {
-    if (this.queue.length === 0) {
-      this.processing = false;
-      return;
-    }
-    
-    this.processing = true;
-    const now = Date.now();
-    const timeSinceLast = now - this.lastCallTime;
-    
-    if (timeSinceLast < this.minInterval) {
-      await new Promise(r => setTimeout(r, this.minInterval - timeSinceLast));
-    }
-    
-    const item = this.queue.shift();
-    this.lastCallTime = Date.now();
-    
-    try {
-      const result = await this.executeCall(item.prompt);
-      item.resolve(result);
-    } catch (error) {
-      if (item.retries < item.maxRetries && error.message.includes('429')) {
-        const waitTime = Math.pow(2, item.retries) * 1000;
-        console.log(`🔄 Gemini: retry ${item.retries + 1} em ${waitTime}ms`);
-        await new Promise(r => setTimeout(r, waitTime));
-        item.retries++;
-        this.queue.unshift(item);
-      } else {
-        item.reject(error);
-      }
-    }
-    
-    this.processQueue();
-  },
-  
-  async executeCall(prompt) {
-    const fullPrompt = `${MHNET_CONTEXT}\n\n${prompt}`;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: fullPrompt }] }],
-        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
-      })
-    });
-    
-    if (response.status === 429) {
-      throw new Error('429 - Rate limit exceeded');
-    }
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  }
-};
-
-// Substituir chamadas diretas ao Gemini por:
-// await geminiRateLimiter.call(prompt)
-
 
 // ============================================================
 // INIT
@@ -357,20 +274,15 @@ function renderLeads(lista = null) {
   renderListaLeadsHTML(final, 'listaLeadsGestao');
 }
 
-/**
- * Calcula quantos dias se passaram desde a última atualização do lead
- * Retorna null se não houver data; retorna -1 se status for perda/sem interesse
- */
 function diasSemAtualizacao(lead) {
   const statusPerda = ['Sem Interesse', 'Perda', 'Desistiu', 'Não tem interesse'];
   if (statusPerda.some(s => String(lead.status || '').toLowerCase().includes(s.toLowerCase()))) {
-    return -1; // Não sinaliza perdas
+    return -1;
   }
   const ref = lead.ultimaAtualizacao || lead.dataCadastro || lead.timestamp;
   if (!ref) return null;
-  // Tenta parsear dd/MM/yyyy ou dd/MM/yyyy HH:mm
   let dt = null;
-  const str = String(ref).split(' ')[0]; // pega só a data
+  const str = String(ref).split(' ')[0];
   if (str.includes('/')) {
     const p = str.split('/');
     if (p.length === 3) dt = new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
@@ -404,8 +316,6 @@ function renderListaLeadsHTML(lista, containerId = 'listaLeadsGestao') {
     const endCompleto = encodeURIComponent([l.endereco, l.bairro, l.cidade].filter(Boolean).join(', '));
     const dias = diasSemAtualizacao(l);
     const semAtualizar = dias !== null && dias !== -1 && dias >= 10;
-
-    // Estilo do card: destaque laranja/vermelho se sem atualização há 10+ dias
     let cardStyle = '';
     let alertaBadge = '';
     if (semAtualizar) {
@@ -414,19 +324,14 @@ function renderListaLeadsHTML(lista, containerId = 'listaLeadsGestao') {
         <i class="fas fa-clock"></i> Sem atualização há ${dias} dias
       </div>`;
     }
-
-    // Data de cadastro e última atualização
     const metaInfo = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:5px;">
       ${l.dataCadastro ? `<span style="font-size:.62rem;color:var(--text-3);"><i class="fas fa-calendar-plus" style="margin-right:2px;opacity:.6;"></i>${l.dataCadastro}</span>` : ''}
       ${l.ultimaAtualizacao ? `<span style="font-size:.62rem;color:var(--text-3);"><i class="fas fa-pen" style="margin-right:2px;opacity:.6;"></i>${l.ultimaAtualizacao}</span>` : ''}
       ${isAdminUser() && l.vendedor ? `<span style="font-size:.62rem;color:var(--navy);font-weight:700;"><i class="fas fa-user" style="margin-right:2px;"></i>${l.vendedor}</span>` : ''}
     </div>`;
-
-    // Trecho de observação (máx 60 chars)
     const obsPreview = l.observacao && l.observacao.length > 0
       ? `<div style="font-size:.72rem;color:var(--text-2);background:var(--surface);border-radius:6px;padding:5px 8px;margin-bottom:6px;line-height:1.4;border-left:2px solid var(--border);">${String(l.observacao).slice(0,80)}${l.observacao.length > 80 ? '...' : ''}</div>`
       : '';
-
     return `
     <div class="lead-card" style="${cardStyle}">
       ${alertaBadge}
@@ -481,20 +386,6 @@ function filtrarRetornos() {
 }
 
 // ============================================================
-// NAVEGAÇÃO: VER TODOS OS LEADS
-// ============================================================
-function verTodosLeads() {
-  // código acima
-}
-
-// ============================================================
-// AÇÕES DIRETAS
-// ============================================================
-function ligarPara(fone) { ... }
-function abrirWhatsAppDireto(fone) { ... }
-function abrirMaps(endCompleto) { ... }
-
-// ============================================================
 // AÇÕES DIRETAS
 // ============================================================
 function ligarPara(fone) { window.location.href = `tel:+55${fone}`; }
@@ -508,10 +399,8 @@ function abrirLeadDetalhes(index) {
   const l = leadsCache[index];
   if (!l) return;
   leadAtualParaAgendar = l;
-
   const setText = (id, v) => { const el = document.getElementById(id); if(el) el.innerText = v || '-'; };
   const setVal  = (id, v) => { const el = document.getElementById(id); if(el) el.value  = v || ''; };
-
   setText('modalLeadNome',     l.nomeLead);
   setText('modalLeadBairro',   l.bairro);
   setText('modalLeadCidade',   l.cidade);
@@ -523,8 +412,6 @@ function abrirLeadDetalhes(index) {
   setVal('modalLeadObs',       l.observacao);
   setVal('inputObjecaoLead',   l.objecao || '');
   setVal('respostaObjecaoLead', l.respostaObjecao || '');
-
-  // Vendedor e datas no modal
   const vendEl = document.getElementById('modalLeadVendedor');
   if (vendEl) {
     vendEl.innerText = l.vendedor || '-';
@@ -534,7 +421,6 @@ function abrirLeadDetalhes(index) {
   if (dcEl) dcEl.innerText = l.dataCadastro || '-';
   const uaEl = document.getElementById('modalLeadUltAtual');
   if (uaEl) uaEl.innerText = l.ultimaAtualizacao || '-';
-
   const fidBox = document.getElementById('modalFidelidadeBox');
   if (l.fidelidade) {
     const fid = new Date(l.fidelidade);
@@ -550,7 +436,6 @@ function abrirLeadDetalhes(index) {
       fidBox.innerHTML = `<i class="fas fa-lock"></i> Fidelidade até ${fid.toLocaleDateString('pt-BR')}`;
     }
   } else { fidBox.classList.add('hidden'); }
-
   if (l.agendamento) {
     const p = String(l.agendamento).split(' ');
     if (p[0]) {
@@ -564,16 +449,13 @@ function abrirLeadDetalhes(index) {
     const elD = document.getElementById('agendarData'); if (elD) elD.value = '';
     const elH = document.getElementById('agendarHora'); if (elH) elH.value = '';
   }
-
   const adm = document.getElementById('adminEncaminharArea');
   if (adm) adm.classList.toggle('hidden', !isAdminUser());
-
   const fone = String(l.telefone || '').replace(/\D/g, '');
   document.getElementById('btnModalWhats').onclick = () => abrirWhatsAppDireto(fone);
   document.getElementById('btnModalCall').onclick  = () => ligarPara(fone);
   const endCompleto = encodeURIComponent([l.endereco, l.bairro, l.cidade].filter(Boolean).join(', '));
   document.getElementById('btnModalMap').onclick   = () => abrirMaps(endCompleto);
-
   renderTarefasNoModal(l.nomeLead);
   document.getElementById('leadModal').classList.add('open');
 }
@@ -586,7 +468,6 @@ async function salvarEdicaoModal() {
   const o = document.getElementById('modalLeadObs').value;
   const d = document.getElementById('agendarData').value;
   const h = document.getElementById('agendarHora').value;
-
   leadAtualParaAgendar.status = s;
   leadAtualParaAgendar.observacao = o;
   leadAtualParaAgendar.ultimaAtualizacao = new Date().toLocaleDateString('pt-BR') + ' ' + new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
@@ -594,10 +475,8 @@ async function salvarEdicaoModal() {
     const [a, m, day] = d.split('-');
     leadAtualParaAgendar.agendamento = `${day}/${m}/${a} ${h || ''}`.trim();
   }
-
   localStorage.setItem('mhnet_leads_cache', JSON.stringify(leadsCache));
   if (document.getElementById('gestaoLeads').classList.contains('active')) renderLeads();
-
   showLoading(true);
   await Promise.all([
     apiCall('updateStatus',     { vendedor: loggedUser, nomeLead: leadAtualParaAgendar.nomeLead, status: s }, false),
@@ -637,7 +516,6 @@ function limparFormLead() {
 async function enviarLead() {
   const nome = document.getElementById('leadNome').value.trim();
   if (!nome) { alert('⚠️ Informe o nome do cliente!'); return; }
-
   const p = {
     vendedor: loggedUser, nomeLead: nome,
     telefone: document.getElementById('leadTelefone').value,
@@ -655,13 +533,11 @@ async function enviarLead() {
     observacao: document.getElementById('leadObs').value,
     novoVendedor: document.getElementById('leadVendedorDestino')?.value || ''
   };
-
   let route = 'addLead';
   if (editingLeadIndex !== null) {
     route = 'updateLeadFull';
     p._linha = leadsCache[editingLeadIndex]._linha;
   }
-
   const res = await apiCall(route, p);
   if (res?.status === 'success' || res?.local) {
     const now = new Date();
@@ -838,7 +714,6 @@ async function salvarEdicaoFttaBloco() {
 // FTTA PROSPECÇÃO V220
 // ============================================================
 function renderFttaProspeccao(lista, div) {
-  // Conta alertas
   const alertas = lista.filter(i => i.alertaProxAcao && !String(i.adquado||'').toUpperCase().includes('ADQUADO')).length;
   let htmlHeader = '';
   if (alertas > 0) {
@@ -850,16 +725,12 @@ function renderFttaProspeccao(lista, div) {
       </div>
     </div>`;
   }
-
-  // Botão para adicionar nova prospecção
   const btnAdd = isAdminUser() ? `<button onclick="abrirModalNovaProspeccao()" class="btn btn-navy btn-sm" style="margin-bottom:12px;width:100%;"><i class="fas fa-plus"></i> Nova Prospecção</button>` : '';
-
   div.innerHTML = htmlHeader + btnAdd + lista.map((item, idx) => {
     const fone = String(item.contato || '').replace(/\D/g, '');
     const jaAdquado = String(item.adquado || '').toUpperCase().includes('ADQUADO');
     const alerta = item.alertaProxAcao && !jaAdquado;
     const dias = item.diasParaAcao;
-
     let proxAcaoBadge = '';
     if (!jaAdquado && item.proximaAcaoCalc) {
       if (dias !== null && dias <= 0) {
@@ -868,7 +739,6 @@ function renderFttaProspeccao(lista, div) {
         proxAcaoBadge = `<span style="font-size:.62rem;font-weight:800;background:#fff7ed;color:#92400e;border-radius:5px;padding:2px 7px;"><i class="fas fa-clock"></i> Ação em ${dias} dias</span>`;
       }
     }
-
     return `
     <div class="lead-card" style="${alerta ? 'border-left:3px solid #f59e0b;animation:pulseAlert 2.5s ease-in-out infinite;' : ''}${jaAdquado ? 'opacity:.55;' : ''}">
       <div class="lc-top">
@@ -880,14 +750,12 @@ function renderFttaProspeccao(lista, div) {
       <div class="lc-city"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i>${item.bairro || '-'} · ${item.cidade || '-'}</div>
       ${item.endereco ? `<div class="lc-city" style="font-size:.7rem;"><i class="fas fa-road" style="margin-right:3px;"></i>${item.endereco}</div>` : ''}
       ${item.sindico ? `<div class="lc-phone" style="font-size:.75rem;"><i class="fas fa-user-tie" style="opacity:.6;margin-right:3px;"></i>${item.sindico}</div>` : ''}
-      
       <div style="display:flex;gap:6px;margin:8px 0 4px;background:var(--surface);border-radius:8px;padding:8px 10px;font-size:.72rem;flex-wrap:wrap;">
         ${item.dataEntrega ? `<div style="flex:1;"><span style="color:var(--text-3);font-weight:700;font-size:.62rem;display:block;text-transform:uppercase;">Entrega prevista</span><span style="font-weight:700;color:var(--text-1);">${item.dataEntrega}</span></div>` : ''}
         ${item.consultor ? `<div style="flex:1;"><span style="color:var(--text-3);font-weight:700;font-size:.62rem;display:block;text-transform:uppercase;">Consultor</span><span style="font-weight:700;color:var(--navy);">${item.consultor}</span></div>` : ''}
         ${item.ultimaAcao ? `<div style="flex:1;min-width:100%;"><span style="color:var(--text-3);font-weight:700;font-size:.62rem;display:block;text-transform:uppercase;">Última ação</span><span style="color:var(--text-2);">${item.ultimaAcao}</span></div>` : ''}
         ${item.proximaAcaoCalc ? `<div style="flex:1;min-width:100%;"><span style="color:var(--text-3);font-weight:700;font-size:.62rem;display:block;text-transform:uppercase;">Próxima ação (calculada)</span><span style="font-weight:700;color:${alerta ? 'var(--danger)':'var(--navy)'};">${item.proximaAcaoCalc}</span></div>` : ''}
       </div>
-
       <div class="lc-btns" style="flex-wrap:wrap;gap:5px;">
         ${fone ? `<button class="lc-btn call" onclick="ligarPara('${fone}')"><i class="fas fa-phone"></i> Ligar</button>` : ''}
         ${fone ? `<button class="lc-btn whats" onclick="abrirWhatsAppDireto('${fone}')"><i class="fab fa-whatsapp"></i></button>` : ''}
@@ -998,7 +866,6 @@ async function carregarConcorrentes() {
     concorrentesCache = res.data;
     localStorage.setItem('mhnet_concorrentes_v2', JSON.stringify(concorrentesCache));
   } else {
-    // Fallback para localStorage legado
     const saved = localStorage.getItem('mhnet_concorrentes_v2') || localStorage.getItem('mhnet_concorrentes');
     if (saved) try { concorrentesCache = JSON.parse(saved); } catch(e) {}
   }
@@ -1136,11 +1003,9 @@ async function carregarIndicadoresAdmin(mes = null, ano = null) {
   const params = { vendedor: loggedUser };
   if (mes !== null) params.mes = mes;
   if (ano !== null) params.ano = ano;
-
   const res = await apiCall('getAdminIndicators', params, false);
   if (res?.status !== 'success') return;
   const d = res.data;
-
   document.getElementById('indMes').innerText = d.periodo || '';
   document.getElementById('funnelLeads').innerText   = d.totalGeral || 0;
   document.getElementById('indRealizado').innerText  = d.vendasGeral || 0;
@@ -1149,16 +1014,12 @@ async function carregarIndicadoresAdmin(mes = null, ano = null) {
   document.getElementById('pbLeads').style.width  = '100%';
   document.getElementById('pbVendas').style.width = Math.min(100, (d.vendasGeral / total) * 100) + '%';
   document.getElementById('pbNeg').style.width    = '0%';
-
-  // Atualiza labels para contexto admin
   const lblLeads = document.getElementById('indLabelLeads');
   if (lblLeads) lblLeads.innerText = 'Total de Leads (período)';
   const lblVendas = document.getElementById('indLabelVendas');
   if (lblVendas) lblVendas.innerText = 'Vendas Fechadas';
   const lblNeg = document.getElementById('indLabelNeg');
   if (lblNeg) lblNeg.innerText = 'Leads Hoje (todos vendedores)';
-
-  // Ranking de vendedores
   const rankDiv = document.getElementById('indRankingVendedores');
   if (rankDiv && d.ranking?.length) {
     rankDiv.classList.remove('hidden');
@@ -1180,11 +1041,7 @@ async function carregarIndicadoresAdmin(mes = null, ano = null) {
       </div>`).join('')}
     `;
   }
-
-  // Mini gráfico de barras (série diária)
   renderMiniGrafico(d.serieDiaria || [], 'indGrafico', 'Leads por Dia');
-
-  // Filtro de mês
   const filtroDiv = document.getElementById('indFiltroMes');
   if (filtroDiv) filtroDiv.classList.remove('hidden');
 }
@@ -1193,7 +1050,6 @@ async function carregarIndicadoresVendedor() {
   const res = await apiCall('getVendedorIndicators', { vendedor: loggedUser }, false);
   if (res?.status !== 'success') return;
   const d = res.data;
-
   document.getElementById('indMes').innerText = d.mesAtual || '';
   document.getElementById('funnelLeads').innerText   = d.totalAtual || 0;
   document.getElementById('indRealizado').innerText  = d.vendaAtual || 0;
@@ -1202,14 +1058,10 @@ async function carregarIndicadoresVendedor() {
   document.getElementById('pbLeads').style.width  = '100%';
   document.getElementById('pbVendas').style.width = Math.min(100, (d.vendaAtual / total) * 100) + '%';
   document.getElementById('pbNeg').style.width    = Math.min(100, (d.negAtual / total) * 100) + '%';
-
-  // Comparativo com mês anterior
   const comparDiv = document.getElementById('indComparativo');
   if (comparDiv) {
     comparDiv.classList.remove('hidden');
-    const crescStr = d.crescimento !== null
-      ? `${d.crescimento > 0 ? '+' : ''}${d.crescimento}%`
-      : '—';
+    const crescStr = d.crescimento !== null ? `${d.crescimento > 0 ? '+' : ''}${d.crescimento}%` : '—';
     const crescColor = d.crescimento > 0 ? 'var(--success)' : d.crescimento < 0 ? 'var(--danger)' : 'var(--text-3)';
     comparDiv.innerHTML = `
       <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:10px;">Comparativo com ${d.mesAnterior}</div>
@@ -1228,16 +1080,12 @@ async function carregarIndicadoresVendedor() {
         </div>
       </div>`;
   }
-
-  // Chip de leads hoje
   const hojeTile = document.getElementById('indLeadsHoje');
   if (hojeTile) {
     hojeTile.classList.remove('hidden');
     hojeTile.innerHTML = `<div style="font-size:2rem;font-weight:900;color:var(--cyan);">${d.leadsHoje}</div><div style="font-size:.6rem;color:var(--text-3);text-transform:uppercase;">Leads Hoje</div>`;
   }
-
   renderMiniGrafico(d.serieDiaria || [], 'indGrafico', 'Leads por Dia');
-
   const iaRes = await apiCall('analyzeIndicators', { meta: 20, vendas: d.vendaAtual }, false);
   if (iaRes?.message) {
     document.getElementById('iaMsgBox').classList.remove('hidden');
@@ -1245,17 +1093,12 @@ async function carregarIndicadoresVendedor() {
   }
 }
 
-/**
- * Renderiza mini-gráfico de barras SVG inline
- */
 function renderMiniGrafico(serie, containerId, titulo) {
   const div = document.getElementById(containerId);
   if (!div || !serie.length) return;
-
   const maxVal = Math.max(...serie.map(s => s.leads), 1);
   const barW = Math.max(8, Math.floor(280 / serie.length) - 2);
   const chartH = 60;
-
   const bars = serie.map((s, i) => {
     const h = Math.max(3, Math.round((s.leads / maxVal) * chartH));
     const x = i * (barW + 2);
@@ -1267,15 +1110,12 @@ function renderMiniGrafico(serie, containerId, titulo) {
       ${s.leads > 0 ? `<text x="${x + barW/2}" y="${y - 2}" text-anchor="middle" font-size="7" fill="var(--text-3)">${s.leads}</text>` : ''}
     </g>`;
   }).join('');
-
-  // Datas (últimos e primeiro da série)
   let labelHtml = '';
   if (serie.length > 0) {
     const first = serie[0].dia.split('/').slice(0,2).join('/');
     const last  = serie[serie.length-1].dia.split('/').slice(0,2).join('/');
     labelHtml = `<div style="display:flex;justify-content:space-between;font-size:.6rem;color:var(--text-3);margin-top:2px;"><span>${first}</span><span>${last}</span></div>`;
   }
-
   div.classList.remove('hidden');
   div.innerHTML = `
     <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">${titulo}</div>
@@ -1285,7 +1125,6 @@ function renderMiniGrafico(serie, containerId, titulo) {
     ${labelHtml}`;
 }
 
-// Filtro de mês para admin
 function filtrarIndicadoresMes() {
   const sel = document.getElementById('selFiltroMes');
   if (!sel) return;
@@ -1680,342 +1519,41 @@ async function processarFilaSincronizacao() {
 }
 
 // ============================================================
-// API CALL CORRIGIDA V3 - COM CORS HANDLING E MELHOR FALLBACK
+// API CALL
 // ============================================================
-async function apiCall(route, payload = {}, show = true, retries = 2) {
+async function apiCall(route, payload = {}, show = true) {
   if (show) showLoading(true);
-  
   const offlineRoutes = ['addLead','updateStatus','addTask','registerAbsence','updateObservacao','updateAgendamento'];
-  
-  // Modo offline - salvar na fila
   if (!navigator.onLine && offlineRoutes.includes(route)) {
     syncQueue.push({ route, payload, timestamp: Date.now() });
     localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
     if (show) showLoading(false);
-    return { status: 'success', local: true, message: 'Salvo offline' };
+    return { status: 'success', local: true };
   }
-  
-  // Se estiver offline e for rota de leitura, usar cache
-  if (!navigator.onLine) {
-    const cachedData = getCachedDataFromLocalStorage(route);
-    if (cachedData) {
-      if (show) showLoading(false);
-      console.log(`📦 Offline: usando cache para ${route}`);
-      return { status: 'success', data: cachedData, fromCache: true };
-    }
-    if (show) showLoading(false);
-    return { status: 'error', message: 'Sem conexão e sem cache disponível' };
-  }
-  
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 segundos
-      
-      // 🔥 PRIMEIRA TENTATIVA: Modo normal (com CORS)
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ route, payload }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      
-      const json = await res.json();
-      if (show) showLoading(false);
-      
-      if (json && json.status === 'success') {
-        // Atualizar cache local quando bem-sucedido
-        updateLocalCache(route, json.data);
-        return json;
-      } else {
-        console.warn(`⚠️ API retornou erro para ${route}:`, json?.message);
-        if (attempt < retries) {
-          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-          continue;
-        }
-        if (show) showLoading(false);
-        
-        // Tentar cache como fallback
-        const cachedData = getCachedDataFromLocalStorage(route);
-        if (cachedData) {
-          console.log(`📦 Fallback: usando cache para ${route}`);
-          return { status: 'success', data: cachedData, fromCache: true };
-        }
-        
-        return { status: 'error', message: json?.message || 'Erro na API' };
-      }
-      
-    } catch(e) {
-      console.error(`❌ Tentativa ${attempt + 1} falhou para ${route}:`, e.message);
-      
-      // 🔥 SE FOR ERRO DE CORS, TENTA SEGUNDA TENTATIVA COM mode: 'no-cors'
-      if (e.message.includes('CORS') || e.message.includes('Failed to fetch') || e.name === 'TypeError') {
-        console.warn(`⚠️ Erro CORS detectado, tentando modo no-cors para ${route}...`);
-        
-        try {
-          const noCorsRes = await fetch(API_URL, {
-            method: 'POST',
-            mode: 'no-cors', // 🔥 MODO NO-CORS (ignora CORS)
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ route, payload })
-          });
-          
-          // Em modo no-cors, a resposta é opaca - não podemos ler
-          // Para rotas de leitura, usar cache local
-          if (route === 'getLeads' || route === 'getBaseClientes' || route === 'getTasks' || route === 'getConcorrentes') {
-            const cachedData = getCachedDataFromLocalStorage(route);
-            if (cachedData) {
-              if (show) showLoading(false);
-              console.log(`📦 CORS: usando cache para ${route}`);
-              return { status: 'success', data: cachedData, fromCache: true };
-            }
-          }
-          
-          // Para rotas de escrita, assumir sucesso (modo no-cors)
-          if (!offlineRoutes.includes(route)) {
-            if (show) showLoading(false);
-            return { status: 'success', message: 'Requisição enviada (modo no-cors)', noCors: true };
-          }
-          
-        } catch(e2) {
-          console.warn(`⚠️ Modo no-cors também falhou:`, e2.message);
-        }
-      }
-      
-      if (attempt < retries) {
-        const waitTime = 1000 * Math.pow(2, attempt);
-        console.log(`🔄 Aguardando ${waitTime}ms antes da tentativa ${attempt + 2}...`);
-        await new Promise(r => setTimeout(r, waitTime));
-        continue;
-      }
-      
-      if (show) showLoading(false);
-      
-      // 🔥 FALLBACK FINAL: USAR CACHE LOCAL
-      const cachedData = getCachedDataFromLocalStorage(route);
-      if (cachedData) {
-        console.log(`📦 Fallback final: usando cache local para ${route}`);
-        return { status: 'success', data: cachedData, fromCache: true };
-      }
-      
-      // Para rotas offline, salvar na fila
-      if (offlineRoutes.includes(route)) {
-        syncQueue.push({ route, payload, timestamp: Date.now() });
-        localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
-        return { status: 'success', local: true, message: 'Salvo na fila para sincronização' };
-      }
-      
-      return { status: 'error', message: 'Conexão falhou após múltiplas tentativas' };
-    }
-  }
-}
-
-// ============================================================
-// FUNÇÕES AUXILIARES DE CACHE
-// ============================================================
-
-function getCachedDataFromLocalStorage(route) {
   try {
-    const cacheMap = {
-      'getLeads': 'mhnet_leads_cache',
-      'getBaseClientes': 'gb_clientes_cache',
-      'getBaseAcoes': 'gb_acoes_cache',
-      'getTasks': 'mhnet_tasks_cache',
-      'getConcorrentes': 'mhnet_concorrentes_v2',
-      'getFttaLeads': 'mhnet_ftta_cache',
-      'getFttaProspeccao': 'mhnet_ftta_prospeccao_cache'
-    };
-    
-    const cacheKey = cacheMap[route];
-    if (cacheKey) {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const data = JSON.parse(cached);
-        if (data && (Array.isArray(data) ? data.length > 0 : true)) {
-          return data;
-        }
-      }
-    }
-    
-    // Fallback para leadsCache em memória
-    if (route === 'getLeads' && leadsCache && leadsCache.length > 0) {
-      return leadsCache;
-    }
-    if (route === 'getTasks' && tasksCache && tasksCache.length > 0) {
-      return tasksCache;
-    }
-    if (route === 'getConcorrentes' && concorrentesCache && concorrentesCache.length > 0) {
-      return concorrentesCache;
-    }
-    
-    return null;
-  } catch(e) {
-    console.warn('Erro ao ler cache:', e);
-    return null;
-  }
-}
-
-function updateLocalCache(route, data) {
-  try {
-    if (!data) return;
-    
-    const cacheMap = {
-      'getLeads': { key: 'mhnet_leads_cache', memoryVar: () => { leadsCache = data; } },
-      'getBaseClientes': { key: 'gb_clientes_cache', memoryVar: null },
-      'getBaseAcoes': { key: 'gb_acoes_cache', memoryVar: null },
-      'getTasks': { key: 'mhnet_tasks_cache', memoryVar: () => { tasksCache = data; } },
-      'getConcorrentes': { key: 'mhnet_concorrentes_v2', memoryVar: () => { concorrentesCache = data; } }
-    };
-    
-    const cache = cacheMap[route];
-    if (cache) {
-      localStorage.setItem(cache.key, JSON.stringify(data));
-      if (cache.memoryVar) cache.memoryVar();
-      console.log(`📦 Cache atualizado para ${route}: ${Array.isArray(data) ? data.length : 'objeto'} itens`);
-    }
-  } catch(e) {
-    console.warn('Erro ao atualizar cache:', e);
-  }
-}
-
-// ============================================
-// FUNÇÕES PARA SALVAR/CARREGAR DADOS DO CLIENTE
-// ============================================
-
-// Salvar WhatsApp e CPF do cliente
-async function salvarDadosCliente(idContrato, whatsapp, cpf) {
-  const payload = {
-    idContrato: idContrato,
-    whatsapp: whatsapp,
-    cpf: cpf,
-    dataAtualizacao: new Date().toISOString()
-  };
-  
-  // Salvar localmente
-  let clientes = JSON.parse(localStorage.getItem('gb_clientes_cache') || '[]');
-  const index = clientes.findIndex(c => c.idContrato === idContrato);
-  
-  if (index !== -1) {
-    clientes[index].whatsapp = whatsapp;
-    clientes[index].cpf = cpf;
-    clientes[index].dataAtualizacaoContato = new Date().toISOString();
-  } else {
-    // Se não existir, adiciona
-    clientes.push({
-      idContrato: idContrato,
-      whatsapp: whatsapp,
-      cpf: cpf,
-      dataAtualizacaoContato: new Date().toISOString()
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 15000);
+    const res  = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ route, payload }),
+      signal: ctrl.signal
     });
-  }
-  
-  localStorage.setItem('gb_clientes_cache', JSON.stringify(clientes));
-  localStorage.setItem(`cliente_${idContrato}_dados`, JSON.stringify({ whatsapp, cpf }));
-  
-  // Tentar salvar no servidor/planilha via API
-  try {
-    if (typeof gbApiCall === 'function') {
-      await gbApiCall('salvarDadosCliente', payload, false);
-      console.log('✅ Dados salvos no servidor');
-    } else {
-      console.log('📦 Dados salvos apenas localmente (API não disponível)');
-    }
+    clearTimeout(tid);
+    const json = await res.json();
+    if (show) showLoading(false);
+    return json;
   } catch(e) {
-    console.warn('⚠️ Erro ao salvar no servidor, mantendo local:', e);
-  }
-  
-  // Atualizar a interface
-  alert(`✅ Dados de ${whatsapp ? 'WhatsApp' : ''}${whatsapp && cpf ? ' e ' : ''}${cpf ? 'CPF' : ''} salvos com sucesso!`);
-  
-  // Se tiver o card principal aberto, atualizar
-  atualizarCardPrincipal(idContrato);
-}
-
-// Carregar dados salvos do cliente
-function carregarDadosCliente(idContrato) {
-  // Tentar carregar do localStorage específico
-  const dadosLocal = localStorage.getItem(`cliente_${idContrato}_dados`);
-  if (dadosLocal) {
-    return JSON.parse(dadosLocal);
-  }
-  
-  // Tentar carregar do cache geral
-  const clientes = JSON.parse(localStorage.getItem('gb_clientes_cache') || '[]');
-  const cliente = clientes.find(c => c.idContrato === idContrato);
-  if (cliente && (cliente.whatsapp || cliente.cpf)) {
-    return { whatsapp: cliente.whatsapp, cpf: cliente.cpf };
-  }
-  
-  return { whatsapp: '', cpf: '' };
-}
-
-// Atualizar o card principal do cliente com os dados salvos
-function atualizarCardPrincipal(idContrato) {
-  // Buscar o cliente no cache
-  const clientes = JSON.parse(localStorage.getItem('gb_clientes_cache') || '[]');
-  const cliente = clientes.find(c => c.idContrato === idContrato);
-  
-  if (cliente && document.getElementById(`card_${idContrato}`)) {
-    // Atualizar visualmente o card na lista
-    const card = document.getElementById(`card_${idContrato}`);
-    const infoDiv = card.querySelector('.cliente-contato-info');
-    if (infoDiv) {
-      let html = '<div style="display:flex;gap:8px;margin-top:8px;">';
-      if (cliente.whatsapp) {
-        html += `<span class="badge-info" style="background:#d1fae5;"><i class="fab fa-whatsapp"></i> ${cliente.whatsapp}</span>`;
-      }
-      if (cliente.cpf) {
-        const cpfMask = cliente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        html += `<span class="badge-info" style="background:#e0e7ff;"><i class="fas fa-id-card"></i> ${cpfMask}</span>`;
-      }
-      html += '</div>';
-      infoDiv.innerHTML = html;
+    if (show) showLoading(false);
+    if (offlineRoutes.includes(route)) {
+      syncQueue.push({ route, payload, timestamp: Date.now() });
+      localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
+      return { status: 'success', local: true };
     }
+    return { status: 'error', message: 'Conexão falhou' };
   }
 }
 
-// Função para abrir o card principal com dados carregados
-function abrirCardClienteComDados(idContrato, nome, plano, valor, tempo) {
-  const dados = carregarDadosCliente(idContrato);
-  
-  // HTML do card principal (exemplo)
-  const cardHtml = `
-    <div class="card-cliente-principal" id="card_cliente_${idContrato}">
-      <div class="cliente-info">
-        <div>
-          <div class="cliente-nome">${nome}</div>
-          <div class="cliente-plano">${plano} · ${valor}/mês</div>
-          <div class="tempo-cliente"><i class="fas fa-clock"></i> ${tempo}</div>
-        </div>
-      </div>
-      
-      <!-- DADOS DO CLIENTE (SALVOS) -->
-      <div class="dados-cliente">
-        <div class="campo">
-          <i class="fab fa-whatsapp"></i>
-          <input type="tel" id="clienteWhatsApp_${idContrato}" placeholder="WhatsApp (ex: 51999999999)" value="${dados.whatsapp || ''}">
-        </div>
-        <div class="campo">
-          <i class="fas fa-id-card"></i>
-          <input type="text" id="clienteCPF_${idContrato}" placeholder="CPF (opcional)" value="${dados.cpf || ''}">
-        </div>
-        <div class="campo">
-          <button class="btn btn-primary btn-sm" onclick="salvarDadosCliente('${idContrato}', document.getElementById('clienteWhatsApp_${idContrato}').value, document.getElementById('clienteCPF_${idContrato}').value)">
-            <i class="fas fa-save"></i> Salvar dados
-          </button>
-        </div>
-      </div>
-      
-      <!-- Restante do card... -->
-    </div>
-  `;
-  
-  // Exibir o card...
-  document.getElementById('containerCardPrincipal').innerHTML = cardHtml;
+function showLoading(state) {
+  const el = document.getElementById('loader');
+  if (el) el.classList.toggle('active', state);
 }
