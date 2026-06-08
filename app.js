@@ -62,6 +62,87 @@ function isAdminUser() {
 }
 
 // ============================================================
+// RATE LIMITER PARA GEMINI API (evita erro 429)
+// ============================================================
+const geminiRateLimiter = {
+  queue: [],
+  processing: false,
+  lastCallTime: 0,
+  minInterval: 2000, // 2 segundos entre chamadas
+  
+  async call(prompt, maxRetries = 3) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ prompt, resolve, reject, retries: 0, maxRetries });
+      if (!this.processing) this.processQueue();
+    });
+  },
+  
+  async processQueue() {
+    if (this.queue.length === 0) {
+      this.processing = false;
+      return;
+    }
+    
+    this.processing = true;
+    const now = Date.now();
+    const timeSinceLast = now - this.lastCallTime;
+    
+    if (timeSinceLast < this.minInterval) {
+      await new Promise(r => setTimeout(r, this.minInterval - timeSinceLast));
+    }
+    
+    const item = this.queue.shift();
+    this.lastCallTime = Date.now();
+    
+    try {
+      const result = await this.executeCall(item.prompt);
+      item.resolve(result);
+    } catch (error) {
+      if (item.retries < item.maxRetries && error.message.includes('429')) {
+        const waitTime = Math.pow(2, item.retries) * 1000;
+        console.log(`🔄 Gemini: retry ${item.retries + 1} em ${waitTime}ms`);
+        await new Promise(r => setTimeout(r, waitTime));
+        item.retries++;
+        this.queue.unshift(item);
+      } else {
+        item.reject(error);
+      }
+    }
+    
+    this.processQueue();
+  },
+  
+  async executeCall(prompt) {
+    const fullPrompt = `${MHNET_CONTEXT}\n\n${prompt}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
+      })
+    });
+    
+    if (response.status === 429) {
+      throw new Error('429 - Rate limit exceeded');
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+};
+
+// Substituir chamadas diretas ao Gemini por:
+// await geminiRateLimiter.call(prompt)
+
+
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
