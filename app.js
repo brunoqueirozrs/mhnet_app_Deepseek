@@ -61,6 +61,8 @@ function isAdminUser() {
   return loggedUser.trim().toUpperCase().includes('BRUNO GARCIA');
 }
 
+
+
 // ============================================================
 // RATE LIMITER PARA GEMINI API (evita erro 429)
 // ============================================================
@@ -477,6 +479,20 @@ function filtrarRetornos() {
   renderListaLeadsHTML(leadsHoje, 'listaLeadsGestao');
   if (idx >= 0) setTimeout(() => abrirLeadDetalhes(idx), 300);
 }
+
+// ============================================================
+// NAVEGAÇÃO: VER TODOS OS LEADS
+// ============================================================
+function verTodosLeads() {
+  // código acima
+}
+
+// ============================================================
+// AÇÕES DIRETAS
+// ============================================================
+function ligarPara(fone) { ... }
+function abrirWhatsAppDireto(fone) { ... }
+function abrirMaps(endCompleto) { ... }
 
 // ============================================================
 // AÇÕES DIRETAS
