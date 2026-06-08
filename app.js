@@ -1582,44 +1582,85 @@ async function processarFilaSincronizacao() {
   localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
 }
 
+/// ============================================================
+// API CALL CORRIGIDA COM TIMEOUT E RETRY
 // ============================================================
-// API CALL
-// ============================================================
-async function apiCall(route, payload = {}, show = true) {
+async function apiCall(route, payload = {}, show = true, retries = 2) {
   if (show) showLoading(true);
+  
   const offlineRoutes = ['addLead','updateStatus','addTask','registerAbsence','updateObservacao','updateAgendamento'];
+  
   if (!navigator.onLine && offlineRoutes.includes(route)) {
     syncQueue.push({ route, payload, timestamp: Date.now() });
     localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
     if (show) showLoading(false);
     return { status: 'success', local: true };
   }
-  try {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 15000);
-    const res  = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ route, payload }),
-      signal: ctrl.signal
-    });
-    clearTimeout(tid);
-    const json = await res.json();
-    if (show) showLoading(false);
-    return json;
-  } catch(e) {
-    if (show) showLoading(false);
-    if (offlineRoutes.includes(route)) {
-      syncQueue.push({ route, payload, timestamp: Date.now() });
-      localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
-      return { status: 'success', local: true };
+  
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ route, payload }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      
+      const json = await res.json();
+      if (show) showLoading(false);
+      
+      // Verificar se a resposta é válida
+      if (json && json.status === 'success') {
+        return json;
+      } else {
+        console.warn(`⚠️ API retornou erro para ${route}:`, json?.message);
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+        if (show) showLoading(false);
+        return { status: 'error', message: json?.message || 'Erro na API' };
+      }
+      
+    } catch(e) {
+      console.error(`❌ Tentativa ${attempt + 1} falhou para ${route}:`, e.message);
+      
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      
+      if (show) showLoading(false);
+      
+      // Fallback para cache local se for rota de leitura
+      if (route === 'getLeads' && leadsCache.length) {
+        return { status: 'success', data: leadsCache, fromCache: true };
+      }
+      if (route === 'getBaseClientes') {
+        const cached = localStorage.getItem('gb_clientes_cache');
+        if (cached) {
+          return { status: 'success', data: JSON.parse(cached), fromCache: true };
+        }
+      }
+      
+      if (offlineRoutes.includes(route)) {
+        syncQueue.push({ route, payload, timestamp: Date.now() });
+        localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
+        return { status: 'success', local: true };
+      }
+      
+      return { status: 'error', message: 'Conexão falhou' };
     }
-    return { status: 'error', message: 'Conexão falhou' };
   }
-}
-
-function showLoading(state) {
-  const el = document.getElementById('loader');
-  if (el) el.classList.toggle('active', state);
 }
 
 // ============================================
