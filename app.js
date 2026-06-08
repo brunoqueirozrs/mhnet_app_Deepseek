@@ -1663,26 +1663,40 @@ async function processarFilaSincronizacao() {
   localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
 }
 
-/// ============================================================
-// API CALL CORRIGIDA COM TIMEOUT E RETRY
+// ============================================================
+// API CALL CORRIGIDA V3 - COM CORS HANDLING E MELHOR FALLBACK
 // ============================================================
 async function apiCall(route, payload = {}, show = true, retries = 2) {
   if (show) showLoading(true);
   
   const offlineRoutes = ['addLead','updateStatus','addTask','registerAbsence','updateObservacao','updateAgendamento'];
   
+  // Modo offline - salvar na fila
   if (!navigator.onLine && offlineRoutes.includes(route)) {
     syncQueue.push({ route, payload, timestamp: Date.now() });
     localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
     if (show) showLoading(false);
-    return { status: 'success', local: true };
+    return { status: 'success', local: true, message: 'Salvo offline' };
+  }
+  
+  // Se estiver offline e for rota de leitura, usar cache
+  if (!navigator.onLine) {
+    const cachedData = getCachedDataFromLocalStorage(route);
+    if (cachedData) {
+      if (show) showLoading(false);
+      console.log(`📦 Offline: usando cache para ${route}`);
+      return { status: 'success', data: cachedData, fromCache: true };
+    }
+    if (show) showLoading(false);
+    return { status: 'error', message: 'Sem conexão e sem cache disponível' };
   }
   
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 segundos
       
+      // 🔥 PRIMEIRA TENTATIVA: Modo normal (com CORS)
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1693,54 +1707,164 @@ async function apiCall(route, payload = {}, show = true, retries = 2) {
       clearTimeout(timeoutId);
       
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
       
       const json = await res.json();
       if (show) showLoading(false);
       
-      // Verificar se a resposta é válida
       if (json && json.status === 'success') {
+        // Atualizar cache local quando bem-sucedido
+        updateLocalCache(route, json.data);
         return json;
       } else {
         console.warn(`⚠️ API retornou erro para ${route}:`, json?.message);
         if (attempt < retries) {
-          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
           continue;
         }
         if (show) showLoading(false);
+        
+        // Tentar cache como fallback
+        const cachedData = getCachedDataFromLocalStorage(route);
+        if (cachedData) {
+          console.log(`📦 Fallback: usando cache para ${route}`);
+          return { status: 'success', data: cachedData, fromCache: true };
+        }
+        
         return { status: 'error', message: json?.message || 'Erro na API' };
       }
       
     } catch(e) {
       console.error(`❌ Tentativa ${attempt + 1} falhou para ${route}:`, e.message);
       
+      // 🔥 SE FOR ERRO DE CORS, TENTA SEGUNDA TENTATIVA COM mode: 'no-cors'
+      if (e.message.includes('CORS') || e.message.includes('Failed to fetch') || e.name === 'TypeError') {
+        console.warn(`⚠️ Erro CORS detectado, tentando modo no-cors para ${route}...`);
+        
+        try {
+          const noCorsRes = await fetch(API_URL, {
+            method: 'POST',
+            mode: 'no-cors', // 🔥 MODO NO-CORS (ignora CORS)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ route, payload })
+          });
+          
+          // Em modo no-cors, a resposta é opaca - não podemos ler
+          // Para rotas de leitura, usar cache local
+          if (route === 'getLeads' || route === 'getBaseClientes' || route === 'getTasks' || route === 'getConcorrentes') {
+            const cachedData = getCachedDataFromLocalStorage(route);
+            if (cachedData) {
+              if (show) showLoading(false);
+              console.log(`📦 CORS: usando cache para ${route}`);
+              return { status: 'success', data: cachedData, fromCache: true };
+            }
+          }
+          
+          // Para rotas de escrita, assumir sucesso (modo no-cors)
+          if (!offlineRoutes.includes(route)) {
+            if (show) showLoading(false);
+            return { status: 'success', message: 'Requisição enviada (modo no-cors)', noCors: true };
+          }
+          
+        } catch(e2) {
+          console.warn(`⚠️ Modo no-cors também falhou:`, e2.message);
+        }
+      }
+      
       if (attempt < retries) {
-        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        const waitTime = 1000 * Math.pow(2, attempt);
+        console.log(`🔄 Aguardando ${waitTime}ms antes da tentativa ${attempt + 2}...`);
+        await new Promise(r => setTimeout(r, waitTime));
         continue;
       }
       
       if (show) showLoading(false);
       
-      // Fallback para cache local se for rota de leitura
-      if (route === 'getLeads' && leadsCache.length) {
-        return { status: 'success', data: leadsCache, fromCache: true };
-      }
-      if (route === 'getBaseClientes') {
-        const cached = localStorage.getItem('gb_clientes_cache');
-        if (cached) {
-          return { status: 'success', data: JSON.parse(cached), fromCache: true };
-        }
+      // 🔥 FALLBACK FINAL: USAR CACHE LOCAL
+      const cachedData = getCachedDataFromLocalStorage(route);
+      if (cachedData) {
+        console.log(`📦 Fallback final: usando cache local para ${route}`);
+        return { status: 'success', data: cachedData, fromCache: true };
       }
       
+      // Para rotas offline, salvar na fila
       if (offlineRoutes.includes(route)) {
         syncQueue.push({ route, payload, timestamp: Date.now() });
         localStorage.setItem('mhnet_sync_queue', JSON.stringify(syncQueue));
-        return { status: 'success', local: true };
+        return { status: 'success', local: true, message: 'Salvo na fila para sincronização' };
       }
       
-      return { status: 'error', message: 'Conexão falhou' };
+      return { status: 'error', message: 'Conexão falhou após múltiplas tentativas' };
     }
+  }
+}
+
+// ============================================================
+// FUNÇÕES AUXILIARES DE CACHE
+// ============================================================
+
+function getCachedDataFromLocalStorage(route) {
+  try {
+    const cacheMap = {
+      'getLeads': 'mhnet_leads_cache',
+      'getBaseClientes': 'gb_clientes_cache',
+      'getBaseAcoes': 'gb_acoes_cache',
+      'getTasks': 'mhnet_tasks_cache',
+      'getConcorrentes': 'mhnet_concorrentes_v2',
+      'getFttaLeads': 'mhnet_ftta_cache',
+      'getFttaProspeccao': 'mhnet_ftta_prospeccao_cache'
+    };
+    
+    const cacheKey = cacheMap[route];
+    if (cacheKey) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const data = JSON.parse(cached);
+        if (data && (Array.isArray(data) ? data.length > 0 : true)) {
+          return data;
+        }
+      }
+    }
+    
+    // Fallback para leadsCache em memória
+    if (route === 'getLeads' && leadsCache && leadsCache.length > 0) {
+      return leadsCache;
+    }
+    if (route === 'getTasks' && tasksCache && tasksCache.length > 0) {
+      return tasksCache;
+    }
+    if (route === 'getConcorrentes' && concorrentesCache && concorrentesCache.length > 0) {
+      return concorrentesCache;
+    }
+    
+    return null;
+  } catch(e) {
+    console.warn('Erro ao ler cache:', e);
+    return null;
+  }
+}
+
+function updateLocalCache(route, data) {
+  try {
+    if (!data) return;
+    
+    const cacheMap = {
+      'getLeads': { key: 'mhnet_leads_cache', memoryVar: () => { leadsCache = data; } },
+      'getBaseClientes': { key: 'gb_clientes_cache', memoryVar: null },
+      'getBaseAcoes': { key: 'gb_acoes_cache', memoryVar: null },
+      'getTasks': { key: 'mhnet_tasks_cache', memoryVar: () => { tasksCache = data; } },
+      'getConcorrentes': { key: 'mhnet_concorrentes_v2', memoryVar: () => { concorrentesCache = data; } }
+    };
+    
+    const cache = cacheMap[route];
+    if (cache) {
+      localStorage.setItem(cache.key, JSON.stringify(data));
+      if (cache.memoryVar) cache.memoryVar();
+      console.log(`📦 Cache atualizado para ${route}: ${Array.isArray(data) ? data.length : 'objeto'} itens`);
+    }
+  } catch(e) {
+    console.warn('Erro ao atualizar cache:', e);
   }
 }
 
