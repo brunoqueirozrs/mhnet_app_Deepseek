@@ -1,26 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https: https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://script.google.com https://generativelanguage.googleapis.com https://api.callmebot.com https://nominatim.openstreetmap.org;">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#003580">
-  <title>MHNET Gestor</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>MHNET - Abordagem IA & Registrar Ação</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    
-    /* ====================================================
-       CSS VARIABLES & RESET (original - mantido intacto)
-    ==================================================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     :root {
       --navy:       #003580;
       --navy-dark:  #00255a;
@@ -36,2573 +29,664 @@
       --warning:    #ffb300;
       --danger:     #f44336;
       --purple:     #7c3aed;
-      --orange:     #ea580c;
-      --teal:       #0d9488;
-      --r-sm:  10px;
-      --r-md:  16px;
-      --r-lg:  24px;
+      --r-sm: 10px;
+      --r-md: 16px;
+      --r-lg: 24px;
       --sh-sm: 0 2px 8px rgba(0,53,128,.07);
       --sh-md: 0 6px 24px rgba(0,53,128,.12);
-      --sh-lg: 0 16px 48px rgba(0,53,128,.18);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { height: 100%; }
-    body { font-family: 'DM Sans', sans-serif; background: #1a1f35; color: var(--text-1); height: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
-    button { font-family: inherit; cursor: pointer; border: none; outline: none; background: none; }
-    input, select, textarea { font-family: inherit; outline: none; border: none; }
-    a { text-decoration: none; color: inherit; }
-    ::-webkit-scrollbar { width: 3px; height: 3px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-    /* ====================================================
-       PWA INSTALL BANNER
-    ==================================================== */
-    #pwaInstallBanner {
-      background: linear-gradient(135deg, var(--navy-dark), var(--navy-mid));
-      color: #fff;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: .78rem;
-      flex-shrink: 0;
-    }
-    #pwaInstallBanner.hidden { display: none; }
-    #pwaInstallBanner .pwa-btn {
-      background: #fff;
-      color: var(--navy);
-      border-radius: 7px;
-      padding: 6px 12px;
-      font-size: .72rem;
-      font-weight: 800;
-      margin-left: auto;
-      flex-shrink: 0;
     }
 
-    /* ====================================================
-       DESKTOP WRAPPER
-    ==================================================== */
-    #appWrapper {
-      display: flex;
-      height: 100dvh;
-      max-width: 1400px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    /* Desktop sidebar */
-    #desktopSidebar {
-      width: 220px;
-      background: var(--navy-dark);
-      display: none;
-      flex-direction: column;
-      padding: 24px 0;
-      flex-shrink: 0;
-    }
-    .dsb-logo { padding: 0 20px 24px; border-bottom: 1px solid rgba(255,255,255,.1); }
-    .dsb-logo-icon { width: 42px; height: 42px; background: var(--cyan); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem; margin-bottom: 8px; }
-    .dsb-logo-title { font-size: 1rem; font-weight: 800; color: #fff; }
-    .dsb-logo-sub { font-size: .7rem; color: rgba(255,255,255,.5); }
-    .dsb-nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
-    .dsb-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-sm); color: rgba(255,255,255,.6); font-size: .82rem; font-weight: 600; cursor: pointer; margin-bottom: 2px; transition: all .2s; }
-    .dsb-item:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.9); }
-    .dsb-item.on { background: var(--cyan); color: #fff; }
-    .dsb-item i { width: 16px; text-align: center; font-size: .9rem; }
-    .dsb-section { font-size: .6rem; font-weight: 800; color: rgba(255,255,255,.3); text-transform: uppercase; letter-spacing: .1em; padding: 12px 12px 6px; margin-top: 8px; }
-    .dsb-user { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: .78rem; color: rgba(255,255,255,.6); }
-    .dsb-user strong { display: block; color: #fff; margin-bottom: 4px; font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* Mobile app shell */
-    #app {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      height: 100dvh;
-      background: var(--surface);
-      overflow: hidden;
-      box-shadow: var(--sh-lg);
-    }
-
-    /* ====================================================
-       LOADER
-    ==================================================== */
-    #loader { position: fixed; inset: 0; z-index: 9999; background: rgba(255,255,255,.93); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
-    #loader.active { display: flex; }
-    .loader-ring { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--navy); border-radius: 50%; animation: spin .8s linear infinite; }
-    .loader-text { font-size: .72rem; font-weight: 700; color: var(--text-3); letter-spacing: .1em; text-transform: uppercase; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ====================================================
-       OFFLINE BANNER
-    ==================================================== */
-    #offlineBanner { background: var(--danger); color: #fff; text-align: center; padding: 7px 12px; font-size: .78rem; font-weight: 700; display: none; align-items: center; justify-content: center; gap: 6px; }
-    #offlineBanner.show { display: flex; }
-
-    /* ====================================================
-       LOGIN
-    ==================================================== */
-    #loginScreen { position: fixed; inset: 0; z-index: 200; background: linear-gradient(160deg, var(--navy-dark) 0%, #0050b3 60%, #006ec7 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 24px; }
-    .login-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; }
-    .login-brand-icon { width: 56px; height: 56px; background: rgba(255,255,255,.15); border-radius: 18px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.25); font-size: 1.5rem; color: #fff; }
-    .login-brand-text h1 { font-size: 1.7rem; font-weight: 800; color: #fff; letter-spacing: -.03em; }
-    .login-brand-text p { font-size: .82rem; color: rgba(255,255,255,.6); }
-    .login-card { background: rgba(255,255,255,.1); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.2); border-radius: var(--r-lg); padding: 28px 24px; width: 100%; max-width: 360px; }
-    .login-label { font-size: .7rem; font-weight: 700; color: rgba(255,255,255,.7); text-transform: uppercase; letter-spacing: .08em; display: block; margin-bottom: 8px; }
-    #userSelect { width: 100%; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: var(--r-sm); padding: 14px 16px; color: #fff; font-size: .95rem; font-weight: 600; margin-bottom: 14px; appearance: none; }
-    #userSelect option { background: var(--navy-dark); color: #fff; }
-    .btn-login { width: 100%; background: #fff; color: var(--navy); border-radius: var(--r-sm); padding: 15px; font-size: .95rem; font-weight: 800; transition: all .2s; box-shadow: 0 4px 20px rgba(0,0,0,.25); }
-    .btn-login:active { transform: scale(.97); }
-    .login-install { margin-top: 14px; text-align: center; }
-    #btnInstalarPWA { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; border-radius: var(--r-sm); padding: 10px 20px; font-size: .82rem; font-weight: 700; }
-
-    /* ====================================================
-       HEADER (mobile top bar)
-    ==================================================== */
-    #header { background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-mid) 100%); padding: calc(env(safe-area-inset-top) + 14px) 18px 16px; color: #fff; flex-shrink: 0; }
-    .hdr-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-    .hdr-greeting { font-size: .68rem; color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: .06em; }
-    .hdr-name { font-size: 1.05rem; font-weight: 700; color: #fff; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .hdr-actions { display: flex; gap: 7px; }
-    .hdr-btn { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,.12); color: #fff; display: flex; align-items: center; justify-content: center; font-size: .85rem; border: 1px solid rgba(255,255,255,.15); transition: all .2s; }
-    .hdr-btn:active { background: rgba(255,255,255,.22); }
-    .hdr-chips { display: flex; gap: 7px; flex-wrap: wrap; }
-    .hdr-chip { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.2); border-radius: 7px; padding: 4px 9px; font-size: .68rem; font-weight: 600; color: rgba(255,255,255,.9); display: flex; align-items: center; gap: 5px; }
-    .hdr-chip .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
-
-    /* ====================================================
-       MAIN SCROLL
-    ==================================================== */
-    #mainScroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
-
-    /* ====================================================
-       PAGES
-    ==================================================== */
-    .page { display: none; padding: 18px; padding-bottom: 90px; animation: pageIn .22s ease; }
-    .page.active { display: block; }
-    @keyframes pageIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    .pg-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-    .pg-back { width: 36px; height: 36px; background: var(--card); border-radius: 9px; display: flex; align-items: center; justify-content: center; color: var(--text-2); font-size: .85rem; border: 1px solid var(--border); flex-shrink: 0; }
-    .pg-title { font-size: 1.15rem; font-weight: 800; color: var(--text-1); }
-
-    /* ====================================================
-       DASHBOARD
-    ==================================================== */
-    .admin-bar { background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: var(--r-md); padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-    .admin-badge { display: flex; align-items: center; gap: 7px; color: #fff; font-size: .75rem; font-weight: 700; text-transform: uppercase; }
-    .admin-badge i { color: var(--warning); }
-    .admin-btns { display: flex; gap: 6px; }
-    .admin-btn-sm { background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); border-radius: 7px; padding: 5px 10px; font-size: .7rem; font-weight: 700; color: rgba(255,255,255,.85); }
-
-    .perf-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: var(--sh-sm); transition: transform .15s; }
-    .perf-card:active { transform: scale(.98); }
-    .perf-icon { width: 42px; height: 42px; background: #e8f5e9; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--success); font-size: 1rem; flex-shrink: 0; }
-    .perf-texts .lbl { font-size: .65rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; }
-    .perf-texts .val { font-size: .95rem; font-weight: 800; color: var(--text-1); }
-
-    .stats-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 14px; }
-    .stat-tile { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px; text-align: center; cursor: pointer; box-shadow: var(--sh-sm); transition: transform .15s; }
-    .stat-tile:active { transform: scale(.97); }
-    .stat-num { font-size: 1.9rem; font-weight: 900; color: var(--navy); letter-spacing: -.04em; line-height: 1; }
-    .stat-lbl { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-top: 3px; }
-    .stat-tile.accent { background: var(--navy); }
-    .stat-tile.accent .stat-num { color: #fff; font-size: 1.1rem; }
-    .stat-tile.accent .stat-lbl { color: rgba(255,255,255,.6); }
-    .stat-tile.accent i { font-size: 1.4rem; color: rgba(255,255,255,.8); }
-
-    .sec-lbl { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; color: var(--text-3); margin-bottom: 11px; }
-    .quick4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin-bottom: 14px; }
-    .q-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 13px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; box-shadow: var(--sh-sm); transition: transform .15s; }
-    .q-item:active { transform: scale(.93); }
-    .q-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: .9rem; }
-    .q-icon.indigo { background: #ede9fe; color: #6d28d9; }
-    .q-icon.red    { background: #fee2e2; color: #dc2626; }
-    .q-icon.orange { background: #fff7ed; color: #ea580c; }
-    .q-icon.teal   { background: #ccfbf1; color: #0d9488; }
-    .q-icon.purple { background: #f3e8ff; color: #7c3aed; }
-    .q-icon.sky    { background: #e0f2fe; color: #0284c7; }
-    .q-icon.green  { background: #dcfce7; color: #16a34a; }
-    .q-icon.pink   { background: #fce7f3; color: #be185d; }
-    .q-lbl { font-size: .6rem; font-weight: 700; color: var(--text-2); text-align: center; line-height: 1.2; }
-
-    .cta-strip { width: 100%; background: linear-gradient(135deg, var(--navy-mid), var(--navy-dark)); color: #fff; border-radius: var(--r-md); padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; box-shadow: var(--sh-md); transition: transform .15s; }
-    .cta-strip:active { transform: scale(.98); }
-    .cta-l { display: flex; align-items: center; gap: 12px; }
-    .cta-dot { width: 36px; height: 36px; background: rgba(255,255,255,.15); border-radius: 9px; display: flex; align-items: center; justify-content: center; }
-    .cta-texts .sub { font-size: .67rem; opacity: .7; }
-    .cta-texts .main { font-size: .95rem; font-weight: 800; }
-
-    #lembreteBanner { background: #fff7ed; border: 1px solid #fde68a; border-left: 3px solid var(--warning); border-radius: 9px; padding: 11px 14px; display: none; align-items: center; gap: 10px; cursor: pointer; margin-top: 8px; }
-    #lembreteBanner.show { display: flex; }
-    .lb-icon { width: 30px; height: 30px; background: #fef3c7; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--warning); flex-shrink: 0; }
-
-    /* FTTA dashboard cards */
-    .ftta-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-    .ftta-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 12px; cursor: pointer; box-shadow: var(--sh-sm); transition: transform .15s; display: flex; align-items: center; gap: 10px; }
-    .ftta-card:active { transform: scale(.97); }
-    .ftta-badge { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 900; color: #fff; flex-shrink: 0; }
-    .ftta-badge.laj { background: linear-gradient(135deg, #0050b3, #003580); }
-    .ftta-badge.est { background: linear-gradient(135deg, #0d9488, #0f766e); }
-    .ftta-badge.pro { background: linear-gradient(135deg, #7c3aed, #5b21b6); }
-    .ftta-texts .t { font-size: .72rem; font-weight: 800; color: var(--text-1); }
-    .ftta-texts .s { font-size: .62rem; color: var(--text-3); }
-
-    /* ====================================================
-       LEADS CARDS
-    ==================================================== */
-    .filter-scroll { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
-    .filter-scroll::-webkit-scrollbar { display: none; }
-    .ftag { padding: 6px 13px; border-radius: 99px; font-size: .72rem; font-weight: 700; white-space: nowrap; background: var(--card); color: var(--text-2); border: 1px solid var(--border); flex-shrink: 0; transition: all .15s; }
-    .ftag.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-
-    .search-wrap { position: relative; margin-bottom: 14px; }
-    .search-wrap i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-3); font-size: .85rem; pointer-events: none; }
-    .search-input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 11px 13px 11px 38px; font-size: .9rem; font-weight: 500; color: var(--text-1); transition: border .2s; }
-    .search-input:focus { border-color: var(--navy); }
-
-    .lead-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; margin-bottom: 10px; box-shadow: var(--sh-sm); transition: transform .15s; }
-    .lead-card:active { transform: scale(.985); }
-    .lc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-    .lc-name { font-size: .97rem; font-weight: 800; color: var(--text-1); cursor: pointer; }
-    .lc-city { font-size: .73rem; color: var(--text-3); margin-bottom: 5px; }
-    .lc-phone { font-size: .78rem; font-weight: 600; color: var(--text-2); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
-    .lc-provedor { display: inline-flex; align-items: center; gap: 4px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px; padding: 2px 7px; font-size: .65rem; font-weight: 800; color: #1d4ed8; margin-bottom: 8px; }
-    .lc-btns { display: flex; gap: 7px; }
-    .lc-btn { flex: 1; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .78rem; font-weight: 700; gap: 5px; transition: all .15s; border: 1px solid transparent; }
-    .lc-btn:active { transform: scale(.93); }
-    .lc-btn.call { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
-    .lc-btn.whats { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
-    .lc-btn.map { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
-    .lc-btn.detail { background: var(--surface); color: var(--text-2); border-color: var(--border); font-size: .7rem; }
-    .lc-sched { font-size: .7rem; color: var(--warning); font-weight: 700; display: flex; align-items: center; gap: 4px; margin-top: 4px; }
-
-    .badge { padding: 3px 8px; border-radius: 5px; font-size: .62rem; font-weight: 800; text-transform: uppercase; flex-shrink: 0; }
-    .badge.novo       { background: #dbeafe; color: #1d4ed8; }
-    .badge.agendado   { background: #fef3c7; color: #92400e; }
-    .badge.fechado    { background: #d1fae5; color: #065f46; }
-    .badge.negociacao { background: #ede9fe; color: #5b21b6; }
-    .badge.default    { background: var(--surface); color: var(--text-3); }
-
-    /* ====================================================
-       FORM
-    ==================================================== */
-    .form-sec { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px; margin-bottom: 14px; box-shadow: var(--sh-sm); }
-    .form-sec-title { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--navy); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
-    .field { margin-bottom: 14px; }
-    .field:last-child { margin-bottom: 0; }
-    .field label { display: block; font-size: .68rem; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
-    .f-input { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 11px 13px; font-size: .92rem; font-weight: 500; color: var(--text-1); transition: all .2s; }
-    .f-input:focus { border-color: var(--navy); background: #fff; box-shadow: 0 0 0 3px rgba(0,53,128,.07); }
-    textarea.f-input { resize: vertical; min-height: 72px; }
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .gps-btn { background: none; border: 1.5px dashed var(--border); border-radius: var(--r-sm); padding: 9px; width: 100%; font-size: .78rem; font-weight: 600; color: var(--text-3); display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 7px; }
-
-    .hist-entry { background: var(--surface); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; font-size: .82rem; }
-    .hist-entry .he-date { font-size: .65rem; color: var(--text-3); font-weight: 700; float: right; }
-
-    /* ====================================================
-       BUTTONS
-    ==================================================== */
-    .btn { border-radius: var(--r-sm); padding: 13px 18px; font-size: .88rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .15s; width: 100%; }
-    .btn:active { transform: scale(.97); }
-    .btn-navy    { background: var(--navy); color: #fff; box-shadow: 0 4px 14px rgba(0,53,128,.22); }
-    .btn-ghost   { background: var(--surface); color: var(--text-2); border: 1px solid var(--border); }
-    .btn-danger  { background: var(--danger); color: #fff; }
-    .btn-success { background: var(--success); color: #fff; }
-    .btn-sm      { padding: 8px 13px; font-size: .78rem; border-radius: 8px; width: auto; }
-
-    /* ====================================================
-       TASKS
-    ==================================================== */
-    .task-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 13px 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 11px; box-shadow: var(--sh-sm); }
-    .task-item.done-item { opacity: .5; }
-    .t-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: all .2s; }
-    .t-check.done { background: var(--success); border-color: var(--success); }
-    .t-check i { font-size: .6rem; color: #fff; }
-    .t-body { flex: 1; }
-    .t-desc { font-size: .85rem; font-weight: 600; color: var(--text-1); }
-    .t-desc.done { text-decoration: line-through; color: var(--text-3); }
-    .t-meta { display: flex; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
-    .t-chip { font-size: .63rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
-    .t-chip.date { background: #fee2e2; color: #b91c1c; }
-    .t-chip.lead { background: #dbeafe; color: #1d4ed8; }
-    .t-del { color: var(--border); cursor: pointer; padding: 4px; transition: color .2s; }
-    .t-del:hover { color: var(--danger); }
-
-    /* ====================================================
-       INDICADORES
-    ==================================================== */
-    .ind-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px; margin-bottom: 11px; box-shadow: var(--sh-sm); }
-    .ind-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .ind-label { font-size: .8rem; font-weight: 600; color: var(--text-2); }
-    .ind-val { font-size: 1.45rem; font-weight: 900; color: var(--navy); letter-spacing: -.03em; }
-    .prog-bar { width: 100%; height: 7px; background: var(--surface); border-radius: 99px; overflow: hidden; }
-    .prog-fill { height: 100%; border-radius: 99px; transition: width .6s ease; }
-
-    /* ====================================================
-       MATERIAIS
-    ==================================================== */
-    .mat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
-    .mat-folder { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px 10px; display: flex; flex-direction: column; align-items: center; gap: 9px; cursor: pointer; box-shadow: var(--sh-sm); transition: transform .15s; }
-    .mat-folder:active { transform: scale(.95); }
-    .mat-folder i { font-size: 2rem; color: var(--cyan); }
-    .mat-folder span { font-size: .72rem; font-weight: 700; text-align: center; color: var(--text-2); line-height: 1.3; }
-    .mat-file { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-sm); }
-    .mat-thumb { height: 100px; background: var(--surface); overflow: hidden; }
-    .mat-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .mat-info { padding: 9px; }
-    .mat-name { font-size: .7rem; font-weight: 700; color: var(--text-2); margin-bottom: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .mat-acts { display: flex; gap: 5px; }
-    .mat-act { flex: 1; padding: 7px; border-radius: 6px; font-size: .72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-    .mat-act.dl { background: #dbeafe; color: #1d4ed8; }
-    .mat-act.wh { background: #d1fae5; color: #065f46; }
-
-    /* ====================================================
-       CONCORRENTES PAGE
-    ==================================================== */
-    .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-    .comp-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; cursor: pointer; box-shadow: var(--sh-sm); transition: transform .15s; }
-    .comp-card:active { transform: scale(.96); }
-    .comp-card.selected { border-color: var(--navy); background: #eff6ff; }
-    .comp-logo { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .82rem; color: #fff; margin-bottom: 8px; }
-    .comp-name { font-size: .82rem; font-weight: 800; color: var(--text-1); margin-bottom: 2px; }
-    .comp-type { font-size: .65rem; color: var(--text-3); }
-    .comp-detail { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px; box-shadow: var(--sh-sm); }
-    .comp-detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-    .pros-cons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .pros-box, .cons-box { border-radius: var(--r-sm); padding: 12px; }
-    .pros-box { background: #d1fae5; }
-    .cons-box { background: #fee2e2; }
-    .pc-title { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
-    .pros-box .pc-title { color: #065f46; }
-    .cons-box .pc-title { color: #b91c1c; }
-    .pc-item { font-size: .75rem; color: var(--text-1); margin-bottom: 4px; display: flex; gap: 5px; }
-    .pc-item::before { content: '•'; opacity: .6; flex-shrink: 0; }
-    .ai-resp-box { background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: var(--r-sm); padding: 13px; font-size: .82rem; line-height: 1.55; color: #1e40af; margin-top: 12px; }
-
-    /* ====================================================
-       FALTAS
-    ==================================================== */
-    .hist-falta { background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 13px; margin-bottom: 8px; }
-    .hf-motivo { font-size: .84rem; font-weight: 700; color: var(--text-1); }
-    .hf-meta { font-size: .7rem; color: var(--text-3); margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .hf-status { font-size: .63rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; background: #d1fae5; color: #065f46; }
-
-    /* ====================================================
-       MODAL — LEAD DETAILS
-    ==================================================== */
-    .modal-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); z-index: 500; display: none; align-items: flex-end; }
-    .modal-back.open { display: flex; }
-    .modal-sheet { background: var(--card); border-radius: 22px 22px 0 0; padding: 22px 18px; padding-bottom: calc(env(safe-area-inset-bottom) + 22px); width: 100%; max-height: 90dvh; overflow-y: auto; animation: slideUp .28s ease; position: relative; }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .modal-handle { width: 38px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 18px; }
-    .modal-lead-name { font-size: 1.25rem; font-weight: 800; color: var(--text-1); }
-    .modal-lead-loc { font-size: .8rem; color: var(--text-3); margin: 3px 0 16px; }
-    .modal-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 18px; }
-    .modal-info-tile { background: var(--surface); border-radius: 9px; padding: 11px; }
-    .mit-lbl { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-bottom: 2px; }
-    .mit-val { font-size: .85rem; font-weight: 700; color: var(--text-1); }
-    .modal-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 18px; }
-    .m-act { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 9px 11px; display: flex; align-items: center; gap: 7px; font-size: .75rem; font-weight: 700; color: var(--text-2); cursor: pointer; transition: all .15s; }
-    .m-act:active { transform: scale(.95); }
-    .m-act.green  { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
-    .m-act.blue   { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
-    .m-act.red    { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
-    .m-act.purple { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
-    .m-act.warn   { background: #fff7ed; color: #92400e; border-color: #fed7aa; }
-    .m-sec-title { font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-bottom: 9px; display: flex; align-items: center; gap: 5px; }
-    .m-sec { margin-bottom: 18px; }
-    .m-close { position: absolute; top: 18px; right: 18px; width: 30px; height: 30px; background: var(--surface); border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: .78rem; }
-    .date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .m-f-input { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 11px 13px; font-size: .9rem; }
-    .m-f-input:focus { border-color: var(--navy); }
-    textarea.m-f-input { resize: vertical; min-height: 70px; }
-
-    /* ====================================================
-       GENERIC MODAL 2
-    ==================================================== */
-    .modal2-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); z-index: 600; display: none; align-items: center; justify-content: center; padding: 18px; }
-    .modal2-back.open { display: flex; }
-    .modal2-card { background: var(--card); border-radius: var(--r-lg); padding: 22px; width: 100%; max-width: 380px; animation: fadeScale .22s ease; max-height: 90dvh; overflow-y: auto; }
-    @keyframes fadeScale { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
-    .m2-title { font-size: 1.05rem; font-weight: 800; color: var(--text-1); margin-bottom: 14px; }
-
-    /* ====================================================
-       BOTTOM NAV
-    ==================================================== */
-    #bottomNav { background: rgba(255,255,255,.97); backdrop-filter: blur(16px); border-top: 1px solid var(--border); padding: 8px 6px; padding-bottom: calc(env(safe-area-inset-bottom) + 8px); display: flex; justify-content: space-around; align-items: center; flex-shrink: 0; z-index: 50; }
-    .nav-i { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text-3); font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; cursor: pointer; padding: 4px 10px; border-radius: 9px; transition: all .2s; }
-    .nav-i i { font-size: 1.15rem; }
-    .nav-i.on { color: var(--navy); }
-    .nav-fab { width: 50px; height: 50px; background: linear-gradient(135deg, var(--cyan), var(--navy-mid)); border-radius: 15px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.25rem; margin-top: -18px; box-shadow: 0 5px 18px rgba(0,100,200,.32); border: 3px solid var(--surface); transition: transform .15s; cursor: pointer; }
-    .nav-fab:active { transform: scale(.91); }
-
-    /* ====================================================
-       CHAT MODAL
-    ==================================================== */
-    #chatModal { position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); display: none; align-items: flex-end; }
-    #chatModal.open { display: flex; }
-    .chat-sheet { background: var(--card); border-radius: 22px 22px 0 0; width: 100%; padding: 18px; padding-bottom: calc(env(safe-area-inset-bottom) + 18px); height: 72dvh; display: flex; flex-direction: column; }
-    .chat-title { font-size: .95rem; font-weight: 800; margin-bottom: 11px; display: flex; align-items: center; gap: 7px; color: var(--text-1); }
-    #chatHistory { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 0; }
-    .c-msg { max-width: 84%; padding: 9px 13px; border-radius: 13px; font-size: .84rem; line-height: 1.45; }
-    .c-msg.user { background: var(--navy); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
-    .c-msg.ai   { background: var(--surface); color: var(--text-1); align-self: flex-start; border-bottom-left-radius: 3px; }
-    .chat-input-row { display: flex; gap: 7px; margin-top: 11px; }
-    #chatInput { flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 11px; padding: 11px; font-size: .88rem; }
-    #chatInput:focus { border-color: var(--navy); }
-    .chat-send { width: 42px; height: 42px; background: var(--navy); color: #fff; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-
-    /* ====================================================
-       CONFIG + TRANSFERENCIA
-    ==================================================== */
-    #configModal, #modalTransferencia { position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); display: none; align-items: flex-end; }
-    #configModal.open, #modalTransferencia.open { display: flex; }
-    .cfg-sheet { background: var(--card); border-radius: 22px 22px 0 0; width: 100%; padding: 22px 18px; padding-bottom: calc(env(safe-area-inset-bottom) + 22px); max-height: 80dvh; overflow-y: auto; }
-
-    /* ====================================================
-       UTILS
-    ==================================================== */
-    .empty-state { text-align: center; padding: 44px 18px; color: var(--text-3); }
-    .empty-state i { font-size: 2.2rem; display: block; margin-bottom: 10px; opacity: .3; }
-    .empty-state p { font-size: .85rem; }
-    .hidden { display: none !important; }
-    .sep { height: 1px; background: var(--border); margin: 14px 0; }
-    .flex-row { display: flex; gap: 8px; }
-    .flex-1 { flex: 1; }
-    .text-mono { font-family: 'Space Mono', monospace; }
- 
-    /* Animação para leads sem atualização há 10+ dias */
-    @keyframes pulseAlert {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
-      50%       { box-shadow: 0 0 0 4px rgba(245,158,11,0.18); }
-    }
- 
-    /* Indicadores: ranking e comparativo */
-    #indRankingVendedores { margin-bottom: 14px; }
-    #indComparativo       { margin-bottom: 14px; }
-    #indLeadsHoje         { background: var(--navy); border-radius: var(--r-md); padding: 14px; text-align: center; margin-bottom: 14px; }
-    #indGrafico           { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; margin-bottom: 14px; }
-    #indFiltroMes         { margin-bottom: 14px; display: flex; gap: 8px; align-items: center; }
-    #indFiltroMes label   { font-size: .68rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; }
-    #selFiltroMes         { flex: 1; background: var(--card); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; font-size: .82rem; color: var(--text-1); }
- 
-    /* Linha de meta info no lead card */
-    .lead-meta-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
-
-    /* ====================================================
-       GESTÃO DE BASE — ESTILOS (adicionado)
-    ==================================================== */
-    #gestaoBase .gb-header-kpis {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-    #gestaoBase .gb-kpi {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r-md);
-      padding: 14px 16px;
-      box-shadow: var(--sh-sm);
-      cursor: pointer;
-      transition: transform .15s;
-    }
-    #gestaoBase .gb-kpi:active { transform: scale(.97); }
-    #gestaoBase .gb-kpi-val {
-      font-size: 1.75rem;
-      font-weight: 900;
-      color: var(--navy);
-      letter-spacing: -.04em;
-      line-height: 1;
-    }
-    #gestaoBase .gb-kpi-lbl {
-      font-size: .6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      color: var(--text-3);
-      margin-top: 3px;
-    }
-    #gestaoBase .gb-kpi.urgente .gb-kpi-val { color: var(--danger); }
-    #gestaoBase .gb-kpi.incremento .gb-kpi-val { color: var(--success); }
-    #gestaoBase .gb-kpi.oportunidade .gb-kpi-val { color: var(--warning); }
-    .gb-score-bar {
-      height: 3px;
-      border-radius: 99px;
-      margin-top: 6px;
-      background: var(--border);
-      overflow: hidden;
-    }
-    .gb-score-fill {
-      height: 100%;
-      border-radius: 99px;
-      transition: width .5s ease;
-    }
-    .gb-filters {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r-md);
-      padding: 14px;
-      margin-bottom: 14px;
-      box-shadow: var(--sh-sm);
-    }
-    .gb-filters-title {
-      font-size: .62rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--navy);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .gb-filter-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .gb-filter-row:last-child { margin-bottom: 0; }
-    .gb-select {
-      width: 100%;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-size: .78rem;
-      font-weight: 600;
-      color: var(--text-1);
+    body {
       font-family: 'DM Sans', sans-serif;
-    }
-    .gb-select:focus { border-color: var(--navy); outline: none; }
-    .gb-client-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r-md);
-      padding: 14px;
-      margin-bottom: 10px;
-      box-shadow: var(--sh-sm);
-      transition: transform .15s;
-      position: relative;
-      overflow: hidden;
-    }
-    .gb-client-card:active { transform: scale(.985); }
-    .gb-client-card::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 3px;
-      border-radius: 99px 0 0 99px;
-    }
-    .gb-client-card.score-alto::before  { background: var(--danger); }
-    .gb-client-card.score-medio::before { background: var(--warning); }
-    .gb-client-card.score-baixo::before { background: var(--success); }
-    .gb-card-top {
+      background: #1a1f35;
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 8px;
-    }
-    .gb-client-name {
-      font-size: .92rem;
-      font-weight: 800;
-      color: var(--text-1);
-      flex: 1;
-      margin-right: 8px;
-      cursor: pointer;
-    }
-    .gb-priority-badge {
-      padding: 3px 8px;
-      border-radius: 5px;
-      font-size: .6rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      flex-shrink: 0;
-    }
-    .gb-priority-badge.urgente    { background: #fee2e2; color: #b91c1c; }
-    .gb-priority-badge.oportunidade { background: #fef3c7; color: #92400e; }
-    .gb-priority-badge.neutro     { background: #f0fdf4; color: #15803d; }
-    .gb-card-info {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-    .gb-info-tile {
-      background: var(--surface);
-      border-radius: 7px;
-      padding: 7px 9px;
-    }
-    .gb-info-tile .lbl {
-      font-size: .57rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      color: var(--text-3);
-      display: block;
-      margin-bottom: 1px;
-    }
-    .gb-info-tile .val {
-      font-size: .78rem;
-      font-weight: 700;
-      color: var(--text-1);
-    }
-    .gb-info-tile .val.destaque { color: var(--navy); }
-    .gb-info-tile .val.perigo   { color: var(--danger); }
-    .gb-info-tile .val.sucesso  { color: var(--success); }
-    .gb-meses-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #ede9fe;
-      border: 1px solid #ddd6fe;
-      color: #5b21b6;
-      border-radius: 5px;
-      font-size: .62rem;
-      font-weight: 800;
-      padding: 2px 7px;
-      margin-bottom: 8px;
-    }
-    .gb-meses-badge.verde { background: #d1fae5; border-color: #a7f3d0; color: #065f46; }
-    .gb-meses-badge.laranja { background: #fff7ed; border-color: #fed7aa; color: #92400e; }
-    .gb-meses-badge.vermelho { background: #fee2e2; border-color: #fecaca; color: #b91c1c; }
-    .gb-consultor-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1d4ed8;
-      border-radius: 5px;
-      font-size: .62rem;
-      font-weight: 800;
-      padding: 2px 7px;
-      margin-bottom: 8px;
-    }
-    .gb-card-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .gb-action-btn {
-      flex: 1;
-      min-width: 0;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      font-size: .72rem;
-      font-weight: 700;
-      gap: 4px;
-      transition: all .15s;
-      border: 1px solid transparent;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .gb-action-btn:active { transform: scale(.93); }
-    .gb-action-btn.whats  { background: #d1fae5; color: #059669; border-color: #a7f3d0; }
-    .gb-action-btn.ia     { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
-    .gb-action-btn.reg    { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
-    .gb-action-btn.detail { background: var(--surface); color: var(--text-2); border-color: var(--border); }
-    #gbModalRegistro .delta-display {
-      background: linear-gradient(135deg, #0d1b3e, #003580);
-      border-radius: var(--r-sm);
-      padding: 14px 16px;
-      margin: 12px 0;
-      display: flex;
-      justify-content: space-between;
       align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .demo-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      max-width: 1200px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-md);
+      overflow: hidden;
+      width: 100%;
+      max-width: 520px;
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-mid) 100%);
+      padding: 20px 24px;
       color: #fff;
     }
-    #gbModalRegistro .delta-display .delta-val {
-      font-size: 1.4rem;
-      font-weight: 900;
-      letter-spacing: -.04em;
-    }
-    #gbModalRegistro .delta-display .delta-val.positivo { color: #4ade80; }
-    #gbModalRegistro .delta-display .delta-val.negativo  { color: #f87171; }
-    #gbModalRegistro .delta-display .delta-lbl {
-      font-size: .65rem;
-      opacity: .7;
-      text-transform: uppercase;
-    }
-    #gbModalIA .ia-loading {
+
+    .card-header h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 4px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      padding: 24px;
-      gap: 12px;
-      color: var(--text-3);
-      font-size: .82rem;
-    }
-    #gbModalIA .ia-ring {
-      width: 36px; height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--navy);
-      border-radius: 50%;
-      animation: spin .8s linear infinite;
-    }
-    #gbModalIA .ia-text-box {
-      background: linear-gradient(135deg, #eff6ff, #f0fdf4);
-      border: 1px solid #bfdbfe;
-      border-radius: var(--r-sm);
-      padding: 14px;
-      font-size: .85rem;
-      line-height: 1.6;
-      color: var(--text-1);
-      white-space: pre-wrap;
-      margin-bottom: 12px;
-    }
-    #gbModalIA .ia-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
-    #gbPainelConsultores {
-      margin-top: 4px;
+
+    .card-header h1 i {
+      color: var(--cyan);
+      font-size: 1rem;
     }
-    .gb-cons-card {
-      background: var(--card);
+
+    .card-header p {
+      font-size: 0.7rem;
+      opacity: 0.7;
+      letter-spacing: 0.3px;
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+
+    .cliente-info {
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--r-md);
-      padding: 14px;
-      margin-bottom: 10px;
-      box-shadow: var(--sh-sm);
-    }
-    .gb-cons-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .gb-cons-avatar {
-      width: 38px; height: 38px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--navy-mid), var(--cyan));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-weight: 900;
-      font-size: .9rem;
-      flex-shrink: 0;
-    }
-    .gb-cons-name { font-size: .88rem; font-weight: 800; color: var(--text-1); }
-    .gb-cons-meta { font-size: .65rem; color: var(--text-3); }
-    .gb-cons-stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-    }
-    .gb-cons-stat {
-      background: var(--surface);
-      border-radius: 7px;
-      padding: 8px 4px;
-      text-align: center;
-    }
-    .gb-cons-stat .sv { font-size: 1rem; font-weight: 900; color: var(--navy); }
-    .gb-cons-stat .sl { font-size: .55rem; font-weight: 700; text-transform: uppercase; color: var(--text-3); }
-    .gb-cons-stat .sv.verde   { color: var(--success); }
-    .gb-cons-stat .sv.vermelho { color: var(--danger); }
-    .gb-historico-item {
-      background: var(--surface);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 6px;
-      border-left: 3px solid var(--border);
-    }
-    .gb-historico-item.positivo { border-left-color: var(--success); }
-    .gb-historico-item.negativo { border-left-color: var(--danger); }
-    .gb-historico-item.atuacao  { border-left-color: var(--warning); }
-    .gb-hist-top {
+      padding: 16px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
-      margin-bottom: 3px;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    .gb-hist-consultor { font-size: .72rem; font-weight: 700; color: var(--navy); }
-    .gb-hist-data      { font-size: .62rem; color: var(--text-3); }
-    .gb-hist-resultado { font-size: .75rem; font-weight: 700; color: var(--text-1); }
-    .gb-hist-delta     { font-size: .68rem; color: var(--text-2); margin-top: 2px; }
-    .gb-hist-obs       { font-size: .7rem; color: var(--text-3); margin-top: 3px; font-style: italic; }
-    .gb-empty {
-      text-align: center;
-      padding: 40px 18px;
+
+    .cliente-nome {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--text-1);
+    }
+
+    .cliente-plano {
+      font-size: 0.75rem;
       color: var(--text-3);
+      font-weight: 500;
     }
-    .gb-empty i { font-size: 2rem; display: block; margin-bottom: 10px; opacity: .25; }
-    .gb-empty p { font-size: .82rem; }
-    @keyframes gbSkeleton {
-      0%, 100% { opacity: .5; }
-      50%       { opacity: 1; }
-    }
-    .gb-skeleton {
-      background: var(--border);
-      border-radius: 6px;
-      animation: gbSkeleton 1.4s ease infinite;
-    }
-    .gb-tabs {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 14px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 4px;
-      box-shadow: var(--sh-sm);
-    }
-    .gb-tab {
-      flex: 1;
-      padding: 8px 4px;
-      border-radius: 7px;
-      font-size: .72rem;
-      font-weight: 700;
-      text-align: center;
-      cursor: pointer;
-      color: var(--text-3);
-      transition: all .2s;
-    }
-    .gb-tab.on {
+
+    .tempo-cliente {
       background: var(--navy);
       color: #fff;
-      box-shadow: 0 2px 8px rgba(0,53,128,.2);
-    }
-    .gb-atuacao-flag {
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.7rem;
+      font-weight: 700;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      background: #fef3c7;
-      border: 1px solid #fde68a;
-      color: #92400e;
-      border-radius: 5px;
-      font-size: .6rem;
-      font-weight: 800;
-      padding: 2px 7px;
-      animation: pulseAlert 2.5s ease-in-out infinite;
+      gap: 6px;
     }
 
-    /* ====================================================
-       RESPONSIVE
-    ==================================================== */
-    @media (min-width: 768px) {
-      body { background: #1a1f35; }
-      #appWrapper { box-shadow: none; }
-      #desktopSidebar { display: flex; }
-      #app { border-radius: 0; max-width: none; flex: 1; height: 100dvh; }
-      #header { display: none; }
-      #bottomNav { display: none; }
-      .page { padding: 28px 32px; padding-bottom: 40px; }
-      #mainScroll { height: 100dvh; }
-      .quick4 { grid-template-columns: repeat(6, 1fr); }
-      .ftta-cards { grid-template-columns: repeat(3, 1fr); }
-      .stats-2 { grid-template-columns: repeat(4, 1fr); }
-      .mat-grid { grid-template-columns: repeat(3, 1fr); }
-      .comp-grid { grid-template-columns: repeat(4, 1fr); }
-      .lead-list-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .lead-list-wrap .lead-card { margin-bottom: 0; }
+    .tempo-cliente i {
+      font-size: 0.65rem;
+      opacity: 0.8;
+    }
+
+    /* Campos de dados do cliente (WhatsApp e CPF) */
+    .dados-cliente {
+      background: #f0f7ff;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--r-md);
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+
+    .dados-cliente .label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+
+    .dados-cliente .campo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .dados-cliente .campo:last-child {
+      margin-bottom: 0;
+    }
+
+    .dados-cliente .campo i {
+      width: 28px;
+      color: var(--navy);
+      font-size: 1rem;
+    }
+
+    .dados-cliente input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 0.85rem;
+      font-family: inherit;
+      background: #fff;
+      transition: all 0.2s;
+    }
+
+    .dados-cliente input:focus {
+      outline: none;
+      border-color: var(--navy);
+      box-shadow: 0 0 0 2px rgba(0,53,128,.1);
+    }
+
+    .abordagem-texto {
+      background: linear-gradient(135deg, #f8faff, #fff);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 20px;
+      margin-bottom: 20px;
+      font-size: 0.88rem;
+      line-height: 1.65;
+      color: var(--text-1);
+    }
+
+    .abordagem-texto p {
+      margin-bottom: 12px;
+    }
+
+    .abordagem-texto p:last-child {
+      margin-bottom: 0;
+    }
+
+    .produtos-lista {
+      background: #f0f7ff;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 0.82rem;
+    }
+
+    .produtos-lista i {
+      width: 24px;
+      color: var(--navy);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: var(--r-sm);
+      font-weight: 700;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--navy);
+      color: #fff;
+      box-shadow: var(--sh-sm);
+    }
+
+    .btn-success {
+      background: #25D366;
+      color: #fff;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text-2);
+    }
+
+    .btn-danger {
+      background: var(--surface);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-3);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: var(--text-1);
+      transition: all 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--navy);
+      background: #fff;
+    }
+
+    select.form-control {
+      cursor: pointer;
+    }
+
+    textarea.form-control {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .data-retorno-area {
+      background: #fff7ed;
+      border: 1px solid #fde68a;
+      border-radius: var(--r-md);
+      padding: 14px;
+      margin-bottom: 18px;
+      transition: all 0.2s;
+    }
+
+    .data-retorno-area label {
+      color: #92400e;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .separator {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0;
+    }
+
+    .badge-info {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .card-footer {
+      padding: 16px 24px 24px;
+      border-top: 1px solid var(--border);
+      background: #fafbfe;
+      display: flex;
+      gap: 12px;
+    }
+
+    hr {
+      margin: 16px 0;
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 1000px) {
+      .demo-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .card {
+        max-width: 500px;
+      }
     }
   </style>
 </head>
 <body>
-<div id="appWrapper">
+<div class="demo-container">
 
-  <!-- Desktop Sidebar -->
-  <nav id="desktopSidebar">
-    <div class="dsb-logo">
-      <div class="dsb-logo-icon"><i class="fas fa-wifi"></i></div>
-      <div class="dsb-logo-title">MHNET</div>
-      <div class="dsb-logo-sub">Gestor de Vendas</div>
+  <!-- ============================================ -->
+  <!-- TELA 1: ABORDAGEM IA (com WhatsApp e CPF)     -->
+  <!-- ============================================ -->
+  <div class="card">
+    <div class="card-header">
+      <h1><i class="fas fa-robot"></i> Abordagem IA</h1>
+      <p>Preencha os dados e gere o script personalizado</p>
     </div>
-    <div class="dsb-nav">
-      <div class="dsb-section">Principal</div>
-      <div class="dsb-item on" onclick="navegarPara('dashboard')"><i class="fas fa-home"></i> Início</div>
-      <div class="dsb-item" onclick="verTodosLeads()"><i class="fas fa-address-book"></i> Carteira</div>
-      <div class="dsb-item" onclick="navegarPara('cadastroLead')"><i class="fas fa-user-plus"></i> Novo Lead</div>
-      <div class="dsb-section">Módulos</div>
-      <div class="dsb-item" onclick="navegarPara('ftta')"><i class="fas fa-network-wired"></i> FTTA</div>
-      <div class="dsb-item" onclick="abrirIndicadores()"><i class="fas fa-chart-line"></i> Indicadores</div>
-      <div class="dsb-item" onclick="navegarPara('tarefas')"><i class="fas fa-check-square"></i> Tarefas</div>
-      <div class="dsb-item" onclick="navegarPara('materiais')"><i class="fas fa-folder-open"></i> Materiais</div>
-      <div class="dsb-item" onclick="navegarPara('concorrentes')"><i class="fas fa-binoculars"></i> Concorrentes</div>
-      <div class="dsb-item" onclick="navegarPara('objecoes')"><i class="fas fa-shield-alt"></i> Objeções</div>
-      <div class="dsb-item" onclick="navegarPara('gestaoBase')"><i class="fas fa-chart-line"></i> Gestão de Base</div>
-      <div class="dsb-section">Pessoal</div>
-      <div class="dsb-item" onclick="navegarPara('faltas')"><i class="fas fa-calendar-times"></i> Faltas</div>
-      <div class="dsb-item" onclick="consultarPlanosIA()"><i class="fas fa-robot"></i> Chat IA</div>
-    </div>
-    <div class="dsb-user">
-      <strong id="dsb-username">...</strong>
-      <span onclick="logout()" style="cursor:pointer;color:rgba(255,255,255,.4);font-size:.7rem;"><i class="fas fa-sign-out-alt"></i> Sair</span>
-    </div>
-  </nav>
-
-  <!-- Mobile App Shell -->
-  <div id="app">
-
-    <!-- LOADER -->
-    <div id="loader"><div class="loader-ring"></div><div class="loader-text">Aguarde</div></div>
-
-    <!-- OFFLINE -->
-    <div id="offlineBanner"><i class="fas fa-wifi-slash"></i> Sem conexão — dados salvos offline</div>
-
-    <!-- LOGIN -->
-    <div id="loginScreen">
-      <div class="login-brand">
-        <div class="login-brand-icon"><i class="fas fa-wifi"></i></div>
-        <div class="login-brand-text"><h1>MHNET</h1><p>Gestor de Vendas Externas</p></div>
-      </div>
-      <div class="login-card">
-        <label class="login-label">Selecione seu nome</label>
-        <select id="userSelect"><option value="">Carregando...</option></select>
-        <button class="btn-login" onclick="setLoggedUser()">ENTRAR NO SISTEMA</button>
-        <div class="login-install">
-          <button id="btnInstalarPWA" class="hidden" onclick="instalarPWA()"><i class="fas fa-download"></i> Instalar App</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- HEADER -->
-    <header id="header" class="hidden">
-      <div class="hdr-top">
+    <div class="card-body">
+      <!-- Informações fixas do cliente -->
+      <div class="cliente-info">
         <div>
-          <div class="hdr-greeting">Olá,</div>
-          <div class="hdr-name" id="userInfo">...</div>
+          <div class="cliente-nome">MAICOW TESKE</div>
+          <div class="cliente-plano">4Mbps · R$ 90,18/mês</div>
         </div>
-        <div class="hdr-actions">
-          <button id="btnAdminSettings" class="hdr-btn hidden" onclick="abrirConfiguracoes()"><i class="fas fa-cog"></i></button>
-          <button class="hdr-btn" onclick="logout()"><i class="fas fa-power-off"></i></button>
+        <div class="tempo-cliente">
+          <i class="fas fa-clock"></i> 4 anos e 10 meses
         </div>
       </div>
-      <div class="hdr-chips">
-        <div class="hdr-chip"><span class="dot"></span> Online</div>
-        <div class="hdr-chip"><i class="far fa-calendar"></i> <span id="headerDate">--</span></div>
-        <div class="hdr-chip"><i class="fas fa-bolt"></i> <span id="statLeads">0</span> hoje</div>
+
+      <!-- CAMPOS PARA PREENCHIMENTO MANUAL PELO CONSULTOR -->
+      <div class="dados-cliente">
+        <div class="campo">
+          <i class="fab fa-whatsapp"></i>
+          <input type="tel" id="clienteWhatsApp" placeholder="WhatsApp do cliente (ex: 51999999999)" value="">
+        </div>
+        <div class="campo">
+          <i class="fas fa-id-card"></i>
+          <input type="text" id="clienteCPF" placeholder="CPF do cliente (opcional)" value="">
+        </div>
+        <div style="font-size: 0.65rem; color: var(--text-3); margin-top: 8px;">
+          <i class="fas fa-info-circle"></i> Preencha o WhatsApp para enviar a mensagem
+        </div>
       </div>
-    </header>
 
-    <!-- MAIN SCROLL -->
-    <main id="mainScroll" class="hidden">
+      <!-- Texto da abordagem IA -->
+      <div class="abordagem-texto" id="abordagemTexto">
+        <p>Olá <strong>MAICOW TESKE</strong>, tudo bem? 😊</p>
+        <p>Você já faz parte da família <strong>MHNET</strong> há mais de <strong>4 anos e 10 meses</strong>! 🎉💙</p>
+        <p>Por ser um cliente especial e estar conosco há tanto tempo, você tem acesso a <strong>condições exclusivas</strong> para deixar sua conexão ainda melhor. 🚀✨</p>
+        <p>Hoje você utiliza um plano de <strong>4 Mega</strong>, mas temos opções com <strong>muito mais velocidade</strong> para navegar, assistir vídeos, trabalhar e aproveitar a internet sem preocupações. 📶⚡</p>
 
-      <!-- ============ DASHBOARD ============ -->
-      <div id="dashboard" class="page active">
-        <div id="adminPanel" class="admin-bar hidden">
-          <div class="admin-badge"><i class="fas fa-crown"></i> Gestor Admin</div>
-          <div class="admin-btns">
-            <button class="admin-btn-sm" onclick="abrirConfiguracoes()">Equipe</button>
-            <button class="admin-btn-sm" onclick="abrirTransferenciaEmLote()">Transferir</button>
-          </div>
+        <div class="produtos-lista">
+          <div><i class="fas fa-mobile-alt"></i> 📱 Planos para celular</div>
+          <div style="margin-top: 6px;"><i class="fas fa-wifi"></i> 🏠 Wi-Fi com mais cobertura em toda a casa</div>
+          <div style="margin-top: 6px;"><i class="fas fa-tv"></i> 📺 TV por assinatura com diversos canais</div>
+          <div style="margin-top: 6px;"><i class="fas fa-video"></i> 📹 Câmeras de segurança para proteger o que é importante para você</div>
         </div>
 
-        <div class="perf-card" onclick="abrirIndicadores()">
-          <div class="perf-icon"><i class="fas fa-chart-line"></i></div>
-          <div class="perf-texts flex-1">
-            <div class="lbl">Performance do Mês</div>
-            <div class="val">Ver Funil de Vendas</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color:var(--text-3);font-size:.8rem;"></i>
-        </div>
+        <p>Gostaria que eu te apresentasse as <strong>opções disponíveis pra ti</strong>? 😊💙</p>
+      </div>
 
-        <div class="stats-2">
-          <div class="stat-tile" onclick="filtrarLeadsHoje()">
-            <div class="stat-num" id="statLeadsBody">0</div>
-            <div class="stat-lbl">Leads Hoje</div>
-          </div>
-          <div class="stat-tile accent" onclick="verTodosLeads()">
-            <i class="fas fa-address-book"></i>
-            <div class="stat-lbl">Minha Carteira</div>
-          </div>
-        </div>
-
-        <p class="sec-lbl">Módulos</p>
-        <div class="quick4">
-          <div class="q-item" onclick="navegarPara('tarefas')"><div class="q-icon indigo"><i class="fas fa-check-square"></i></div><div class="q-lbl">Tarefas</div></div>
-          <div class="q-item" onclick="navegarPara('faltas')"><div class="q-icon red"><i class="fas fa-calendar-times"></i></div><div class="q-lbl">Faltas</div></div>
-          <div class="q-item" onclick="navegarPara('materiais')"><div class="q-icon orange"><i class="fas fa-folder-open"></i></div><div class="q-lbl">Materiais</div></div>
-          <div class="q-item" onclick="navegarPara('objecoes')"><div class="q-icon teal"><i class="fas fa-shield-alt"></i></div><div class="q-lbl">Objeções</div></div>
-          <div class="q-item" onclick="navegarPara('concorrentes')"><div class="q-icon sky"><i class="fas fa-binoculars"></i></div><div class="q-lbl">Concorr.</div></div>
-          <div class="q-item" onclick="consultarPlanosIA()"><div class="q-icon purple"><i class="fas fa-robot"></i></div><div class="q-lbl">Chat IA</div></div>
-          <div class="q-item" onclick="gerarCoachIA()"><div class="q-icon pink"><i class="fas fa-trophy"></i></div><div class="q-lbl">Coach</div></div>
-          <div class="q-item" onclick="navegarPara('ftta')"><div class="q-icon green"><i class="fas fa-network-wired"></i></div><div class="q-lbl">FTTA</div></div>
-        </div>
-
-        <button class="cta-strip" onclick="navegarPara('cadastroLead')">
-          <div class="cta-l">
-            <div class="cta-dot"><i class="fas fa-user-plus"></i></div>
-            <div class="cta-texts"><div class="sub">Cadastrar</div><div class="main">Novo Cliente</div></div>
-          </div>
-          <i class="fas fa-chevron-right" style="opacity:.6;"></i>
+      <!-- Botões de ação -->
+      <div class="button-group">
+        <button class="btn btn-outline" onclick="copiarTexto()">
+          <i class="fas fa-copy"></i> Copiar
         </button>
-
-        <p class="sec-lbl" style="margin-top:6px;">FTTA — Zonas</p>
-        <div class="ftta-cards">
-          <div class="ftta-card" onclick="navegarPara('ftta');setFttaTab('lajeado')">
-            <div class="ftta-badge laj">LJ</div>
-            <div class="ftta-texts"><div class="t">FTTA Lajeado</div><div class="s">Ver registros</div></div>
-          </div>
-          <div class="ftta-card" onclick="navegarPara('ftta');setFttaTab('estrela')">
-            <div class="ftta-badge est">ES</div>
-            <div class="ftta-texts"><div class="t">FTTA Estrela</div><div class="s">Ver registros</div></div>
-          </div>
-          <div class="ftta-card" onclick="navegarPara('ftta');setFttaTab('prospeccao')" style="grid-column:span 2;">
-            <div class="ftta-badge pro">PR</div>
-            <div class="ftta-texts"><div class="t">FTTA Prospecção</div><div class="s">Leads em prospecção ativa</div></div>
-          </div>
-        </div>
-
-        <div id="lembreteBanner" onclick="filtrarRetornos()">
-          <div class="lb-icon"><i class="fas fa-bell"></i></div>
-          <div style="flex:1;">
-            <div style="font-size:.8rem;font-weight:700;color:#92400e;">Atenção!</div>
-            <div class="lb-sub" style="font-size:.7rem;color:#b45309;">Você tem retornos hoje.</div>
-          </div>
-          <i class="fas fa-chevron-right" style="color:var(--warning);font-size:.75rem;"></i>
-        </div>
-      </div>
-
-      <!-- ============ GESTÃO DE LEADS ============ -->
-      <div id="gestaoLeads" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Carteira</h2>
-          <button onclick="carregarLeads(true)" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;"><i class="fas fa-sync-alt"></i></button>
-        </div>
-        <div class="filter-scroll">
-          <button class="ftag on" id="ftTodos" onclick="filtrarPorStatus('Todos',this)">Todos</button>
-          <button class="ftag" onclick="filtrarPorStatus('Novo',this)">Novos</button>
-          <button class="ftag" onclick="filtrarPorStatus('Agendado',this)">Agendados</button>
-          <button class="ftag" onclick="filtrarPorStatus('Negociação',this)">Negociação</button>
-          <button class="ftag" onclick="filtrarPorStatus('Venda Fechada',this)">Fechados</button>
-        </div>
-        <div class="search-wrap">
-          <i class="fas fa-search"></i>
-          <input class="search-input" id="searchLead" placeholder="Buscar nome, bairro..." oninput="renderLeads()">
-        </div>
-        <div id="listaLeadsGestao" class="lead-list-wrap"></div>
-      </div>
-
-      <!-- ============ FTTA ============ -->
-      <div id="ftta" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">FTTA</h2>
-          <button onclick="carregarFtta()" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;"><i class="fas fa-sync-alt"></i></button>
-        </div>
-        <div class="filter-scroll" style="margin-bottom:10px;">
-          <button class="ftag on" id="fttaTabLaj" onclick="setFttaTab('lajeado')">Lajeado</button>
-          <button class="ftag" id="fttaTabEst" onclick="setFttaTab('estrela')">Estrela</button>
-          <button class="ftag" id="fttaTabPro" onclick="setFttaTab('prospeccao')">Prospeccao</button>
-        </div>
-        <div class="filter-scroll" id="fttaCidadeChips" style="margin-bottom:10px;"></div>
-        <div class="search-wrap">
-          <i class="fas fa-search"></i>
-          <input class="search-input" id="searchFtta" placeholder="Buscar nome, bairro ou endereco..." oninput="filtrarFtta()">
-        </div>
-        <div id="listaFtta" class="lead-list-wrap"></div>
-      </div>
-
-      <!-- ============ CADASTRO LEAD ============ -->
-      <div id="cadastroLead" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="cancelarCadastro()"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title" id="cadastroTitle">Novo Lead</h2>
-        </div>
-
-        <div class="form-sec">
-          <div class="form-sec-title"><i class="fas fa-user"></i> Dados do Cliente</div>
-          <div class="field"><label>Nome Completo</label><input class="f-input" id="leadNome" type="text" placeholder="Ex: João da Silva"></div>
-          <div class="field"><label>WhatsApp / Telefone</label><input class="f-input" id="leadTelefone" type="tel" placeholder="Ex: 51 99999-9999"></div>
-        </div>
-
-        <div class="form-sec">
-          <div class="form-sec-title"><i class="fas fa-map-marker-alt"></i> Localização</div>
-          <div class="field"><label>Endereço (Rua)</label><input class="f-input" id="leadEndereco" type="text" placeholder="Nome da rua"></div>
-          <div class="field-row">
-            <div class="field"><label>Número</label><input class="f-input" id="leadNumero" type="text" placeholder="Ex: 123"></div>
-            <div class="field"><label>Complemento</label><input class="f-input" id="leadComplemento" type="text" placeholder="Apto, casa..."></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Bairro</label><input class="f-input" id="leadBairro" type="text"></div>
-            <div class="field"><label>Cidade</label><input class="f-input" id="leadCidade" type="text" value="Lajeado"></div>
-          </div>
-          <button class="gps-btn" onclick="buscarEnderecoGPS()"><i class="fas fa-crosshairs"></i> Preencher com GPS</button>
-        </div>
-
-        <div class="form-sec">
-          <div class="form-sec-title"><i class="fas fa-tag"></i> Qualificação</div>
-          <div class="field"><label>Provedor Atual</label><input class="f-input" id="leadProvedor" type="text" placeholder="Ex: Vero, Claro, NET..."></div>
-          <div class="field-row">
-            <div class="field"><label>Valor do Plano (R$)</label><input class="f-input" id="leadValorPlano" type="number" placeholder="Ex: 89.90"></div>
-            <div class="field"><label>Plano Atual</label><input class="f-input" id="leadPlanoAtual" type="text" placeholder="Ex: 300 Mbps"></div>
-          </div>
-          <div class="field"><label>Fidelidade / Vence em</label><input class="f-input" id="leadFidelidade" type="date"></div>
-          <div class="field">
-            <label>Interesse</label>
-            <select class="f-input" id="leadInteresse">
-              <option value="Alto">🔥 Alto</option>
-              <option value="Médio" selected>😐 Médio</option>
-              <option value="Baixo">❄️ Baixo</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Status</label>
-            <select class="f-input" id="leadStatus">
-              <option value="Novo">Novo</option>
-              <option value="Agendado">Agendado</option>
-              <option value="Negociação">Negociação</option>
-              <option value="Venda Fechada">Venda Fechada</option>
-              <option value="Sem Interesse">Sem Interesse</option>
-            </select>
-          </div>
-          <div class="field" id="divEncaminhar" style="display:none;">
-            <label>Encaminhar para</label>
-            <select class="f-input" id="leadVendedorDestino"><option value="">Nenhum</option></select>
-          </div>
-        </div>
-
-        <div class="form-sec">
-          <div class="form-sec-title"><i class="fas fa-history"></i> Histórico / Observações</div>
-          <div class="field"><label>Nova Observação</label><textarea class="f-input" id="leadObs" placeholder="Detalhes da abordagem..."></textarea></div>
-          <div id="leadHistoricoContainer" style="margin-top:8px;"></div>
-        </div>
-
-        <div class="flex-row">
-          <button class="btn btn-navy" style="flex:1;" onclick="enviarLead()"><i class="fas fa-save"></i> Salvar</button>
-          <button class="btn btn-ghost" style="flex:1;" onclick="cancelarCadastro()">Cancelar</button>
-        </div>
-      </div>
-
-      <!-- ============ TAREFAS ============ -->
-      <div id="tarefas" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Tarefas</h2>
-          <div style="margin-left:auto;display:flex;gap:7px;">
-            <button class="btn btn-ghost btn-sm" onclick="limparTarefasConcluidas()"><i class="fas fa-broom"></i></button>
-            <button onclick="abrirModalTarefa()" style="width:34px;height:34px;background:var(--navy);color:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-plus"></i></button>
-          </div>
-        </div>
-        <button onclick="abrirCalendario()" class="btn btn-ghost" style="margin-bottom:14px;font-size:.77rem;"><i class="fas fa-calendar-alt" style="color:var(--navy);"></i> Google Calendar</button>
-        <div id="listaTarefasContainer"></div>
-      </div>
-
-      <!-- ============ FALTAS ============ -->
-      <div id="faltas" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Justificativa de Faltas</h2>
-        </div>
-
-        <!-- Formulário -->
-        <div id="formFaltaContainer">
-          <div class="form-sec">
-            <div class="form-sec-title"><i class="fas fa-calendar-alt"></i> Nova Solicitação</div>
-            <div class="field"><label>Data</label><input class="f-input" type="date" id="faltaData"></div>
-            <div class="field"><label>Tipo</label>
-              <select class="f-input" id="faltaMotivo">
-                <option value="">Selecione...</option>
-                <option>FOLGA PROGRAMADA (BANCO DE HORAS)</option>
-                <option>CONSULTA MÉDICA</option>
-                <option>SOLICITAÇÃO DE SAIDA EMERGENCIA</option>
-                <option>ENCAMINHAMENTO DE ATESTADO</option>
-                <option>ENCAMINHAMENTO DE COMPARECIMENTO</option>
-                <option>FALTA SEM JUSTIFICATIVA</option>
-                <option>AJUSTE DE PONTO</option>
-                <option>BENEFÍCIO - DAY OFF</option>
-                <option>PROBLEMAS NO APLICATIVO</option>
-                <option>OUTROS</option>
-              </select>
-            </div>
-            <div class="field"><label>Observação</label><textarea class="f-input" id="faltaObs" placeholder="Detalhes..."></textarea></div>
-            <div class="field"><label>Anexo (opcional)</label><input type="file" id="faltaArquivo" style="font-size:.82rem;color:var(--text-2);"></div>
-          </div>
-          <button class="btn btn-danger" onclick="enviarJustificativa()"><i class="fas fa-paper-plane"></i> ENVIAR SOLICITAÇÃO</button>
-          <div style="font-size:.7rem;color:var(--text-3);text-align:center;margin-top:8px;">Um e-mail será enviado ao gestor automaticamente.</div>
-        </div>
-
-        <!-- Histórico sempre visível abaixo -->
-        <div style="margin-top:24px;">
-          <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-            <i class="fas fa-history"></i> 
-            Histórico de Solicitações
-          </div>
-          <div id="listaHistoricoFaltas">
-            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Carregando...</p></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ============ INDICADORES ============ -->
-      <div id="indicadores" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Indicadores</h2>
-          <button onclick="carregarIndicadores()" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;"><i class="fas fa-sync-alt"></i></button>
-        </div>
-        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:14px;display:flex;align-items:center;gap:6px;">
-          <i class="far fa-calendar"></i><span id="indMes">--</span>
-        </div>
-        <div id="indFiltroMes" class="hidden">
-          <label>Filtrar mês:</label>
-          <input type="month" id="selFiltroMes" class="f-input" style="flex:1;padding:8px 10px;font-size:.82rem;" onchange="filtrarIndicadoresMes()">
-          <button onclick="document.getElementById('selFiltroMes').value='';filtrarIndicadoresMes()" class="btn btn-ghost btn-sm">Atual</button>
-        </div>
-        <div id="indLeadsHoje" class="hidden"></div>
-        <div class="ind-card">
-          <div class="ind-row"><span class="ind-label" id="indLabelLeads">Total de Leads</span><span class="ind-val" id="funnelLeads">0</span></div>
-          <div class="prog-bar"><div class="prog-fill" id="pbLeads" style="width:0%;background:linear-gradient(90deg,var(--navy-mid),var(--cyan))"></div></div>
-        </div>
-        <div class="ind-card">
-          <div class="ind-row"><span class="ind-label" id="indLabelVendas">Vendas Fechadas</span><span class="ind-val" id="indRealizado">0</span></div>
-          <div class="prog-bar"><div class="prog-fill" id="pbVendas" style="width:0%;background:linear-gradient(90deg,var(--success),#34d399)"></div></div>
-        </div>
-        <div class="ind-card">
-          <div class="ind-row"><span class="ind-label" id="indLabelNeg">Em Negociação</span><span class="ind-val" id="indNegociacao">0</span></div>
-          <div class="prog-bar"><div class="prog-fill" id="pbNeg" style="width:0%;background:linear-gradient(90deg,var(--warning),#fbbf24)"></div></div>
-        </div>
-        <div id="indGrafico" class="hidden"></div>
-        <div id="indComparativo" class="hidden"></div>
-        <div id="indRankingVendedores" class="ind-card hidden"></div>
-        <div id="iaMsgBox" class="ai-resp-box hidden">
-          <i class="fas fa-robot"></i> <span id="iaMsgTxt"></span>
-        </div>
-      </div>
-
-      <!-- ============ MATERIAIS ============ -->
-      <div id="materiais" class="page">
-        <div class="pg-hdr">
-          <button id="btnVoltarMateriais" class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title" id="tituloMateriais">Materiais</h2>
-        </div>
-        <div class="search-wrap" style="margin-bottom:14px;">
-          <i class="fas fa-search"></i>
-          <input class="search-input" id="searchMateriais" placeholder="Buscar material..." oninput="buscarMateriais()">
-        </div>
-        <div class="filter-scroll" style="margin-bottom:14px;">
-          <button class="ftag on" onclick="filtrarMateriaisBtn('Todos',this)">Todos</button>
-          <button class="ftag" onclick="filtrarMateriaisBtn('Fibra',this)">Fibra</button>
-          <button class="ftag" onclick="filtrarMateriaisBtn('Móvel',this)">Móvel</button>
-          <button class="ftag" onclick="filtrarMateriaisBtn('Kids',this)">Kids</button>
-          <button class="ftag" onclick="filtrarMateriaisBtn('Câmera',this)">Câmeras</button>
-          <button class="ftag" onclick="filtrarMateriaisBtn('Play',this)">Play</button>
-        </div>
-        <div id="materiaisGrid" class="mat-grid"></div>
-      </div>
-
-      <!-- ============ CONCORRENTES ============ -->
-      <div id="concorrentes" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Almanaque Concorrentes</h2>
-          <button id="btnAdminConcorrente" class="hidden" onclick="abrirModalNovoConcorrente()" style="margin-left:auto;background:var(--navy);color:#fff;border-radius:8px;padding:6px 12px;font-size:.75rem;font-weight:700;"><i class="fas fa-plus"></i> Novo</button>
-        </div>
-        <p style="font-size:.8rem;color:var(--text-3);margin-bottom:14px;">Selecione um concorrente para ver análise comparativa com MHNET.</p>
-        <div class="comp-grid" id="compGrid"></div>
-        <div id="compDetail" class="comp-detail hidden">
-          <div class="comp-detail-header">
-            <div id="compDetailLogo" class="comp-logo" style="width:46px;height:46px;"></div>
-            <div>
-              <div id="compDetailName" style="font-size:1rem;font-weight:800;color:var(--text-1);"></div>
-              <div id="compDetailType" style="font-size:.72rem;color:var(--text-3);"></div>
-            </div>
-          </div>
-          <div class="pros-cons">
-            <div class="pros-box"><div class="pc-title">✅ Pontos Fortes</div><div id="compPros"></div></div>
-            <div class="cons-box"><div class="pc-title">❌ Pontos Fracos</div><div id="compCons"></div></div>
-          </div>
-          <div style="font-size:.72rem;font-weight:700;color:var(--text-2);margin-bottom:8px;">MHNET tem vantagem em:</div>
-          <div id="compMhnet" style="font-size:.8rem;color:var(--text-1);line-height:1.55;"></div>
-          <div class="sep"></div>
-          <div style="font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-robot"></i> Análise IA em tempo real</div>
-          <textarea class="f-input" id="compAiQuestion" rows="2" placeholder="Pergunte algo específico sobre este concorrente..." style="margin-bottom:8px;"></textarea>
-          <button class="btn btn-navy btn-sm" style="width:100%;" onclick="analisarConcorrenteIA()"><i class="fas fa-magic"></i> Analisar com IA</button>
-          <div id="compAiResp" class="ai-resp-box hidden" style="margin-top:10px;"></div>
-        </div>
-      </div>
-
-      <!-- ============ OBJEÇÕES ============ -->
-      <div id="objecoes" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Combater Objeção</h2>
-        </div>
-        <div class="form-sec">
-          <div class="form-sec-title"><i class="fas fa-shield-alt"></i> IA Anti-Objeção</div>
-          <div class="field"><label>Qual foi a objeção do cliente?</label><textarea class="f-input" id="inputObjecaoGeral" rows="3" placeholder="Ex: Já tenho internet e estou satisfeito..."></textarea></div>
-          <button class="btn btn-navy" onclick="combaterObjecaoGeral()"><i class="fas fa-magic"></i> Gerar Resposta com IA</button>
-          <div id="resultadoObjecaoGeral" class="ai-resp-box hidden" style="margin-top:12px;"></div>
-        </div>
-      </div>
-
-      <!-- ============ GESTÃO DE BASE (Página adicionada) ============ -->
-      <div id="gestaoBase" class="page">
-        <div class="pg-hdr">
-          <button class="pg-back" onclick="navegarPara('dashboard')"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="pg-title">Gestão de Base</h2>
-          <button onclick="gbCarregarBase(true)" style="margin-left:auto;color:var(--navy);padding:4px;font-size:.95rem;" title="Sincronizar">
-            <i class="fas fa-sync-alt" id="gbSyncIcon"></i>
-          </button>
-        </div>
-
-        <div class="gb-tabs">
-          <div class="gb-tab on" id="gbTabClientes" onclick="gbSetTab('clientes')">
-            <i class="fas fa-users"></i> Clientes
-          </div>
-          <div class="gb-tab" id="gbTabDash" onclick="gbSetTab('dashboard')">
-            <i class="fas fa-chart-bar"></i> Dashboard
-          </div>
-          <div class="gb-tab" id="gbTabHistorico" onclick="gbSetTab('historico')">
-            <i class="fas fa-history"></i> Histórico
-          </div>
-        </div>
-
-        <!-- Tab Clientes -->
-        <div id="gbTabContentClientes">
-          <div class="gb-header-kpis" id="gbKpis">
-            <div class="gb-kpi urgente" onclick="gbFiltrarPrioridade('urgente')">
-              <div class="gb-kpi-val" id="gbKpiUrgente">–</div>
-              <div class="gb-kpi-lbl">🔴 Urgente</div>
-              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarUrgente" style="width:0%;background:var(--danger)"></div></div>
-            </div>
-            <div class="gb-kpi oportunidade" onclick="gbFiltrarPrioridade('oportunidade')">
-              <div class="gb-kpi-val" id="gbKpiOportunidade">–</div>
-              <div class="gb-kpi-lbl">🟡 Oportunidade</div>
-              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarOport" style="width:0%;background:var(--warning)"></div></div>
-            </div>
-            <div class="gb-kpi incremento" onclick="gbFiltrarPrioridade('todos')">
-              <div class="gb-kpi-val" id="gbKpiTotal">–</div>
-              <div class="gb-kpi-lbl">📋 Total Base</div>
-              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarTotal" style="width:100%;background:var(--navy)"></div></div>
-            </div>
-            <div class="gb-kpi" onclick="gbFiltrarPrioridade('atuacao')" style="cursor:pointer;">
-              <div class="gb-kpi-val" style="color:var(--warning);" id="gbKpiAtuacao">–</div>
-              <div class="gb-kpi-lbl">⚠️ Requer Ação</div>
-              <div class="gb-score-bar"><div class="gb-score-fill" id="gbBarAtuacao" style="width:0%;background:var(--warning)"></div></div>
-            </div>
-          </div>
-
-          <div class="gb-filters">
-            <div class="gb-filters-title"><i class="fas fa-filter"></i> Filtros de Priorização</div>
-            <div class="gb-filter-row">
-              <select class="gb-select" id="gbFiltroConsultor" onchange="gbAplicarFiltros()">
-                <option value="">Todos Consultores</option>
-                <option value="Ana Paula">Ana Paula</option>
-                <option value="Karolina">Karolina</option>
-                <option value="João Vithor">João Vithor</option>
-                <option value="Mauricio">Mauricio</option>
-              </select>
-              <select class="gb-select" id="gbFiltroFidelidade" onchange="gbAplicarFiltros()">
-                <option value="">Qualquer fidelidade</option>
-                <option value="vencida">Fidelidade vencida</option>
-                <option value="30dias">Vence em 30 dias</option>
-                <option value="emfidelidade">Em fidelidade</option>
-              </select>
-            </div>
-            <div class="gb-filter-row">
-              <select class="gb-select" id="gbFiltroVelocidade" onchange="gbAplicarFiltros()">
-                <option value="">Qualquer plano</option>
-                <option value="baixo">Plano baixo (≤300Mb)</option>
-                <option value="medio">Médio (301–600Mb)</option>
-                <option value="alto">Alto (>600Mb)</option>
-              </select>
-              <select class="gb-select" id="gbFiltroAntiguidade" onchange="gbAplicarFiltros()">
-                <option value="">Qualquer tempo</option>
-                <option value="12mais">+12 meses</option>
-                <option value="6a12">6 a 12 meses</option>
-                <option value="menos6">Menos de 6 meses</option>
-              </select>
-            </div>
-            <div class="flex-row" style="gap:6px;">
-              <select class="gb-select" id="gbFiltroOrdem" onchange="gbAplicarFiltros()" style="flex:1;">
-                <option value="score">Ordenar por Prioridade</option>
-                <option value="valor_desc">Maior valor</option>
-                <option value="valor_asc">Menor valor</option>
-                <option value="meses_desc">Mais antigo</option>
-                <option value="nome">Nome A-Z</option>
-              </select>
-              <button class="btn btn-ghost btn-sm" onclick="gbLimparFiltros()" style="flex-shrink:0;padding:8px 14px;">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-            <!-- NOVO CHECKBOX: Apenas contratos Ativos -->
-            <div class="gb-filter-row" style="margin-top: 6px;">
-              <label style="display: flex; align-items: center; gap: 6px; font-size: .7rem; font-weight: 600; color: var(--text-2); cursor: pointer;">
-                <input type="checkbox" id="gbFiltroApenasAtivos" onchange="gbAplicarFiltros()" checked> 
-                Apenas contratos Ativos
-              </label>
-              <div></div>
-            </div>
-          </div>
-
-          <div class="search-wrap">
-            <i class="fas fa-search"></i>
-            <input class="search-input" id="gbSearchInput" placeholder="Buscar cliente, plano, cidade..." oninput="gbAplicarFiltros()">
-          </div>
-
-          <div style="font-size:.68rem;color:var(--text-3);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
-            <span id="gbContador">Carregando...</span>
-            <button onclick="gbGerarAbordagemLote()" style="font-size:.65rem;font-weight:700;color:var(--navy);background:none;border:none;cursor:pointer;" id="gbBtnLote" class="hidden">
-              <i class="fas fa-magic"></i> IA em Lote
-            </button>
-          </div>
-
-          <div id="gbListaClientes">
-            <div class="gb-empty"><i class="fas fa-spinner fa-spin"></i><p>Carregando base...</p></div>
-          </div>
-
-          <div id="gbPaginacao" style="display:flex;justify-content:center;gap:8px;margin-top:14px;padding-bottom:8px;">
-            <button class="btn btn-ghost btn-sm" id="gbBtnAnterior" onclick="gbPaginaAnterior()" style="display:none;">
-              <i class="fas fa-chevron-left"></i> Anterior
-            </button>
-            <span id="gbPaginaInfo" style="font-size:.75rem;color:var(--text-3);align-self:center;"></span>
-            <button class="btn btn-ghost btn-sm" id="gbBtnProximo" onclick="gbProximaPagina()">
-              Próxima <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Tab Dashboard -->
-        <div id="gbTabContentDash" class="hidden">
-          <div id="gbPainelConsultores">
-            <div class="gb-empty"><i class="fas fa-spinner fa-spin"></i><p>Calculando...</p></div>
-          </div>
-        </div>
-
-        <!-- Tab Histórico -->
-        <div id="gbTabContentHistorico" class="hidden">
-          <div class="gb-filter-row" style="margin-bottom:14px;">
-            <select class="gb-select" id="gbHistFiltroConsultor" onchange="gbCarregarHistorico()">
-              <option value="">Todos</option>
-              <option value="Ana Paula">Ana Paula</option>
-              <option value="Karolina">Karolina</option>
-              <option value="João Vithor">João Vithor</option>
-              <option value="Mauricio">Mauricio</option>
-            </select>
-            <select class="gb-select" id="gbHistFiltroResultado" onchange="gbCarregarHistorico()">
-              <option value="">Qualquer resultado</option>
-              <option value="UPGRADE">Upgrade</option>
-              <option value="DOWNGRADE">Downgrade</option>
-              <option value="FIDELIZOU">Fidelizou</option>
-              <option value="RECUSOU">Recusou</option>
-              <option value="ATUACAO">Requer Ação</option>
-              <option value="NAO_ATENDEU">Não atendeu</option>
-            </select>
-          </div>
-          <div id="gbListaHistorico">
-            <div class="gb-empty"><i class="fas fa-history"></i><p>Nenhuma ação registrada.</p></div>
-          </div>
-        </div>
-      </div>
-
-    </main>
-
-    <!-- BOTTOM NAV -->
-    <nav id="bottomNav" class="hidden">
-      <div class="nav-i on" id="navDash" onclick="navegarPara('dashboard')"><i class="fas fa-home"></i>Início</div>
-      <div class="nav-i" id="navLeads" onclick="verTodosLeads()"><i class="fas fa-address-book"></i>Carteira</div>
-      <div class="nav-fab" onclick="navegarPara('cadastroLead')"><i class="fas fa-plus"></i></div>
-      <div class="nav-i" id="navTasks" onclick="navegarPara('tarefas')"><i class="fas fa-check-square"></i>Tarefas</div>
-      <div class="nav-i" id="navFtta" onclick="navegarPara('ftta')"><i class="fas fa-network-wired"></i>FTTA</div>
-      <div class="nav-i" id="navGestaoBase" onclick="navegarPara('gestaoBase')"><i class="fas fa-chart-line"></i>Base</div>
-    </nav>
-
-  </div><!-- end #app -->
-</div><!-- end #appWrapper -->
-
-<!-- ============ LEAD MODAL (original) ============ -->
-<div id="leadModal" class="modal-back">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <button class="m-close" onclick="fecharLeadModal()"><i class="fas fa-times"></i></button>
-    <div class="modal-lead-name" id="modalLeadNome">-</div>
-    <div class="modal-lead-loc"><i class="fas fa-map-marker-alt" style="margin-right:4px;"></i><span id="modalLeadBairro">-</span> · <span id="modalLeadCidade">-</span></div>
-    <div class="modal-info-grid">
-      <div class="modal-info-tile"><div class="mit-lbl">Telefone</div><div class="mit-val" id="modalLeadTelefone">-</div></div>
-      <div class="modal-info-tile"><div class="mit-lbl">Provedor</div><div class="mit-val" id="modalLeadProvedor">-</div></div>
-      <div class="modal-info-tile"><div class="mit-lbl">Plano</div><div class="mit-val" id="modalLeadPlano">-</div></div>
-      <div class="modal-info-tile"><div class="mit-lbl">Valor</div><div class="mit-val" id="modalLeadValor">-</div></div>
-      <div id="leadModalMetaBlock" style="background:var(--surface);border-radius:9px;padding:10px 12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:7px;">
-        <div>
-          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Cadastrado em</div>
-          <div id="modalLeadDataCadastro" style="font-size:.8rem;font-weight:700;color:var(--text-1);">-</div>
-        </div>
-        <div>
-          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Última atualização</div>
-          <div id="modalLeadUltAtual" style="font-size:.8rem;font-weight:700;color:var(--text-1);">-</div>
-        </div>
-        <div style="grid-column:span 2;" id="modalLeadVendedorRow">
-          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-3);margin-bottom:2px;">Vendedor responsável</div>
-          <div id="modalLeadVendedor" style="font-size:.8rem;font-weight:700;color:var(--navy);">-</div>
-        </div>
-      </div>
-    </div>
-    <div id="modalFidelidadeBox" class="hidden" style="background:#fff7ed;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-bottom:16px;font-size:.8rem;color:#92400e;font-weight:600;"></div>
-    <div class="modal-acts">
-      <div class="m-act blue" id="btnModalWhats"><i class="fab fa-whatsapp"></i> WhatsApp</div>
-      <div class="m-act green" onclick="marcarVendaFechada()"><i class="fas fa-trophy"></i> Venda Fechada</div>
-      <div class="m-act warn" id="btnModalCall"><i class="fas fa-phone"></i> Ligar</div>
-      <div class="m-act purple" onclick="editarLeadAtual()"><i class="fas fa-edit"></i> Editar</div>
-      <div class="m-act red" onclick="excluirLead()"><i class="fas fa-trash"></i> Excluir</div>
-      <div class="m-act" id="btnModalMap"><i class="fas fa-map-marker-alt"></i> Maps</div>
-    </div>
-    <div class="m-sec">
-      <div class="m-sec-title"><i class="fas fa-sliders-h"></i> Status</div>
-      <select id="modalStatusFunil" class="m-f-input" style="width:100%;">
-        <option value="Novo">Novo</option><option value="Agendado">Agendado</option>
-        <option value="Negociação">Negociação</option><option value="Venda Fechada">Venda Fechada</option>
-        <option value="Sem Interesse">Sem Interesse</option>
-      </select>
-    </div>
-    <div class="m-sec">
-      <div class="m-sec-title"><i class="fas fa-calendar-check"></i> Agendamento</div>
-      <div class="date-row">
-        <input type="date" id="agendarData" class="m-f-input">
-        <input type="time" id="agendarHora" class="m-f-input">
-      </div>
-    </div>
-    <div class="m-sec">
-      <div class="m-sec-title"><i class="fas fa-sticky-note"></i> Observações</div>
-      <textarea id="modalLeadObs" class="m-f-input" rows="3" placeholder="Anotações..."></textarea>
-    </div>
-    <div id="adminEncaminharArea" class="m-sec hidden">
-      <div class="m-sec-title"><i class="fas fa-share"></i> Encaminhar Lead</div>
-      <select id="modalLeadDestino" class="m-f-input" style="width:100%;margin-bottom:8px;"><option value="">Selecione...</option></select>
-      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="encaminharLeadModal()"><i class="fas fa-share-alt"></i> Encaminhar</button>
-    </div>
-    <div id="sectionTarefasLead" class="m-sec hidden">
-      <div class="m-sec-title"><i class="fas fa-tasks"></i> Tarefas vinculadas</div>
-      <div id="listaTarefasLead"></div>
-    </div>
-    <div class="m-sec">
-      <div class="m-sec-title"><i class="fas fa-shield-alt"></i> Objeção</div>
-      <textarea id="inputObjecaoLead" class="m-f-input" rows="2" placeholder="Objeção do cliente..." style="margin-bottom:7px;"></textarea>
-      <button class="btn btn-ghost btn-sm" style="margin-bottom:7px;width:100%;" onclick="combaterObjecaoLead()"><i class="fas fa-magic"></i> IA Responder</button>
-      <textarea id="respostaObjecaoLead" class="m-f-input" rows="2" placeholder="Resposta IA..." style="margin-bottom:7px;"></textarea>
-      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="salvarObjecaoLead()"><i class="fas fa-save"></i> Salvar Objeção</button>
-    </div>
-    <div class="flex-row">
-      <button class="btn btn-navy" style="flex:1;" onclick="salvarEdicaoModal()"><i class="fas fa-save"></i> Salvar</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="fecharLeadModal()">Fechar</button>
-    </div>
-  </div>
-</div>
-
-<!-- TASK MODAL (original) -->
-<div id="taskModal" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title">Nova Tarefa</div>
-    <div class="field"><label>Descrição</label><input class="f-input" id="taskDesc" placeholder="O que precisa ser feito?"></div>
-    <div class="field"><label>Data Limite</label><input class="f-input" type="date" id="taskDate"></div>
-    <div class="field"><label>Vincular a Lead</label><select class="f-input" id="taskLeadSelect"><option value="">Nenhum</option></select></div>
-    <div class="flex-row" style="margin-top:4px;">
-      <button class="btn btn-navy" style="flex:1;" onclick="salvarTarefa()">Salvar</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('taskModal').classList.remove('open')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- CONFIG MODAL (original) -->
-<div id="configModal">
-  <div class="cfg-sheet">
-    <div class="modal-handle"></div>
-    <div class="m2-title">Configurações da Equipe</div>
-    <div class="field"><label>Nome do Vendedor</label><input class="f-input" id="cfgNomeVendedor" placeholder="Nome completo"></div>
-    <div class="field"><label>Meta de Vendas</label><input class="f-input" id="cfgMeta" type="number" placeholder="Ex: 20"></div>
-    <div class="flex-row">
-      <button class="btn btn-navy" style="flex:1;" onclick="gerirEquipe('add')"><i class="fas fa-user-plus"></i> Adicionar</button>
-      <button class="btn btn-danger" style="flex:1;" onclick="gerirEquipe('remove')"><i class="fas fa-user-minus"></i> Remover</button>
-    </div>
-    <button class="btn btn-ghost" style="margin-top:10px;" onclick="document.getElementById('configModal').classList.remove('open')">Fechar</button>
-  </div>
-</div>
-
-<!-- TRANSFERENCIA MODAL (original) -->
-<div id="modalTransferencia" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title">Transferência em Lote</div>
-    <div class="field"><label>Origem (de)</label><select class="f-input" id="transfOrigem"><option value="">Selecione...</option></select></div>
-    <div class="field"><label>Destino (para)</label><select class="f-input" id="transfDestino"><option value="">Selecione...</option></select></div>
-    <div class="flex-row" style="margin-top:8px;">
-      <button class="btn" style="flex:1;background:#ea580c;color:#fff;" onclick="executarTransferenciaLote()"><i class="fas fa-exchange-alt"></i> Transferir</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalTransferencia').classList.remove('open')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL CONCORRENTE (ADMIN) (original) -->
-<div id="modalConcorrente" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title" id="compModalTitle">Novo Concorrente</div>
-    <div class="field"><label>Nome</label><input class="f-input" id="compFormNome" placeholder="Ex: Vero Internet"></div>
-    <div class="field-row">
-      <div class="field"><label>Sigla (2-3 letras)</label><input class="f-input" id="compFormSigla" placeholder="VR" maxlength="3"></div>
-      <div class="field"><label>Cor</label><input class="f-input" id="compFormCor" type="color" value="#1565c0" style="height:44px;padding:6px;"></div>
-    </div>
-    <div class="field"><label>Tipo de Serviço</label><input class="f-input" id="compFormTipo" placeholder="Ex: Fibra Óptica"></div>
-    <div class="field"><label>Vantagem MHNET vs este concorrente</label><textarea class="f-input" id="compFormMhnet" rows="2" placeholder="Por que MHNET é melhor?"></textarea></div>
-    <div class="field"><label>Pontos Fortes (1 por linha)</label><textarea class="f-input" id="compFormPros" rows="3" placeholder="Marca forte&#10;Cobertura ampla"></textarea></div>
-    <div class="field"><label>Pontos Fracos (1 por linha)</label><textarea class="f-input" id="compFormCons" rows="3" placeholder="Preço alto&#10;Suporte lento"></textarea></div>
-    <div class="flex-row" style="margin-top:4px;">
-      <button class="btn btn-navy" style="flex:1;" onclick="salvarConcorrente()"><i class="fas fa-save"></i> Salvar</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalConcorrente').classList.remove('open')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- CHAT IA (original) -->
-<div id="chatModal">
-  <div class="chat-sheet">
-    <div class="chat-title"><i class="fas fa-robot" style="color:var(--navy);"></i> Chat com IA · MHNET</div>
-    <div id="chatHistory"></div>
-    <div class="chat-input-row">
-      <input id="chatInput" placeholder="Pergunte sobre planos, scripts..." onkeypress="if(event.key==='Enter')enviarMensagemChat()">
-      <button class="chat-send" onclick="enviarMensagemChat()"><i class="fas fa-paper-plane"></i></button>
-    </div>
-    <button onclick="toggleChat()" style="color:var(--text-3);font-size:.77rem;font-weight:700;margin-top:9px;width:100%;">Fechar Chat</button>
-  </div>
-</div>
-
-<!-- MODAL FTTA BLOCO (original) -->
-<div id="modalFttaBloco" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title">Editar Bloco FTTA</div>
-    <div class="field"><label>Nome do Bloco / Condominio</label><input class="f-input" id="fttaBlocoNome" placeholder="Ex: Residencial das Flores"></div>
-    <div class="field"><label>Sindico / Responsavel</label><input class="f-input" id="fttaBlocoSindico" placeholder="Nome do sindico"></div>
-    <div class="field"><label>Contato (WhatsApp / Telefone)</label><input class="f-input" id="fttaBlocoContato" type="tel" placeholder="Ex: 51 99999-9999"></div>
-    <div class="field"><label>Endereco (usado no mapa)</label><input class="f-input" id="fttaBlocoEndereco" placeholder="Rua e numero"></div>
-    <div class="field-row">
-      <div class="field"><label>Bairro</label><input class="f-input" id="fttaBlocoBairro" placeholder="Bairro"></div>
-      <div class="field"><label>Cidade</label><input class="f-input" id="fttaBlocoCidade" placeholder="Cidade"></div>
-    </div>
-    <div class="flex-row" style="margin-top:12px;">
-      <button class="btn btn-navy" style="flex:1;" onclick="salvarEdicaoFttaBloco()"><i class="fas fa-save"></i> Salvar</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalFttaBloco').classList.remove('open')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL PROSPECÇÃO FTTA (original) -->
-<div id="modalProspeccao" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title" id="prosTitulo">Nova Prospecção</div>
-    <div class="field"><label>Nome do Condomínio / Bloco</label><input class="f-input" id="prosNome" placeholder="Ex: Residencial das Flores"></div>
-    <div class="field-row">
-      <div class="field"><label>Construtora</label><input class="f-input" id="prosConstrutora" placeholder="Ex: Construtora ABC"></div>
-      <div class="field"><label>Data de Entrega</label><input class="f-input" id="prosDataEntrega" type="date"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Síndico / Administradora</label><input class="f-input" id="prosSindico" placeholder="Nome"></div>
-      <div class="field"><label>Contato</label><input class="f-input" id="prosContato" type="tel" placeholder="51 99999-9999"></div>
-    </div>
-    <div class="field"><label>Endereço</label><input class="f-input" id="prosEndereco" placeholder="Rua e número"></div>
-    <div class="field-row">
-      <div class="field"><label>Bairro</label><input class="f-input" id="prosBairro" placeholder="Bairro"></div>
-      <div class="field"><label>Cidade</label><input class="f-input" id="prosCidade" placeholder="Lajeado"></div>
-    </div>
-    <div class="field"><label>Consultor Responsável</label><input class="f-input" id="prosConsultor" placeholder="Nome do consultor"></div>
-    <p style="font-size:.7rem;color:var(--text-3);margin-bottom:12px;background:#eff6ff;border-radius:7px;padding:8px 10px;">
-      <i class="fas fa-info-circle" style="color:var(--navy);"></i>
-      A <strong>próxima ação</strong> será calculada automaticamente para <strong>2 meses</strong> após o registro.
-    </p>
-    <div class="flex-row">
-      <button class="btn btn-navy" style="flex:1;" onclick="salvarProspeccao()"><i class="fas fa-save"></i> Salvar</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalProspeccao').classList.remove('open')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ MODAIS DO MÓDULO GESTÃO DE BASE ============ -->
-<div id="gbModalCliente" class="modal-back">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-      <div>
-        <div style="font-size:1.15rem;font-weight:800;color:var(--text-1);" id="gbModalNome">—</div>
-        <div style="font-size:.75rem;color:var(--text-3);margin-top:2px;" id="gbModalContrato">Contrato —</div>
-      </div>
-      <button onclick="gbFecharModal('gbModalCliente')" style="width:30px;height:30px;background:var(--surface);border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.78rem;flex-shrink:0;">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <div class="gb-card-info" id="gbModalInfoGrid" style="grid-template-columns:1fr 1fr 1fr;"></div>
-    <div style="margin:10px 0 14px;" id="gbModalBadges"></div>
-    <div class="sep"></div>
-    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px;">Ações</div>
-    <div class="gb-card-actions" style="flex-wrap:wrap;gap:7px;margin-bottom:16px;">
-      <button class="gb-action-btn whats" id="gbModalBtnWhats" style="flex:1;"><i class="fab fa-whatsapp"></i> WhatsApp</button>
-      <button class="gb-action-btn ia" onclick="gbGerarAbordagem()" style="flex:1;"><i class="fas fa-magic"></i> Gerar IA</button>
-      <button class="gb-action-btn reg" onclick="gbAbrirRegistro()" style="flex:1;min-width:100%;height:36px;font-size:.8rem;"><i class="fas fa-clipboard-check"></i> Registrar Ação</button>
-    </div>
-    <div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:10px;">Histórico de Contatos</div>
-    <div id="gbModalHistCliente">
-      <div class="gb-empty" style="padding:20px 0;"><i class="fas fa-history"></i><p>Sem contatos registrados.</p></div>
-    </div>
-  </div>
-</div>
-
-<!-- ============ MODAL REGISTRAR AÇÃO (ATUALIZADO) ============ -->
-<div id="gbModalRegistro" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title"><i class="fas fa-clipboard-check" style="color:var(--navy);"></i> Registrar Ação</div>
-    <div id="gbRegClienteInfo" style="background:var(--surface);border-radius:9px;padding:10px 12px;margin-bottom:14px;font-size:.82rem;color:var(--text-2);"></div>
-    
-    <div class="field">
-      <label>Consultor</label>
-      <select class="f-input" id="gbRegConsultor">
-        <option value="">Selecione...</option>
-        <option>Ana Paula</option>
-        <option>Karolina</option>
-        <option>João Vithor</option>
-        <option>Mauricio</option>
-      </select>
-    </div>
-    
-    <div class="field">
-      <label><i class="fas fa-handshake"></i> STATUS DA NEGOCIAÇÃO</label>
-      <select class="f-input" id="gbRegStatus" onchange="gbRegAtualizar()">
-        <option value="">Selecione...</option>
-        <option value="ATENDEU">✅ Atendeu – em negociação</option>
-        <option value="AGENDOU">📅 Agendou retorno</option>
-        <option value="NAO_ATENDEU">📵 Não atendeu</option>
-        <option value="FECHADO">🎯 Fechado (upgrade realizado)</option>
-        <option value="PERDIDO">❌ Perdido</option>
-        <option value="RECUSOU">🚫 Recusou upgrade</option>
-      </select>
-    </div>
-
-    <!-- DATA DE RETORNO (aparece condicionalmente) -->
-    <div id="gbRegDataRetornoArea" class="hidden" style="margin-bottom:14px;">
-      <div class="field" style="margin-bottom:0;">
-        <label><i class="fas fa-calendar-alt"></i> DATA DE RETORNO</label>
-        <input type="date" class="f-input" id="gbRegDataRetorno">
-      </div>
-    </div>
-
-    <div id="gbRegResultadoArea" class="hidden">
-      <div class="field">
-        <label>Resultado</label>
-        <select class="f-input" id="gbRegResultado" onchange="gbRegAtualizar()">
-          <option value="">Selecione...</option>
-          <option value="UPGRADE">✅ Upgrade de plano</option>
-          <option value="DOWNGRADE">🔽 Downgrade de plano</option>
-          <option value="FIDELIZOU">🔒 Fidelizou (manteve plano)</option>
-          <option value="RECUSOU">❌ Recusou upgrade</option>
-          <option value="ATUACAO">⚠️ Requer atuação (reclamação)</option>
-        </select>
-      </div>
-      <div id="gbRegPlanoArea" class="hidden">
-        <div class="field">
-          <label>Plano Anterior</label>
-          <input class="f-input" id="gbRegPlanoAnterior" placeholder="Ex: 300 Mbps" readonly style="background:#f0f0f0;">
-        </div>
-        <div class="field">
-          <label>Plano Novo</label>
-          <input class="f-input" id="gbRegPlanoNovo" placeholder="Ex: 600 Mbps" oninput="gbRegCalcularDelta()">
-        </div>
-        <div class="field">
-          <label>Valor Anterior (R$)</label>
-          <input class="f-input" id="gbRegValorAnterior" type="number" placeholder="0.00" readonly style="background:#f0f0f0;">
-        </div>
-        <div class="field">
-          <label>Valor Novo (R$)</label>
-          <input class="f-input" id="gbRegValorNovo" type="number" placeholder="0.00" oninput="gbRegCalcularDelta()">
-        </div>
-        <div class="delta-display" id="gbRegDeltaDisplay">
-          <div>
-            <div class="delta-lbl">Δ Impacto Financeiro</div>
-            <div class="delta-val" id="gbRegDeltaVal">R$ 0,00</div>
-          </div>
-          <div style="text-align:right;">
-            <div class="delta-lbl">Por mês</div>
-            <div id="gbRegDeltaIcon" style="font-size:1.6rem;">➡️</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Observação <span style="font-weight:400;text-transform:none;color:var(--text-3);">(opcional)</span></label>
-      <textarea class="f-input" id="gbRegObs" rows="2" placeholder="Detalhes da conversa, reclamação, negociação..."></textarea>
-    </div>
-    
-    <div class="flex-row">
-      <button class="btn btn-navy" style="flex:1;" onclick="gbSalvarRegistro()"><i class="fas fa-save"></i> Salvar</button>
-      <button class="btn btn-ghost" style="flex:1;" onclick="gbFecharModal('gbModalRegistro')">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ MODAL ABORDAGEM IA (ATUALIZADO com TEMPO COMO CLIENTE e texto personalizado) ============ -->
-<div id="gbModalIA" class="modal2-back">
-  <div class="modal2-card">
-    <div class="m2-title"><i class="fas fa-robot" style="color:var(--navy);"></i> Abordagem IA</div>
-    <div id="gbIAClienteInfo" style="background:var(--surface);border-radius:9px;padding:10px 12px;margin-bottom:14px;font-size:.82rem;color:var(--text-2);"></div>
-    
-    <!-- WhatsApp e CPF para preenchimento manual -->
-    <div id="gbIADadosCliente" style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:9px;padding:12px;margin-bottom:14px;">
-      <div style="display:flex;gap:10px;margin-bottom:8px;">
-        <div style="flex:1;">
-          <label style="font-size:.65rem;font-weight:700;color:var(--text-3);display:block;margin-bottom:4px;"><i class="fab fa-whatsapp"></i> WhatsApp</label>
-          <input type="tel" id="gbIAWhatsApp" class="f-input" style="font-size:.8rem;padding:8px;" placeholder="Ex: 51999999999">
-        </div>
-        <div style="flex:1;">
-          <label style="font-size:.65rem;font-weight:700;color:var(--text-3);display:block;margin-bottom:4px;"><i class="fas fa-id-card"></i> CPF</label>
-          <input type="text" id="gbIACpf" class="f-input" style="font-size:.8rem;padding:8px;" placeholder="Ex: 123.456.789-00">
-        </div>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="width:100%;padding:6px;" onclick="gbSalvarDadosContato()">
-        <i class="fas fa-save"></i> Salvar dados
-      </button>
-    </div>
-
-    <div id="gbIALoading" class="ia-loading">
-      <div class="ia-ring"></div>
-      <span>Gerando abordagem personalizada...</span>
-    </div>
-    <div id="gbIAResultado" class="hidden">
-      <div class="ia-text-box" id="gbIATexto"></div>
-      <div class="ia-actions">
-        <button class="btn btn-navy btn-sm" style="width:100%;" onclick="gbCopiarAbordagem()">
-          <i class="fas fa-copy"></i> Copiar texto
-        </button>
-        <button class="btn btn-success btn-sm" style="width:100%;background:var(--success);" onclick="gbAbrirWhatsAppComIA()">
+        <button class="btn btn-success" onclick="abrirWhatsApp()">
           <i class="fab fa-whatsapp"></i> WhatsApp
         </button>
+        <button class="btn btn-primary" onclick="gerarNovaVersao()">
+          <i class="fas fa-sync-alt"></i> Nova
+        </button>
       </div>
-      <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;" onclick="gbGerarAbordagem()">
-        <i class="fas fa-sync-alt"></i> Gerar nova versão
+    </div>
+    <div class="card-footer">
+      <button class="btn btn-outline btn-full" onclick="fecharTela()">
+        <i class="fas fa-times"></i> Fechar
       </button>
     </div>
-    <button class="btn btn-ghost" style="margin-top:12px;" onclick="gbFecharModal('gbModalIA')">Fechar</button>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- TELA 2: REGISTRAR AÇÃO                       -->
+  <!-- ============================================ -->
+  <div class="card">
+    <div class="card-header">
+      <h1><i class="fas fa-clipboard-list"></i> Registrar Ação</h1>
+      <p>Registro de contato e negociação</p>
+    </div>
+    <div class="card-body">
+      <div class="cliente-info" style="margin-bottom: 24px;">
+        <div>
+          <div class="cliente-nome">MAICOW TESKE</div>
+          <div class="cliente-plano">4Mb · R$ 90,18/mês · 4 anos e 10 meses</div>
+        </div>
+        <span class="badge-info"><i class="fas fa-chart-line"></i> Base Ativa</span>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-user-check"></i> CONSULTOR</label>
+        <select class="form-control" id="consultorSelect">
+          <option value="">Selecione o consultor</option>
+          <option value="Ana Paula">Ana Paula</option>
+          <option value="Karolina">Karolina</option>
+          <option value="João Vithor">João Vithor</option>
+          <option value="Mauricio">Mauricio</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-handshake"></i> STATUS DA NEGOCIAÇÃO</label>
+        <select class="form-control" id="statusNegociacao" onchange="toggleDataRetorno()">
+          <option value="">Selecione o status</option>
+          <option value="Atendeu - em negociação">✅ Atendeu – em negociação</option>
+          <option value="Agendou retorno">📅 Agendou retorno</option>
+          <option value="Não atendeu">📵 Não atendeu</option>
+          <option value="Fechado (upgrade realizado)">🎯 Fechado (upgrade realizado)</option>
+          <option value="Perdido">❌ Perdido</option>
+          <option value="Recusou upgrade">🚫 Recusou upgrade</option>
+        </select>
+      </div>
+
+      <div id="dataRetornoArea" class="data-retorno-area hidden">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label><i class="fas fa-calendar-alt"></i> DATA DE RETORNO</label>
+          <input type="date" class="form-control" id="dataRetorno" value="2026-07-15">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-edit"></i> OBSERVAÇÃO (opcional)</label>
+        <textarea class="form-control" id="observacao" placeholder="Detalhes da conversa, reclamação, negociação..."></textarea>
+      </div>
+
+      <hr>
+
+      <div class="section-title">
+        <i class="fas fa-chart-simple"></i> Resultado da negociação (se aplicável)
+      </div>
+
+      <div class="form-group">
+        <label>RESULTADO</label>
+        <select class="form-control" id="resultadoNegociacao">
+          <option value="">Selecione (opcional)</option>
+          <option value="Upgrade realizado">📈 Upgrade realizado</option>
+          <option value="Downgrade">🔽 Downgrade</option>
+          <option value="Fidelizou">🔒 Fidelizou</option>
+          <option value="Recusou">❌ Recusou</option>
+          <option value="Requer ação">⚠️ Requer ação</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label><i class="fas fa-chart-line"></i> NOVO PLANO</label>
+        <input type="text" class="form-control" id="novoPlano" placeholder="Ex: 400 Mbps, 600 Mbps...">
+      </div>
+    </div>
+    <div class="card-footer">
+      <button class="btn btn-primary" style="flex: 2;" onclick="salvarAcao()">
+        <i class="fas fa-save"></i> Salvar
+      </button>
+      <button class="btn btn-outline" style="flex: 1;" onclick="cancelarAcao()">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+    </div>
   </div>
 </div>
 
-<script src="app.js"></script>
-
 <script>
-  // Service Worker para PWA instalável
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => {
-          console.log('SW registrado:', reg.scope);
-          reg.onupdatefound = () => {
-            const installing = reg.installing;
-            installing.onstatechange = () => {
-              if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-                installing.postMessage({ type: 'SKIP_WAITING' });
-              }
-            };
-          };
-        })
-        .catch(err => console.log('SW erro:', err));
+  // ============================================
+  // FUNÇÕES DA TELA DE ABORDAGEM IA
+  // ============================================
+
+  function copiarTexto() {
+    const texto = document.getElementById('abordagemTexto').innerText;
+    navigator.clipboard.writeText(texto).then(() => {
+      alert('✅ Texto copiado para a área de transferência!');
+    }).catch(() => {
+      alert('❌ Erro ao copiar. Selecione manualmente.');
     });
   }
 
-  window.addEventListener('online',  () => {
-    document.getElementById('offlineBanner').classList.remove('show');
-    if (typeof processarFilaSincronizacao === 'function') processarFilaSincronizacao();
-  });
- 
-  window.addEventListener('offline', () => document.getElementById('offlineBanner').classList.add('show'));
-</script>
-
-<!-- ============================================================
-     SCRIPT DO MÓDULO GESTÃO DE BASE (COMPLETO E CORRIGIDO)
-============================================================ -->
-<script>
-// ============================================================
-// GESTÃO DE BASE — STATE
-// ============================================================
-const GB = {
-  clientes:    [],
-  filtrados:   [],
-  acoes:       [],
-  consultores: ['Ana Paula', 'Karolina', 'João Vithor', 'Mauricio'],
-  pagina:      0,
-  porPagina:   15,
-  clienteAtual: null,
-  tabAtual:    'clientes',
-  GEMINI_KEY: 'AIzaSyAbNlXty0_XC1e2cRqzt-4HklyxbKOhXlw'
-};
-
-// ============================================================
-// API CALL (usa a apiCall global do app)
-// ============================================================
-async function gbApiCall(route, payload = {}, show = false) {
-  if (typeof apiCall !== 'function') {
-    console.error('❌ GB: apiCall global não encontrada!');
-    return { status: 'error', message: 'apiCall não definida' };
-  }
-  console.log(`📡 GB: chamando ${route}...`);
-  const res = await apiCall(route, payload, show);
-  console.log(`✅ GB: resposta de ${route}:`, res);
-  return res;
-}
-
-// ============================================================
-// INICIALIZAÇÃO
-// ============================================================
-function gbInit() {
-  const cached = localStorage.getItem('gb_clientes_cache');
-  if (cached) {
-    try {
-      GB.clientes = JSON.parse(cached);
-      gbProcessarBase();
-    } catch(e) {}
-  }
-  gbCarregarBase(false);
-  gbCarregarAcoes(false);
-}
-
-function gbSetTab(tab) {
-  GB.tabAtual = tab;
-  ['clientes','dashboard','historico'].forEach(t => {
-    const elCont = document.getElementById(`gbTabContent${t.charAt(0).toUpperCase()+t.slice(1)}`);
-    const elTab = document.getElementById(`gbTab${t.charAt(0).toUpperCase()+t.slice(1)}`);
-    if (elCont) elCont.classList.toggle('hidden', t !== tab);
-    if (elTab) elTab.classList.toggle('on', t === tab);
-  });
-  if (tab === 'dashboard') gbRenderDashboard();
-  if (tab === 'historico') gbCarregarHistorico();
-}
-
-async function gbCarregarBase(showLoader = true) {
-  const icon = document.getElementById('gbSyncIcon');
-  if (icon) icon.style.animation = 'spin .8s linear infinite';
-  
-  const cached = localStorage.getItem('gb_clientes_cache');
-  if (cached) {
-    try {
-      const cachedData = JSON.parse(cached);
-      if (cachedData && cachedData.length > 0) {
-        console.log(`📦 GB: carregando ${cachedData.length} clientes do cache local`);
-        GB.clientes = cachedData;
-        gbProcessarBase();
-      }
-    } catch(e) {}
-  }
-  
-  try {
-    const res = await gbApiCall('getBaseClientes', {}, false);
-    if (res?.status === 'success' && res.data && res.data.length > 0) {
-      console.log(`✅ GB: API retornou ${res.data.length} clientes, atualizando cache`);
-      GB.clientes = res.data;
-      localStorage.setItem('gb_clientes_cache', JSON.stringify(GB.clientes));
-      gbProcessarBase();
-    } else {
-      console.warn('⚠️ GB: API falhou, mantendo cache existente', res);
-    }
-  } catch(e) {
-    console.error('❌ GB: erro na API, mantendo cache', e);
-  }
-  
-  if (!GB.clientes.length) {
-    console.warn('⚠️ GB: sem cache e API falhou, usando mock');
-    carregarDadosMockados();
-  }
-  
-  if (icon) icon.style.animation = '';
-}
-
-function carregarDadosMockados() {
-  console.warn('GB: usando dados mockados (fallback)');
-  GB.clientes = [
-    { idContrato:'1001', nome:'Carlos Alberto', plano:'Fibra 100Mb', velocidadeMb:100, valor:79.90, dataAtivacao:'2021-10-15', cidade:'Lajeado', status:'Ativo', consultorOrigem:'Ana Paula', telefoneExterno:'51999990001' },
-    { idContrato:'1002', nome:'Maria Silva', plano:'Fibra 300Mb', velocidadeMb:300, valor:109.99, dataAtivacao:'2022-05-20', cidade:'Lajeado', status:'Ativo', consultorOrigem:'Karolina' }
-  ];
-  GB.acoes = [];
-  gbProcessarBase();
-}
-
-async function gbCarregarAcoes(show = false) {
-  try {
-    const res = await gbApiCall('getBaseAcoes', {}, false);
-    if (res?.status === 'success' && res.data) {
-      GB.acoes = res.data;
-      localStorage.setItem('gb_acoes_cache', JSON.stringify(GB.acoes));
-    }
-  } catch(e) {
-    const cached = localStorage.getItem('gb_acoes_cache');
-    if (cached) try { GB.acoes = JSON.parse(cached); } catch(e2) {}
-  }
-}
-
-function gbProcessarBase() {
-  const hoje = new Date();
-  GB.clientes = GB.clientes.map(c => {
-    let meses = 0;
-    if (c.dataAtivacao) {
-      const dtAt = new Date(c.dataAtivacao);
-      if (!isNaN(dtAt)) {
-        meses = Math.floor((hoje - dtAt) / (1000 * 60 * 60 * 24 * 30.44));
-      }
-    }
-    let score = 0;
-    if (meses >= 24) score += 40;
-    else if (meses >= 12) score += 25;
-    else if (meses >= 6)  score += 10;
-    const mb = c.velocidadeMb || 0;
-    if (mb > 0 && mb <= 100)      score += 35;
-    else if (mb > 0 && mb <= 300) score += 25;
-    else if (mb > 0 && mb <= 600) score += 10;
-    const valorFrac = (c.valor || 0) % 1;
-    if (valorFrac > 0.01 && valorFrac < 0.99) score += 15;
-    let prioridade = 'neutro';
-    if (score >= 55) prioridade = 'urgente';
-    else if (score >= 25) prioridade = 'oportunidade';
-    return { ...c, meses, score, prioridade };
-  });
-  
-  gbAtualizarKpis();
-  
-  const chk = document.getElementById('gbFiltroApenasAtivos');
-  if (chk && !chk.checked) {
-    chk.checked = true;
-  }
-  gbAplicarFiltros();
-}
-
-function gbAtualizarKpis() {
-  const urgentes = GB.clientes.filter(c => c.prioridade === 'urgente').length;
-  const oportunidades = GB.clientes.filter(c => c.prioridade === 'oportunidade').length;
-  const total = GB.clientes.length;
-  const idsAtuacao = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
-  const atuacao = idsAtuacao.size;
-  gbSet('gbKpiUrgente', urgentes);
-  gbSet('gbKpiOportunidade', oportunidades);
-  gbSet('gbKpiTotal', total);
-  gbSet('gbKpiAtuacao', atuacao);
-  const pct = v => Math.min(100, Math.round(v / Math.max(total, 1) * 100)) + '%';
-  const el = id => document.getElementById(id);
-  if (el('gbBarUrgente')) el('gbBarUrgente').style.width = pct(urgentes);
-  if (el('gbBarOport')) el('gbBarOport').style.width = pct(oportunidades);
-  if (el('gbBarAtuacao')) el('gbBarAtuacao').style.width = pct(atuacao);
-}
-
-let gbFiltroAtivo = null;
-
-function gbFiltrarPrioridade(prioridade) { gbFiltroAtivo = prioridade; gbAplicarFiltros(); }
-
-function gbAplicarFiltros() {
-  const consultor = document.getElementById('gbFiltroConsultor')?.value || '';
-  const velocidade = document.getElementById('gbFiltroVelocidade')?.value || '';
-  const antiguidade = document.getElementById('gbFiltroAntiguidade')?.value || '';
-  const ordem = document.getElementById('gbFiltroOrdem')?.value || 'score';
-  const busca = (document.getElementById('gbSearchInput')?.value || '').toLowerCase();
-  const apenasAtivos = document.getElementById('gbFiltroApenasAtivos')?.checked || false;
-  const idsAtuacao = new Set(GB.acoes.filter(a => a.resultado === 'ATUACAO' || a.requerAtuacao).map(a => a.idContrato));
-
-  let lista = GB.clientes.filter(c => {
-    if (gbFiltroAtivo === 'urgente' && c.prioridade !== 'urgente') return false;
-    if (gbFiltroAtivo === 'oportunidade' && c.prioridade !== 'oportunidade') return false;
-    if (gbFiltroAtivo === 'atuacao' && !idsAtuacao.has(c.idContrato)) return false;
-    if (consultor && c.consultorOrigem !== consultor) return false;
+  function abrirWhatsApp() {
+    const numeroInput = document.getElementById('clienteWhatsApp');
+    let numero = numeroInput.value.trim();
     
-    if (apenasAtivos) {
-      const statusCliente = (c.status || '').toString().toLowerCase();
-      if (statusCliente !== 'ativo') return false;
+    // Validação
+    if (!numero) {
+      alert('⚠️ Preencha o WhatsApp do cliente primeiro!');
+      numeroInput.focus();
+      return;
     }
     
-    const mb = c.velocidadeMb || 0;
-    if (velocidade === 'baixo' && !(mb > 0 && mb <= 300)) return false;
-    if (velocidade === 'medio' && !(mb > 300 && mb <= 600)) return false;
-    if (velocidade === 'alto' && !(mb > 600)) return false;
-    const m = c.meses || 0;
-    if (antiguidade === '12mais' && m < 12) return false;
-    if (antiguidade === '6a12' && !(m >= 6 && m < 12)) return false;
-    if (antiguidade === 'menos6' && m >= 6) return false;
-    if (busca) {
-      const txt = `${c.nome} ${c.plano} ${c.cidade} ${c.idContrato}`.toLowerCase();
-      if (!txt.includes(busca)) return false;
-    }
-    return true;
-  });
-
-  lista.sort((a,b) => {
-    if (ordem === 'score') return b.score - a.score;
-    if (ordem === 'valor_desc') return (b.valor||0) - (a.valor||0);
-    if (ordem === 'valor_asc') return (a.valor||0) - (b.valor||0);
-    if (ordem === 'meses_desc') return (b.meses||0) - (a.meses||0);
-    if (ordem === 'nome') return (a.nome||'').localeCompare(b.nome||'');
-    return 0;
-  });
-
-  GB.filtrados = lista;
-  GB.pagina = 0;
-  const contador = document.getElementById('gbContador');
-  if (contador) contador.textContent = `${lista.length} cliente${lista.length !== 1 ? 's' : ''} encontrado${lista.length !== 1 ? 's' : ''}`;
-  gbRenderLista();
-}
-
-function gbLimparFiltros() {
-  gbFiltroAtivo = null;
-  ['gbFiltroConsultor','gbFiltroFidelidade','gbFiltroVelocidade','gbFiltroAntiguidade'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  document.getElementById('gbSearchInput').value = '';
-  document.getElementById('gbFiltroOrdem').value = 'score';
-  gbAplicarFiltros();
-}
-
-function gbRenderLista() {
-  const div = document.getElementById('gbListaClientes');
-  if (!div) return;
-  const inicio = GB.pagina * GB.porPagina;
-  const fim = inicio + GB.porPagina;
-  const pagina = GB.filtrados.slice(inicio, fim);
-  const total = GB.filtrados.length;
-  const totalPag = Math.ceil(total / GB.porPagina);
-  const btnAnt = document.getElementById('gbBtnAnterior');
-  const btnProx = document.getElementById('gbBtnProximo');
-  const info = document.getElementById('gbPaginaInfo');
-  if (btnAnt) btnAnt.style.display = GB.pagina > 0 ? 'flex' : 'none';
-  if (btnProx) btnProx.style.display = GB.pagina < totalPag - 1 ? 'flex' : 'none';
-  if (info) info.textContent = total > GB.porPagina ? `Pág. ${GB.pagina+1}/${totalPag}` : '';
-  if (!pagina.length) {
-    div.innerHTML = '<div class="gb-empty"><i class="fas fa-search"></i><p>Nenhum cliente encontrado com esses filtros.</p></div>';
-    return;
-  }
-  const acaoMap = {};
-  GB.acoes.forEach(a => {
-    if (!acaoMap[a.idContrato] || new Date(a.dataContato) > new Date(acaoMap[a.idContrato].dataContato)) {
-      acaoMap[a.idContrato] = a;
-    }
-  });
-  div.innerHTML = pagina.map(c => {
-    const ultimaAcao = acaoMap[c.idContrato];
-    const mb = c.velocidadeMb || 0;
-    const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.', ',')}` : '—';
-    const planoLabel = mb ? `${mb}Mb` : (c.plano || '—');
-    let mesesClass = 'verde', mesesIcon = '✅';
-    if (c.meses >= 24) { mesesClass = 'vermelho'; mesesIcon = '🔴'; }
-    else if (c.meses >= 12) { mesesClass = 'laranja'; mesesIcon = '🟡'; }
-    const requerAtuacao = ultimaAcao?.resultado === 'ATUACAO' || ultimaAcao?.requerAtuacao;
-    return `
-    <div class="gb-client-card score-${c.prioridade === 'urgente' ? 'alto' : c.prioridade === 'oportunidade' ? 'medio' : 'baixo'}">
-      <div class="gb-card-top">
-        <div class="gb-client-name" onclick="gbAbrirCliente('${c.idContrato}')">${c.nome || '—'}</div>
-        <span class="gb-priority-badge ${c.prioridade}">${c.prioridade === 'urgente' ? '🔴 Urgente' : c.prioridade === 'oportunidade' ? '🟡 Oport.' : '✅ OK'}</span>
-      </div>
-      ${requerAtuacao ? `<div class="gb-atuacao-flag" style="margin-bottom:7px;"><i class="fas fa-exclamation-triangle"></i> Requer Atuação</div>` : ''}
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">
-        <span class="gb-meses-badge ${mesesClass}">${mesesIcon} ${c.meses} meses</span>
-        ${ultimaAcao?.consultor ? `<span class="gb-consultor-chip"><i class="fas fa-user"></i> ${ultimaAcao.consultor}</span>` : ''}
-      </div>
-      <div class="gb-card-info">
-        <div class="gb-info-tile"><span class="lbl">Plano</span><span class="val destaque">${planoLabel}</span></div>
-        <div class="gb-info-tile"><span class="lbl">Valor/mês</span><span class="val ${c.valor > 0 && (c.valor % 1) > 0.01 ? 'perigo' : ''}">${valorFmt}</span></div>
-        <div class="gb-info-tile"><span class="lbl">Cidade</span><span class="val">${c.cidade || '—'}</span></div>
-        <div class="gb-info-tile"><span class="lbl">Score IA</span><span class="val ${c.score >= 55 ? 'perigo' : c.score >= 25 ? '' : 'sucesso'}">${c.score}/100</span></div>
-      </div>
-      ${ultimaAcao ? `<div style="font-size:.65rem;color:var(--text-3);margin-bottom:8px;"><i class="fas fa-clock" style="margin-right:3px;"></i>Último contato: ${gbFmtData(ultimaAcao.dataContato)} — <b style="color:var(--text-2);">${ultimaAcao.resultado || '—'}</b></div>` : ''}
-      <div class="gb-card-actions">
-        ${c.telefoneExterno ? `<button class="gb-action-btn whats" onclick="gbAbrirWhatsApp('${c.telefoneExterno}')"><i class="fab fa-whatsapp"></i></button>` : ''}
-        <button class="gb-action-btn ia" onclick="gbSelecionarClienteIA('${c.idContrato}')"><i class="fas fa-magic"></i> IA</button>
-        <button class="gb-action-btn reg" onclick="gbSelecionarClienteRegistro('${c.idContrato}')"><i class="fas fa-clipboard-check"></i> Registrar</button>
-        <button class="gb-action-btn detail" onclick="gbAbrirCliente('${c.idContrato}')"><i class="fas fa-expand-alt"></i></button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function gbProximaPagina() {
-  const total = Math.ceil(GB.filtrados.length / GB.porPagina);
-  if (GB.pagina < total - 1) { GB.pagina++; gbRenderLista(); window.scrollTo(0,0); }
-}
-function gbPaginaAnterior() {
-  if (GB.pagina > 0) { GB.pagina--; gbRenderLista(); window.scrollTo(0,0); }
-}
-
-function gbAbrirCliente(idContrato) {
-  const c = GB.clientes.find(x => x.idContrato === idContrato);
-  if (!c) return;
-  GB.clienteAtual = c;
-  gbSet('gbModalNome', c.nome || '—');
-  gbSet('gbModalContrato', `Contrato ${c.idContrato} · ${c.cidade || '—'}`);
-  const mb = c.velocidadeMb || 0;
-  const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.',',')}` : '—';
-  document.getElementById('gbModalInfoGrid').innerHTML = `
-    <div class="gb-info-tile"><span class="lbl">Plano</span><span class="val destaque">${mb ? mb+'Mb' : c.plano||'—'}</span></div>
-    <div class="gb-info-tile"><span class="lbl">Valor</span><span class="val">${valorFmt}</span></div>
-    <div class="gb-info-tile"><span class="lbl">Meses</span><span class="val">${c.meses}</span></div>
-    <div class="gb-info-tile"><span class="lbl">Score</span><span class="val ${c.score>=55?'perigo':''}">${c.score}/100</span></div>
-    <div class="gb-info-tile"><span class="lbl">Status</span><span class="val">${c.status||'—'}</span></div>
-    <div class="gb-info-tile"><span class="lbl">Canal</span><span class="val">${c.canal||'—'}</span></div>
-  `;
-  let badges = `<span class="gb-meses-badge ${c.meses>=24?'vermelho':c.meses>=12?'laranja':'verde'}">
-    ${c.meses>=24?'🔴':c.meses>=12?'🟡':'✅'} ${c.meses} meses de contrato
-  </span>`;
-  const valorFrac = (c.valor||0) % 1;
-  if (valorFrac > 0.01 && valorFrac < 0.99) {
-    badges += ` <span class="gb-meses-badge laranja" style="margin-left:4px;" title="Valor com centavos indica possível retenção anterior">💡 Possível retenção anterior</span>`;
-  }
-  document.getElementById('gbModalBadges').innerHTML = badges;
-  const btnWA = document.getElementById('gbModalBtnWhats');
-  if (btnWA) {
-    if (c.telefoneExterno) {
-      btnWA.onclick = () => gbAbrirWhatsApp(c.telefoneExterno);
-      btnWA.classList.remove('hidden');
+    // Remove tudo que não é número
+    numero = numero.replace(/\D/g, '');
+    
+    // Garante que tem DDD (assume 55 se não tiver)
+    if (numero.length === 10) {
+      numero = '55' + numero;
+    } else if (numero.length === 11) {
+      numero = '55' + numero;
+    } else if (numero.length === 12 && numero.startsWith('55')) {
+      // já está ok
     } else {
-      btnWA.classList.add('hidden');
+      alert('⚠️ Número inválido! Use formato: 51999999999 (DDD + número)');
+      return;
+    }
+    
+    const mensagem = encodeURIComponent(document.getElementById('abordagemTexto').innerText);
+    const url = `https://wa.me/${numero}?text=${mensagem}`;
+    
+    console.log('Abrindo WhatsApp para:', numero);
+    window.open(url, '_blank');
+  }
+
+  function gerarNovaVersao() {
+    const cpf = document.getElementById('clienteCPF').value;
+    let msg = '🔄 Gerando nova versão da abordagem...\n';
+    if (cpf) {
+      msg += `\nCPF informado: ${cpf}`;
+    }
+    alert(msg + '\n(Em breve: integração com IA Gemini)');
+  }
+
+  function fecharTela() {
+    alert('Fechar modal (função integrada ao sistema)');
+  }
+
+  // ============================================
+  // FUNÇÕES DA TELA DE REGISTRAR AÇÃO
+  // ============================================
+
+  function toggleDataRetorno() {
+    const statusSelect = document.getElementById('statusNegociacao');
+    const dataRetornoDiv = document.getElementById('dataRetornoArea');
+    const selectedValue = statusSelect.value;
+    
+    if (selectedValue === 'Agendou retorno') {
+      dataRetornoDiv.classList.remove('hidden');
+    } else {
+      dataRetornoDiv.classList.add('hidden');
     }
   }
-  gbRenderHistoricoCliente(idContrato);
-  document.getElementById('gbModalCliente').classList.add('open');
-}
 
-function gbRenderHistoricoCliente(idContrato) {
-  const div = document.getElementById('gbModalHistCliente');
-  if (!div) return;
-  const acoes = GB.acoes.filter(a => a.idContrato === idContrato).sort((a,b) => new Date(b.dataContato) - new Date(a.dataContato));
-  if (!acoes.length) {
-    div.innerHTML = '<div class="gb-empty" style="padding:16px 0;"><i class="fas fa-history"></i><p>Sem contatos registrados.</p></div>';
-    return;
+  function salvarAcao() {
+    const consultor = document.getElementById('consultorSelect').value;
+    const status = document.getElementById('statusNegociacao').value;
+    const observacao = document.getElementById('observacao').value;
+    const resultado = document.getElementById('resultadoNegociacao').value;
+    const novoPlano = document.getElementById('novoPlano').value;
+    const dataRetorno = document.getElementById('dataRetorno').value;
+
+    if (!consultor) {
+      alert('⚠️ Selecione o consultor antes de salvar!');
+      return;
+    }
+    if (!status) {
+      alert('⚠️ Selecione o STATUS DA NEGOCIAÇÃO!');
+      return;
+    }
+
+    let mensagem = `✅ Ação registrada com sucesso!\n\n`;
+    mensagem += `Consultor: ${consultor}\n`;
+    mensagem += `Status: ${status}\n`;
+    if (status === 'Agendou retorno') {
+      mensagem += `Data de retorno: ${new Date(dataRetorno).toLocaleDateString('pt-BR')}\n`;
+    }
+    if (resultado) mensagem += `Resultado: ${resultado}\n`;
+    if (novoPlano) mensagem += `Novo plano: ${novoPlano}\n`;
+    if (observacao) mensagem += `Obs: ${observacao}`;
+
+    alert(mensagem);
+    
+    // Opcional: limpar campos após salvar
+    document.getElementById('observacao').value = '';
+    document.getElementById('resultadoNegociacao').value = '';
+    document.getElementById('novoPlano').value = '';
   }
-  div.innerHTML = acoes.map(a => {
-    const cls = a.resultado === 'UPGRADE' ? 'positivo' : a.resultado === 'DOWNGRADE' || a.resultado === 'RECUSOU' ? 'negativo' : a.resultado === 'ATUACAO' ? 'atuacao' : '';
-    const deltaStr = a.deltaValor && a.deltaValor !== 0
-      ? `<div class="gb-hist-delta">${a.deltaValor > 0 ? '📈 +R$ ' : '📉 -R$ '}${Math.abs(a.deltaValor).toFixed(2).replace('.',',')} /mês · ${a.planoAnterior || '?'} → ${a.planoNovo || '?'}</div>`
-      : '';
-    return `
-    <div class="gb-historico-item ${cls}">
-      <div class="gb-hist-top"><span class="gb-hist-consultor"><i class="fas fa-user" style="margin-right:3px;"></i>${a.consultor}</span><span class="gb-hist-data">${gbFmtData(a.dataContato)}</span></div>
-      <div class="gb-hist-resultado">${gbResultadoLabel(a.resultado, a.statusContato)}</div>${deltaStr}${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}
-    </div>`;
-  }).join('');
-}
 
-function gbSelecionarClienteRegistro(idContrato) {
-  const c = GB.clientes.find(x => x.idContrato === idContrato);
-  if (!c) return;
-  GB.clienteAtual = c;
-  gbAbrirRegistro();
-}
-function gbAbrirRegistro() {
-  if (!GB.clienteAtual) return;
-  const c = GB.clienteAtual;
-  const mb = c.velocidadeMb || 0;
-  const valorFmt = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.',',')}` : '—';
-  document.getElementById('gbRegClienteInfo').innerHTML = `<b>${c.nome}</b> · ${mb ? mb+'Mb' : c.plano||'—'} · ${valorFmt}/mês · ${c.meses} meses`;
-  const pa = document.getElementById('gbRegPlanoAnterior');
-  const va = document.getElementById('gbRegValorAnterior');
-  if (pa) pa.value = mb ? `${mb}Mb` : (c.plano || '');
-  if (va) va.value = c.valor || '';
-  ['gbRegConsultor','gbRegStatus','gbRegResultado','gbRegObs','gbRegDataRetorno'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  ['gbRegPlanoNovo','gbRegValorNovo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  document.getElementById('gbRegDataRetornoArea').classList.add('hidden');
-  if (typeof loggedUser !== 'undefined' && loggedUser) {
-    const sel = document.getElementById('gbRegConsultor');
-    if (sel) {
-      for (const opt of sel.options) {
-        if (loggedUser.includes(opt.value)) { sel.value = opt.value; break; }
-      }
+  function cancelarAcao() {
+    if (confirm('Descartar alterações?')) {
+      document.getElementById('consultorSelect').value = '';
+      document.getElementById('statusNegociacao').value = '';
+      document.getElementById('observacao').value = '';
+      document.getElementById('resultadoNegociacao').value = '';
+      document.getElementById('novoPlano').value = '';
+      document.getElementById('dataRetorno').value = '2026-07-15';
+      document.getElementById('dataRetornoArea').classList.add('hidden');
+      alert('Formulário limpo.');
     }
   }
-  document.getElementById('gbRegResultadoArea').classList.add('hidden');
-  document.getElementById('gbRegPlanoArea').classList.add('hidden');
-  gbRegCalcularDelta();
-  document.getElementById('gbModalCliente').classList.remove('open');
-  document.getElementById('gbModalRegistro').classList.add('open');
-}
 
-// FUNÇÃO ATUALIZADA: mostra DATA DE RETORNO quando status for AGENDOU
-function gbRegAtualizar() {
-  const status = document.getElementById('gbRegStatus').value;
-  const resultado = document.getElementById('gbRegResultado').value;
-  
-  // Mostra área de resultado se atendeu ou fechado/perdido/recusou
-  const mostraResultado = status === 'ATENDEU' || status === 'FECHADO' || status === 'PERDIDO' || status === 'RECUSOU';
-  document.getElementById('gbRegResultadoArea').classList.toggle('hidden', !mostraResultado);
-  
-  // Mostra área de plano se resultado for UPGRADE ou DOWNGRADE
-  document.getElementById('gbRegPlanoArea').classList.toggle('hidden', !['UPGRADE','DOWNGRADE'].includes(resultado));
-  
-  // MOSTRA DATA DE RETORNO se status = AGENDOU
-  const dataRetornoArea = document.getElementById('gbRegDataRetornoArea');
-  if (dataRetornoArea) {
-    dataRetornoArea.classList.toggle('hidden', status !== 'AGENDOU');
-  }
-}
-
-function gbRegCalcularDelta() {
-  const vAnt = parseFloat(document.getElementById('gbRegValorAnterior')?.value) || 0;
-  const vNov = parseFloat(document.getElementById('gbRegValorNovo')?.value) || 0;
-  const delta = vNov - vAnt;
-  const valEl = document.getElementById('gbRegDeltaVal');
-  const iconEl = document.getElementById('gbRegDeltaIcon');
-  if (!valEl) return;
-  valEl.textContent = `R$ ${Math.abs(delta).toFixed(2).replace('.',',')}`;
-  valEl.className = 'delta-val ' + (delta > 0 ? 'positivo' : delta < 0 ? 'negativo' : '');
-  if (iconEl) iconEl.textContent = delta > 0 ? '📈' : delta < 0 ? '📉' : '➡️';
-}
-
-// FUNÇÃO SALVAR REGISTRO ATUALIZADA com DATA DE RETORNO
-async function gbSalvarRegistro() {
-  const c = GB.clienteAtual;
-  if (!c) return;
-  const consultor = document.getElementById('gbRegConsultor').value;
-  const status = document.getElementById('gbRegStatus').value;
-  const resultado = document.getElementById('gbRegResultado').value;
-  const planoNovo = document.getElementById('gbRegPlanoNovo').value;
-  const vAnt = parseFloat(document.getElementById('gbRegValorAnterior')?.value) || 0;
-  const vNov = parseFloat(document.getElementById('gbRegValorNovo')?.value) || 0;
-  const obs = document.getElementById('gbRegObs').value;
-  const dataRetorno = document.getElementById('gbRegDataRetorno')?.value || '';
-  
-  if (!consultor) { alert('⚠️ Selecione o consultor!'); return; }
-  if (!status) { alert('⚠️ Selecione o STATUS DA NEGOCIAÇÃO!'); return; }
-  
-  const payload = {
-    idContrato: c.idContrato, consultor, statusContato: status, resultado: resultado || status,
-    planoAnterior: document.getElementById('gbRegPlanoAnterior')?.value || '', planoNovo: planoNovo,
-    valorAnterior: vAnt, valorNovo: vNov, deltaValor: vNov - vAnt, observacao: obs,
-    requerAtuacao: resultado === 'ATUACAO', abordagemIa: '', dataRetorno: dataRetorno
-  };
-  const acaoLocal = { ...payload, id: 'local_'+Date.now(), dataContato: new Date().toISOString() };
-  GB.acoes.unshift(acaoLocal);
-  localStorage.setItem('gb_acoes_cache', JSON.stringify(GB.acoes));
-  gbFecharModal('gbModalRegistro');
-  gbAtualizarKpis();
-  gbRenderLista();
-  try {
-    await gbApiCall('registrarAcaoBase', payload, false);
-    await gbCarregarAcoes(false);
-    gbRenderLista();
-  } catch(e) { console.warn('GB: Ação salva localmente, falha no sync:', e); }
-  
-  let msg = `✅ Ação registrada!\n\nConsultor: ${consultor}\nStatus: ${status}`;
-  if (status === 'AGENDOU' && dataRetorno) msg += `\n📅 Data de retorno: ${new Date(dataRetorno).toLocaleDateString('pt-BR')}`;
-  if (resultado === 'UPGRADE' || resultado === 'DOWNGRADE') msg += `\n💰 Delta: ${payload.deltaValor > 0 ? '+' : ''}R$ ${payload.deltaValor.toFixed(2).replace('.',',')}/mês`;
-  alert(msg);
-}
-
-function gbSelecionarClienteIA(idContrato) {
-  const c = GB.clientes.find(x => x.idContrato === idContrato);
-  if (!c) return;
-  GB.clienteAtual = c;
-  
-  // Carregar dados salvos do WhatsApp e CPF
-  const dadosSalvos = localStorage.getItem(`cliente_${c.idContrato}_dados`);
-  if (dadosSalvos) {
-    try {
-      const dados = JSON.parse(dadosSalvos);
-      if (document.getElementById('gbIAWhatsApp')) document.getElementById('gbIAWhatsApp').value = dados.whatsapp || '';
-      if (document.getElementById('gbIACpf')) document.getElementById('gbIACpf').value = dados.cpf || '';
-    } catch(e) {}
-  } else {
-    if (document.getElementById('gbIAWhatsApp')) document.getElementById('gbIAWhatsApp').value = c.telefoneExterno || '';
-    if (document.getElementById('gbIACpf')) document.getElementById('gbIACpf').value = '';
-  }
-  
-  gbGerarAbordagem();
-}
-
-// Função para salvar dados de contato (WhatsApp e CPF)
-function gbSalvarDadosContato() {
-  if (!GB.clienteAtual) return;
-  const whatsapp = document.getElementById('gbIAWhatsApp')?.value || '';
-  const cpf = document.getElementById('gbIACpf')?.value || '';
-  const idContrato = GB.clienteAtual.idContrato;
-  
-  localStorage.setItem(`cliente_${idContrato}_dados`, JSON.stringify({ whatsapp, cpf }));
-  
-  // Atualizar no cache principal
-  const clientes = JSON.parse(localStorage.getItem('gb_clientes_cache') || '[]');
-  const idx = clientes.findIndex(c => c.idContrato === idContrato);
-  if (idx !== -1) {
-    clientes[idx].telefoneExterno = whatsapp;
-    clientes[idx].cpf = cpf;
-    localStorage.setItem('gb_clientes_cache', JSON.stringify(clientes));
-  }
-  
-  alert('✅ WhatsApp e CPF salvos com sucesso!');
-}
-
-async function gbGerarAbordagem() {
-  const c = GB.clienteAtual;
-  if (!c) return;
-  const mb = c.velocidadeMb || 0;
-  const valor = c.valor ? `R$ ${Number(c.valor).toFixed(2).replace('.',',')}` : 'não informado';
-  const plano = mb ? `${mb}Mbps` : (c.plano || 'não informado');
-  const meses = c.meses || 0;
-  
-  // Converter meses para anos e meses (ex: 58 meses → 4 anos e 10 meses)
-  const anos = Math.floor(meses / 12);
-  const mesesRestantes = meses % 12;
-  let tempoTexto = '';
-  if (anos > 0) {
-    tempoTexto = `${anos} ano${anos > 1 ? 's' : ''}`;
-    if (mesesRestantes > 0) tempoTexto += ` e ${mesesRestantes} mes${mesesRestantes > 1 ? 'es' : ''}`;
-  } else {
-    tempoTexto = `${meses} meses`;
-  }
-  
-  document.getElementById('gbIAClienteInfo').innerHTML = `<b>${c.nome}</b> · ${plano} · ${valor}/mês · ${tempoTexto} como cliente`;
-  document.getElementById('gbIALoading').classList.remove('hidden');
-  document.getElementById('gbIAResultado').classList.add('hidden');
-  document.getElementById('gbModalCliente').classList.remove('open');
-  document.getElementById('gbModalIA').classList.add('open');
-  
-  const prompt = `Você é consultor de retenção e upgrade da MHNET, empresa de internet fibra óptica em Lajeado e Estrela/RS.
-
-DADOS DO CLIENTE:
-- Nome: ${c.nome}
-- Plano atual: ${plano}
-- Valor mensal: ${valor}
-- Tempo de contrato: ${tempoTexto}
-- Cidade: ${c.cidade || 'Lajeado'}
-${c.valor && ((c.valor%1)>0.01) ? '- Obs: valor com centavos sugere desconto de retenção anterior' : ''}
-
-Crie uma abordagem de contato WhatsApp PERSONALIZADA seguindo:
-1. Cumprimento pelo nome
-2. Valorizar o tempo de cliente (ex: "há mais de ${tempoTexto}")
-3. Proposta de upgrade com benefícios claros (mais velocidade, melhor experiência)
-4. Oferecer também: planos para celular, Wi-Fi com mais cobertura em toda casa, TV por assinatura com diversos canais, câmeras de segurança
-5. CTA amigável
-
-Tom: próximo, regional gaúcho, sem formalidade excessiva. Use emojis (😊, 🎉, 💙, 🚀, 📶, ⚡, 📱, 🏠, 📺, 📹). Máximo 8 linhas.`;
-  
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GB.GEMINI_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 500, temperature: 0.8 } })
-    });
-    const data = await res.json();
-    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (txt) { gbExibirAbordagem(txt); return; }
-  } catch(e) {}
-  try {
-    const r = await gbApiCall('gerarAbordagemBase', { idContrato: c.idContrato, nome: c.nome, plano, valor, meses: tempoTexto }, false);
-    if (r?.abordagem) { gbExibirAbordagem(r.abordagem); return; }
-  } catch(e) {}
-  gbExibirAbordagem(`Olá ${c.nome}, tudo bem? 😊\n\nVocê já faz parte da família MHNET há mais de ${tempoTexto}! 🎉💙\n\nPor ser um cliente especial, você tem acesso a condições exclusivas para deixar sua conexão ainda melhor. 🚀✨\n\nHoje você utiliza ${plano}, mas temos opções com muito mais velocidade para navegar, assistir vídeos, trabalhar e aproveitar a internet sem preocupações. 📶⚡\n\nAlém disso, também podemos oferecer:\n📱 Planos para celular;\n🏠 Wi-Fi com mais cobertura em toda a casa;\n📺 TV por assinatura com diversos canais;\n📹 Câmeras de segurança.\n\nGostaria que eu te apresentasse as opções disponíveis pra ti? 😊💙`);
-}
-
-function gbExibirAbordagem(texto) {
-  document.getElementById('gbIALoading').classList.add('hidden');
-  document.getElementById('gbIATexto').textContent = texto;
-  document.getElementById('gbIAResultado').classList.remove('hidden');
-}
-
-function gbCopiarAbordagem() {
-  const txt = document.getElementById('gbIATexto')?.textContent || '';
-  navigator.clipboard?.writeText(txt).then(() => alert('✅ Texto copiado!')).catch(() => {
-    const ta = document.createElement('textarea');
-    ta.value = txt; document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    alert('✅ Texto copiado!');
+  // Inicialização
+  document.addEventListener('DOMContentLoaded', function() {
+    const amanha = new Date();
+    amanha.setDate(amanha.getDate() + 1);
+    const inputData = document.getElementById('dataRetorno');
+    if (inputData) {
+      inputData.min = amanha.toISOString().split('T')[0];
+    }
   });
-}
-
-function gbAbrirWhatsAppComIA() {
-  const c = GB.clienteAtual;
-  const txt = document.getElementById('gbIATexto')?.textContent || '';
-  
-  // Tentar pegar o WhatsApp salvo ou do campo
-  let fone = '';
-  const dadosSalvos = localStorage.getItem(`cliente_${c.idContrato}_dados`);
-  if (dadosSalvos) {
-    try {
-      const dados = JSON.parse(dadosSalvos);
-      fone = dados.whatsapp || '';
-    } catch(e) {}
-  }
-  if (!fone) fone = document.getElementById('gbIAWhatsApp')?.value || c.telefoneExterno || '';
-  
-  if (fone) {
-    const numero = String(fone).replace(/\D/g,'');
-    window.open(`https://wa.me/55${numero}?text=${encodeURIComponent(txt)}`, '_blank');
-  } else {
-    gbCopiarAbordagem();
-    alert('📱 WhatsApp não informado! Texto copiado para você colar manualmente.');
-  }
-}
-
-function gbRenderDashboard() {
-  const div = document.getElementById('gbPainelConsultores');
-  if (!div) return;
-  const hoje = new Date();
-  const ini30 = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const stats = {};
-  GB.consultores.forEach(nome => { stats[nome] = { total:0, upgrades:0, downgrades:0, recusou:0, incremento:0 }; });
-  GB.acoes.forEach(a => {
-    if (!a.consultor || !stats[a.consultor]) return;
-    const dt = new Date(a.dataContato);
-    if (dt < ini30) return;
-    const s = stats[a.consultor];
-    s.total++;
-    if (a.resultado === 'UPGRADE') { s.upgrades++; s.incremento += a.deltaValor || 0; }
-    if (a.resultado === 'DOWNGRADE') { s.downgrades++; s.incremento += a.deltaValor || 0; }
-    if (a.resultado === 'RECUSOU') s.recusou++;
-  });
-  div.innerHTML = `<div style="font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:12px;"><i class="fas fa-chart-bar" style="margin-right:5px;"></i>Últimos 30 dias</div>` +
-    GB.consultores.map(nome => {
-      const s = stats[nome];
-      const iniciais = nome.split(' ').map(p => p[0]).slice(0,2).join('').toUpperCase();
-      const taxa = s.total > 0 ? Math.round((s.upgrades / s.total) * 100) : 0;
-      const incFmt = s.incremento !== 0 ? `${s.incremento > 0 ? '+' : ''}R$ ${s.incremento.toFixed(2).replace('.',',')}` : 'R$ 0,00';
-      return `<div class="gb-cons-card"><div class="gb-cons-header"><div class="gb-cons-avatar">${iniciais}</div><div><div class="gb-cons-name">${nome}</div><div class="gb-cons-meta">${taxa}% taxa de upgrade · ${s.total} contatos</div></div></div><div class="gb-cons-stats"><div class="gb-cons-stat"><div class="sv">${s.total}</div><div class="sl">Contatos</div></div><div class="gb-cons-stat"><div class="sv verde">${s.upgrades}</div><div class="sl">Upgrades</div></div><div class="gb-cons-stat"><div class="sv vermelho">${s.downgrades}</div><div class="sl">Downgrades</div></div><div class="gb-cons-stat"><div class="sv ${s.incremento >= 0 ? 'verde' : 'vermelho'}" style="font-size:.75rem;">${incFmt}</div><div class="sl">Δ Receita</div></div></div></div>`;
-    }).join('');
-}
-
-function gbCarregarHistorico() {
-  const div = document.getElementById('gbListaHistorico');
-  if (!div) return;
-  const fConsultor = document.getElementById('gbHistFiltroConsultor')?.value || '';
-  const fResultado = document.getElementById('gbHistFiltroResultado')?.value || '';
-  let lista = [...GB.acoes];
-  if (fConsultor) lista = lista.filter(a => a.consultor === fConsultor);
-  if (fResultado) lista = lista.filter(a => a.resultado === fResultado);
-  lista.sort((a,b) => new Date(b.dataContato) - new Date(a.dataContato));
-  lista = lista.slice(0,50);
-  if (!lista.length) { div.innerHTML = '<div class="gb-empty"><i class="fas fa-history"></i><p>Nenhuma ação encontrada.</p></div>'; return; }
-  div.innerHTML = lista.map(a => {
-    const clienteNome = GB.clientes.find(c => c.idContrato === a.idContrato)?.nome || a.idContrato;
-    const cls = a.resultado === 'UPGRADE' ? 'positivo' : a.resultado === 'DOWNGRADE' || a.resultado === 'RECUSOU' ? 'negativo' : a.resultado === 'ATUACAO' ? 'atuacao' : '';
-    const deltaStr = a.deltaValor && a.deltaValor !== 0 ? ` · ${a.deltaValor > 0 ? '📈 +' : '📉 '}R$ ${Math.abs(a.deltaValor).toFixed(2).replace('.',',')}` : '';
-    let retornoStr = '';
-    if (a.dataRetorno) retornoStr = ` · 📅 Retorno: ${new Date(a.dataRetorno).toLocaleDateString('pt-BR')}`;
-    return `<div class="gb-historico-item ${cls}"><div class="gb-hist-top"><span class="gb-hist-consultor"><i class="fas fa-user"></i> ${a.consultor}</span><span class="gb-hist-data">${gbFmtData(a.dataContato)}</span></div><div class="gb-hist-resultado">${clienteNome} — ${gbResultadoLabel(a.resultado, a.statusContato)}${retornoStr}</div>${a.deltaValor && a.deltaValor !== 0 ? `<div class="gb-hist-delta">${a.planoAnterior||'?'} → ${a.planoNovo||'?'}${deltaStr}</div>` : ''}${a.observacao ? `<div class="gb-hist-obs">"${a.observacao}"</div>` : ''}</div>`;
-  }).join('');
-}
-
-function gbAbrirWhatsApp(fone) { const n = String(fone).replace(/\D/g,''); window.open(`https://wa.me/55${n}`, '_blank'); }
-function gbFecharModal(id) { document.getElementById(id)?.classList.remove('open'); }
-function gbSet(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
-function gbFmtData(v) {
-  if (!v) return '—';
-  try { const d = new Date(v); if (isNaN(d)) return String(v).split('T')[0]; return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}); } catch(e) { return String(v).split('T')[0]; }
-}
-function gbResultadoLabel(resultado, status) {
-  const map = { UPGRADE:'✅ Upgrade', DOWNGRADE:'🔽 Downgrade', FIDELIZOU:'🔒 Fidelizou', RECUSOU:'❌ Recusou', ATUACAO:'⚠️ Atuação', NAO_ATENDEU:'📵 Não atendeu', AGENDOU:'📅 Agendou', ATENDEU:'📞 Atendeu', FECHADO:'🎯 Fechado', PERDIDO:'❌ Perdido' };
-  return map[resultado] || map[status] || resultado || status || '—';
-}
-function gbGerarAbordagemLote() { alert('🚀 IA em lote em breve!'); }
-
-// Integração com a navegação principal
-if (typeof navegarPara === 'function') {
-  const originalNavegarPara = navegarPara;
-  window.navegarPara = function(pageId) {
-    originalNavegarPara(pageId);
-    if (pageId === 'gestaoBase' && typeof gbInit === 'function') gbInit();
-  };
-} else {
-  window.navegarPara = function(pageId) {
-    if (pageId === 'gestaoBase' && typeof gbInit === 'function') gbInit();
-  };
-}
-
-// Expõe funções globalmente
-Object.assign(window, {
-  gbSetTab, gbCarregarBase, gbFiltrarPrioridade, gbAplicarFiltros, gbLimparFiltros,
-  gbProximaPagina, gbPaginaAnterior, gbAbrirCliente, gbSelecionarClienteRegistro,
-  gbAbrirRegistro, gbRegAtualizar, gbRegCalcularDelta, gbSalvarRegistro,
-  gbSelecionarClienteIA, gbGerarAbordagem, gbCopiarAbordagem, gbAbrirWhatsAppComIA,
-  gbFecharModal, gbAbrirWhatsApp, gbRenderDashboard, gbCarregarHistorico, gbGerarAbordagemLote,
-  gbSalvarDadosContato
-});
 </script>
 </body>
 </html>
